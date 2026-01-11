@@ -1,7 +1,7 @@
 from django.db import connection
 
 def calculate_course_progress(user, course):
-    """расчет прогресса курса с использованием существующей функции БД"""
+    """расчет прогресса курса с использованием функции из бд"""
     try:
         with connection.cursor() as cu:
             cu.execute("SELECT calculate_course_completion(%s, %s)", [user.id, course.id])
@@ -10,3 +10,4 @@ def calculate_course_progress(user, course):
     except Exception as e:
         print(f"ошибка подсчета прогресса: {e}")
         return 0.0
+
