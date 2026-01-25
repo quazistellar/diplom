@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Главная{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+    <div class="container">
+        <h1 class="hero-title">
+            Если у тебя есть мечта —<br>
+            сделай из неё план!
+        </h1>
+        <p class="hero-subtitle">
+            Unireax — образовательные программы для тех, кто стремится к знаниям 
+            и профессиональному росту. Достигайте большего с нами!
+        </p>
+        <div style="margin-top: 30px;">
+            <a href="#" class="btn btn-register btn-large">
+                <i class="fas fa-rocket" style="margin-right: 8px;"></i>Выбрать подходящий курс!
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="courses-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Выбор наших слушателей</h2>
+            <div class="view-controls">
+                <button class="view-btn active" data-view="grid">
+                    <i class="fas fa-th-large" style="margin-right: 6px;"></i>Сетка
+                </button>
+                <button class="view-btn" data-view="list">
+                    <i class="fas fa-list" style="margin-right: 6px;"></i>Список
+                </button>
+            </div>
+        </div>
+
+        {% if courses %}
+        <div id="courses-container" class="courses-container grid-view">
+            {% for course in courses %}
+            <!-- ВИД СЕТКИ -->
+            <div class="course-card grid-card">
+                <div class="course-image">
+                    {% if course.course_photo_path %}
+                    <img src="{{ course.course_photo_path.url }}" alt="{{ course.course_name }}">
+                    {% else %}
+                    <div class="course-image-placeholder">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    {% endif %}
+                    
+                    {% if course.course_category %}
+                    <span class="course-category-badge">
+                        {{ course.course_category.category_name }}
+                    </span>
+                    {% endif %}
+                    
+                    {% if course.course_type %}
+                    <span class="course-type-badge" style="background: 
+                        {% if course.course_type.type_name == 'Онлайн' %}var(--primary)
+                        {% elif course.course_type.type_name == 'Оффлайн' %}var(--accent)
+                        {% elif course.course_type.type_name == 'Смешанный' %}#2ecc71
+                        {% else %}var(--text-soft){% endif %}">
+                        <i class="fas fa-{% if course.course_type.type_name == 'Онлайн' %}laptop
+                            {% elif course.course_type.type_name == 'Оффлайн' %}building
+                            {% elif course.course_type.type_name == 'Смешанный' %}blender
+                            {% else %}graduation-cap{% endif %}"></i>
+                        {{ course.course_type.type_name }}
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="course-content">
+                    <!-- Цена в сетке -->
+                    <div class="course-price-section">
+                        {% if course.course_price %}
+                        <div class="course-price-main">
+                            <span class="course-price-amount">{{ course.course_price|floatformat:"0" }}</span>
+                            <span class="course-price-currency">₽</span>
+                            {% if course.course_max_places %}
+                            <span class="course-price-info">/ {{ course.course_max_places }} мест</span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="course-price-free">
+                            <span class="free-label">БЕСПЛАТНО</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="course-header">
+                        <h3 class="course-title" title="{{ course.course_name }}">
+                            {{ course.course_name }}
+                        </h3>
+                    </div>
+                    
+                    <p class="course-description" title="{{ course.course_description|default:'Описание курса скоро появится...' }}">
+                        {{ course.course_description|default:"Описание курса скоро появится..."|truncatechars:120 }}
+                    </p>
+                    
+                    <div class="course-details">
+                        <div class="detail-item">
+                            <i class="fas fa-clock"></i>
+                            <span class="detail-label">{{ course.course_hours }} ч.</span>
+                        </div>
+                        
+                        {% if course.has_certificate %}
+                        <div class="detail-item">
+                            <i class="fas fa-certificate"></i>
+                            <span class="detail-label">Сертификат</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if course.is_completed %}
+                        <div class="detail-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span class="detail-label">Готово</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if course.created_by %}
+                    <div class="course-instructor">
+                        <i class="fas fa-user-tie"></i>
+                        <span class="instructor-name" title="{{ course.created_by.get_full_name|default:course.created_by.username }}">
+                            {{ course.created_by.get_full_name|default:course.created_by.username|truncatechars:25 }}
+                        </span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="course-actions">
+                        <a href="#" class="btn btn-register btn-block">
+                            <i class="fas fa-eye" style="margin-right: 6px;"></i>Подробнее
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="course-card list-card">
+                <div class="course-image">
+                    {% if course.course_photo_path %}
+                    <img src="{{ course.course_photo_path.url }}" alt="{{ course.course_name }}">
+                    {% else %}
+                    <div class="course-image-placeholder">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    {% endif %}
+                    
+                    {% if course.course_category %}
+                    <span class="course-category-badge">
+                        {{ course.course_category.category_name }}
+                    </span>
+                    {% endif %}
+                    
+                    {% if course.course_type %}
+                    <span class="course-type-badge" style="background: 
+                        {% if course.course_type.type_name == 'Онлайн' %}var(--primary)
+                        {% elif course.course_type.type_name == 'Оффлайн' %}var(--accent)
+                        {% elif course.course_type.type_name == 'Смешанный' %}#2ecc71
+                        {% else %}var(--text-soft){% endif %}">
+                        <i class="fas fa-{% if course.course_type.type_name == 'Онлайн' %}laptop
+                            {% elif course.course_type.type_name == 'Оффлайн' %}building
+                            {% elif course.course_type.type_name == 'Смешанный' %}blender
+                            {% else %}graduation-cap{% endif %}"></i>
+                        {{ course.course_type.type_name }}
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="course-content">
+                    <div class="course-header">
+                        <h3 class="course-title" title="{{ course.course_name }}">
+                            {{ course.course_name }}
+                        </h3>
+                    </div>
+                    
+                    <div class="course-tags">
+                        <span class="course-tag">
+                            <i class="fas fa-clock"></i> {{ course.course_hours }} часов
+                        </span>
+                        
+                        {% if course.has_certificate %}
+                        <span class="course-tag">
+                            <i class="fas fa-certificate"></i> С сертификатом
+                        </span>
+                        {% endif %}
+                        
+                        {% if course.is_completed %}
+                        <span class="course-tag">
+                            <i class="fas fa-check-circle"></i> Материалы готовы
+                        </span>
+                        {% endif %}
+                        
+                        {% if course.course_type %}
+                        <span class="course-tag">
+                            <i class="fas fa-{% if course.course_type.type_name == 'Онлайн' %}laptop
+                                {% elif course.course_type.type_name == 'Оффлайн' %}building
+                                {% elif course.course_type.type_name == 'Смешанный' %}blender
+                                {% else %}graduation-cap{% endif %}"></i>
+                            {{ course.course_type.type_name }}
+                        </span>
+                        {% endif %}
+                        
+                        {% if course.course_max_places %}
+                        <span class="course-tag">
+                            <i class="fas fa-user-friends"></i> До {{ course.course_max_places }} мест
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="course-details-row">
+                        <div class="detail-item">
+                            <i class="fas fa-calendar"></i>
+                            <span class="detail-label">Создан: {{ course.created_at|date:"d.m.Y" }}</span>
+                        </div>
+                        
+                        {% if course.created_by %}
+                        <div class="detail-item">
+                            <i class="fas fa-user-tie"></i>
+                            <span class="detail-label">{{ course.created_by.get_full_name|default:course.created_by.username|truncatechars:15 }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="course-sidebar">
+                    <div class="course-price-section">
+                        {% if course.course_price %}
+                        <div class="course-price-main">
+                            <div class="price-wrapper">
+                                <span class="course-price-amount">{{ course.course_price|floatformat:"0" }}</span>
+                                <span class="course-price-currency">₽</span>
+                            </div>
+                            {% if course.course_max_places %}
+                            <span class="course-price-info">/ {{ course.course_max_places }} мест</span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="course-price-free">
+                            <span class="free-label">БЕСПЛАТНО</span>
+                            <span class="free-subtext">Нет ограничений</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="course-actions">
+                        <a href="#" class="btn btn-register btn-block">
+                            <i class="fas fa-shopping-cart" style="margin-right: 6px;"></i>Выбрать
+                        </a>
+                    </div>
+                </div>
+                
+                {% if course.created_by %}
+                <div class="course-instructor">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <span class="instructor-name" title="{{ course.created_by.get_full_name|default:course.created_by.username }}">
+                        {{ course.created_by.get_full_name|default:course.created_by.username|truncatechars:25 }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-courses">
+            <i class="fas fa-book-open"></i>
+            <h4>Курсы скоро появятся</h4>
+            <p>Мы активно готовим для вас лучшие образовательные программы</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="stats-section">
+    <div class="container">
+        <h2 class="section-title">UNIREAX в цифрах</h2>
+        <p class="stats-subtitle">На платформе уже:</p>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-3 col-md-4 col-6">
+                <div class="stat-card">
+                    <i class="fas fa-users stat-icon"></i>
+                    <div class="stat-value" data-target="{{ students_count }}">0</div>
+                    <div class="stat-label">слушателей</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-6">
+                <div class="stat-card">
+                    <i class="fas fa-book stat-icon"></i>
+                    <div class="stat-value" data-target="{{ courses_count }}">0</div>
+                    <div class="stat-label">курсов</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-6">
+                <div class="stat-card">
+                    <i class="fas fa-star stat-icon"></i>
+                    <div class="stat-value" data-target="4.9">0</div>
+                    <div class="stat-label">средняя оценка</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

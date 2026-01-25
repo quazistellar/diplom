@@ -1,0 +1,42 @@
+<!-- в данном файле находится базовый шаблон для html-представлений -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}UNIREAX - Космическое образование{% endblock %}</title>
+
+    {% load static %}
+
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Arial+Black&display=swap" rel="stylesheet">
+
+    {% block extra_css %}{% endblock %}
+
+    <link rel="icon" href="{% static 'images/unireax_logo.PNG' %}" type="image/png">
+</head>
+<body>
+
+    {% include '_inc/_header.html' %}
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include '_inc/_footer.html' %}
+
+    <canvas id="stars-canvas"></canvas>
+
+    <script src="{% static 'js/theme-toggle.js' %}"></script>
+    <script src="{% static 'js/dropdown.js' %}"></script>
+    <script src="{% static 'js/search.js' %}"></script>
+    <script src="{% static 'js/view-toggle.js' %}"></script>
+    <script src="{% static 'js/stars-simple.js' %}"></script>
+    <script src="{% static 'js/burger-menu.js' %}"></script> 
+    {% block scripts %}{% endblock %}
+</body>
+</html>

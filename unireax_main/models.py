@@ -1,13 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
-from django.core.validators import MinLengthValidator, RegexValidator, MaxLengthValidator, EmailValidator, FileExtensionValidator, MinValueValidator, MaxValueValidator, URLValidator
+from django.core.validators import (
+    MinLengthValidator, RegexValidator, MaxLengthValidator, 
+    EmailValidator, FileExtensionValidator, MinValueValidator, 
+    MaxValueValidator, URLValidator
+)
 from django.utils import timezone
 from django.db import connection
 from datetime import timedelta
 import random, os, string
 from django.core.files.storage import default_storage
 from .utils.additional_function import calculate_course_progress
+from django.db.models import Q, F, Func
 
 ALLOWED_EXT = [
     'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx',
@@ -35,6 +40,10 @@ ALLOWED_EXT = [
 
     'dwg', 'dxf', 'stl', 'obj', 'fbx', 'gltf', 'glb', 'blend'
 ]
+
+class CharLength(Func):
+    function = 'LENGTH'
+    output_field = models.IntegerField()
 
 
 # 1. роли 
@@ -85,15 +94,15 @@ class Role(models.Model):
         verbose_name_plural = 'Роли'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(role_name__length__gte=3),
-                name='role_min_len'
+                condition=Q(role_name__regex=r'^.{3,40}$'),
+                name='role_length_check'
             ),
             models.CheckConstraint(
-                condition=models.Q(role_name__regex=r'^[а-яА-Яa-zA-Z_\- ]+$'),
+                condition=Q(role_name__regex=r'^[а-яА-Яa-zA-Z_\- ]+$'),
                 name='role_valid_chars'
             ),
             models.CheckConstraint(
-                condition=~models.Q(role_name__regex=r'^\s*$'),
+                condition=~Q(role_name__regex=r'^\s*$'),
                 name='role_not_only_spaces'
             ),
         ]
@@ -165,18 +174,6 @@ class User(AbstractUser):
         help_text='Роль пользователя в системе'
     )
     
-    profile_theme = models.CharField('Цветовая тема', max_length=30, blank=True, null=True,
-        validators=[
-            MaxLengthValidator(30, message='Название темы должно содержать максимум 30 символов'),
-            RegexValidator(
-                regex=r'^[a-zA-Z0-9_\- ]*$',
-                message='Тема может содержать только латинские буквы, цифры, пробелы, дефисы и подчёркивания!',
-                code='invalid_theme'
-            )
-        ],
-        help_text='Необязательное поле. Название цветовой темы интерфейса'
-    )
-    
     position = models.CharField('Должность', max_length=100, blank=True, null=True,
         validators=[
             MaxLengthValidator(100, message='Название должности должно содержать максимум 100 символов'),
@@ -201,7 +198,20 @@ class User(AbstractUser):
         ],
         help_text='Подтверждение места работы или уровня образования. Максимальный размер: 10 МБ',
     )
+
+    is_light_theme = models.BooleanField(default=True, verbose_name='Тема интерфейса',
+        choices=[(True, 'Светлая'), (False, 'Тёмная')],
+        help_text='Выберите цветовую тему интерфейса'
+    )    
     
+    def get_theme(self, request=None, default='light'):
+        """функция получения темы приложения"""
+        if request and 'theme' in request.COOKIES:
+            theme_cookie = request.COOKIES['theme']
+            if theme_cookie in ['light', 'dark']:  
+                return theme_cookie
+        return 'light' if self.is_light_theme else 'dark'
+        
     def __str__(self):
         return f'{self.last_name} {self.first_name}'
     
@@ -234,8 +244,12 @@ class User(AbstractUser):
         super().clean()
         errors = {}
         
-        if self.certificate_file and self.certificate_file.size > 10 * 1024 * 1024:
-            errors['certificate_file'] = 'Файл слишком большой! Максимальный размер: 10 МБ'
+        if self.certificate_file:
+            try:
+                if self.certificate_file.size > 10 * 1024 * 1024:
+                    errors['certificate_file'] = 'Файл слишком большой! Максимальный размер: 10 МБ'
+            except (ValueError, AttributeError):
+                pass
         
         if self.role:
             role_name = self.role.role_name.lower()
@@ -260,14 +274,17 @@ class User(AbstractUser):
         else:
             self.patronymic = None
         
-        if self.profile_theme == '':
-            self.profile_theme = None
-        
         if self.email:
             self.email = self.email.strip().lower()
         
         if errors:
             raise ValidationError(errors)
+    
+    def _normalize_text_field(self, field_name):
+        """Нормализует текстовое поле"""
+        value = getattr(self, field_name)
+        if value:
+            setattr(self, field_name, ' '.join(value.strip().split()))
     
     def save(self, *args, **kwargs):
         if self.role:
@@ -284,60 +301,26 @@ class User(AbstractUser):
         verbose_name_plural = 'Пользователи'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(username__length__range=(1, 150)),
-                name='user_username_len'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(first_name__length__range=(2, 50)),
-                name='user_first_name_len'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(last_name__length__range=(1, 50)),
-                name='user_last_name_len'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(email__length__range=(1, 254)),
-                name='user_email_len'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(email__regex=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'),
+                condition=Q(email__regex=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'),
                 name='user_email_format'
             ),
             models.CheckConstraint(
-                condition=(
-                    models.Q(patronymic__isnull=True) |
-                    models.Q(patronymic__length__range=(2, 50))
-                ),
-                name='user_patronymic_len'
+                condition=Q(username__regex=r'^[\w.@-]+$'),
+                name='user_username_format'
             ),
             models.CheckConstraint(
-                condition=(
-                    models.Q(profile_theme__isnull=True) |
-                    models.Q(profile_theme='') |
-                    models.Q(profile_theme__length__range=(1, 30))
-                ),
-                name='user_profile_theme_len'
+                condition=Q(first_name__regex=r'^[а-яА-Яa-zA-Z\- ]+$'),
+                name='user_first_name_format'
             ),
             models.CheckConstraint(
-                condition=(
-                    models.Q(position__isnull=True) |
-                    models.Q(position='') |
-                    models.Q(position__length__range=(1, 100))
-                ),
-                name='user_position_len'
-            ),
-            models.CheckConstraint(
-                condition=(
-                    models.Q(educational_institution__isnull=True) |
-                    models.Q(educational_institution='') |
-                    models.Q(educational_institution__length__range=(1, 100))
-                ),
-                name='user_educational_institution_len'
+                condition=Q(last_name__regex=r'^[а-яА-Яa-zA-Z\- ]+$'),
+                name='user_last_name_format'
             ),
         ]
 
 # 3. категории курсов
 class CourseCategory(models.Model):
+    """"данный класс описывает """
     course_category_name = models.CharField('Название категории курса', max_length=100, unique=True,
         validators=[
             MinLengthValidator(2, message='Минимум 2 символа'),
@@ -382,16 +365,11 @@ class CourseCategory(models.Model):
         verbose_name_plural = 'Категории курсов'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(course_category_name__length__gte=2) & 
-                          models.Q(course_category_name__length__lte=100),
-                name='course_category_name_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(course_category_name__regex=r'^[а-яА-Яa-zA-Z0-9_\- ]+$'),
+                condition=Q(course_category_name__regex=r'^[а-яА-Яa-zA-Z0-9_\- ]+$'),
                 name='course_category_name_valid_chars'
             ),
             models.CheckConstraint(
-                condition=~models.Q(course_category_name__regex=r'^\s*$'),
+                condition=~Q(course_category_name__regex=r'^\s*$'),
                 name='course_category_not_only_spaces'
             ),
         ]
@@ -446,19 +424,6 @@ class CourseType(models.Model):
         db_table = 'course_type'
         verbose_name = 'Тип курса'
         verbose_name_plural = 'Типы курсов'
-        constraints = [
-            models.CheckConstraint(
-                condition=models.Q(course_type_name__length__gte=2) & 
-                          models.Q(course_type_name__length__lte=100),
-                name='course_type_name_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(course_type_description__isnull=True) | 
-                          models.Q(course_type_description='') | 
-                          models.Q(course_type_description__length__range=(10, 2000)),
-                name='course_type_description_len_check'
-            ),
-        ]
 
 # 5. статусы заданий
 class AssignmentStatus(models.Model):
@@ -496,12 +461,7 @@ class AssignmentStatus(models.Model):
         verbose_name_plural = 'Статусы заданий'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(assignment_status_name__length__gte=2) & 
-                          models.Q(assignment_status_name__length__lte=50),
-                name='assignment_status_name_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(assignment_status_name__regex=r'^[а-яА-Яa-zA-Z_\- ]+$'),
+                condition=Q(assignment_status_name__regex=r'^[а-яА-Яa-zA-Z_\- ]+$'),
                 name='assignment_status_valid_chars'
             ),
         ]
@@ -603,10 +563,16 @@ class Course(models.Model):
                     'course_description': 'Если указано описание, оно должно содержать минимум 20 символов!'
                 })
         
-        if self.created_by and not self.created_by.is_teacher_or_methodist:
-            raise ValidationError({
-                'created_by': 'Курс может быть создан только методистом или преподавателем!'
-            })
+        if self.created_by:
+            if not self.created_by.role:
+                raise ValidationError({
+                    'created_by': 'У создателя курса должна быть указана роль!'
+                })
+            role_name = self.created_by.role.role_name.lower()
+            if role_name not in ['методист', 'преподаватель']:
+                raise ValidationError({
+                    'created_by': 'Курс может быть создан только методистом или преподавателем!'
+                })
         
         if self.course_price is not None and self.course_price < 0:
             raise ValidationError({'course_price': 'Цена не может быть отрицательной!'})
@@ -643,28 +609,17 @@ class Course(models.Model):
         verbose_name_plural = 'Курсы'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(course_name__length__gte=3) & 
-                          models.Q(course_name__length__lte=200),
-                name='course_name_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(course_description__isnull=True) | 
-                          models.Q(course_description='') | 
-                          models.Q(course_description__length__gte=20),
-                name='course_description_min_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(course_price__isnull=True) | 
-                          models.Q(course_price__gte=0),
+                condition=Q(course_price__isnull=True) | 
+                          Q(course_price__gte=0),
                 name='course_price_non_negative_check'
             ),
             models.CheckConstraint(
-                condition=models.Q(course_max_places__isnull=True) | 
-                          models.Q(course_max_places__gt=0),
+                condition=Q(course_max_places__isnull=True) | 
+                          Q(course_max_places__gt=0),
                 name='course_max_places_positive_check'
             ),
             models.CheckConstraint(
-                condition=models.Q(course_hours__gt=0),
+                condition=Q(course_hours__gt=0),
                 name='course_hours_positive_check'
             ),
         ]
@@ -713,8 +668,8 @@ class CourseTeacher(models.Model):
         unique_together = ('course', 'teacher')
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(start_date__isnull=True) | 
-                          models.Q(start_date__gte=timezone.now().date()),
+                condition=Q(start_date__isnull=True) | 
+                          Q(start_date__gte=timezone.now().date()),
                 name='course_teacher_start_date_future_check'
             ),
         ]
@@ -801,17 +756,7 @@ class Lecture(models.Model):
         ordering = ['course', 'lecture_order']
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(lecture_name__length__gte=3) & 
-                          models.Q(lecture_name__length__lte=200),
-                name='lecture_name_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(lecture_content__length__gte=50) & 
-                          models.Q(lecture_content__length__lte=50000),
-                name='lecture_content_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(lecture_order__gt=0),
+                condition=Q(lecture_order__gt=0),
                 name='lecture_order_positive_check'
             ),
             models.UniqueConstraint(
@@ -907,20 +852,36 @@ class PracticalAssignment(models.Model):
                 'assignment_document_path': 'Файл слишком большой. Максимальный размер: 100 МБ'
             })
         
-        if self.grading_type == 'points' and (self.max_score is None or self.max_score <= 0):
-            raise ValidationError({
-                'max_score': 'Для типа оценки "По баллам" необходимо указать положительный максимальный балл!'
-            })
+        if self.grading_type == 'points':
+            if self.max_score is None or self.max_score <= 0:
+                raise ValidationError({
+                    'max_score': 'Для типа оценки "По баллам" необходимо указать положительный максимальный балл!'
+                })
         
         if self.grading_type == 'pass_fail' and self.max_score is not None:
             raise ValidationError({
                 'max_score': 'Для типа оценки "Зачёт/незачёт" не указывается максимальный балл!'
             })
         
-        if self.assignment_deadline and self.assignment_deadline <= timezone.now():
-            raise ValidationError({
-                'assignment_deadline': 'Срок сдачи должен быть в будущем, он не может быть на дату, которая уже прошла!'
-            })
+        if self.assignment_deadline:
+            if self.pk:
+                try:
+                    original = PracticalAssignment.objects.get(pk=self.pk)
+                    if original.assignment_deadline != self.assignment_deadline:
+                        if self.assignment_deadline <= timezone.now():
+                            raise ValidationError({
+                                'assignment_deadline': 'Срок сдачи должен быть в будущем!'
+                            })
+                except PracticalAssignment.DoesNotExist:
+                    if self.assignment_deadline <= timezone.now():
+                        raise ValidationError({
+                            'assignment_deadline': 'Срок сдачи должен быть в будущем!'
+                        })
+            else:
+                if self.assignment_deadline <= timezone.now():
+                    raise ValidationError({
+                        'assignment_deadline': 'Срок сдачи должен быть в будущем!'
+                    })
     
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -932,28 +893,12 @@ class PracticalAssignment(models.Model):
         verbose_name_plural = 'Практические задания'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(practical_assignment_name__length__gte=3) & 
-                          models.Q(practical_assignment_name__length__lte=200),
-                name='practical_assignment_name_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(practical_assignment_description__length__gte=20) & 
-                          models.Q(practical_assignment_description__length__lte=5000),
-                name='practical_assignment_description_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(assignment_criteria__isnull=True) | 
-                          models.Q(assignment_criteria='') | 
-                          models.Q(assignment_criteria__length__lte=2000),
-                name='assignment_criteria_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(grading_type__in=['points', 'pass_fail']),
+                condition=Q(grading_type__in=['points', 'pass_fail']),
                 name='grading_type_check'
             ),
             models.CheckConstraint(
-                condition=~models.Q(grading_type='points') | 
-                          models.Q(max_score__isnull=False) & models.Q(max_score__gt=0),
+                condition=~Q(grading_type='points') | 
+                          Q(max_score__isnull=False) & Q(max_score__gt=0),
                 name='max_score_required_for_points_check'
             ),
         ]
@@ -1029,14 +974,8 @@ class UserPracticalAssignment(models.Model):
         verbose_name_plural = 'Сдачи практических заданий'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(attempt_number__gt=0),
+                condition=Q(attempt_number__gt=0),
                 name='user_practical_assignment_attempt_number_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(comment__isnull=True) | 
-                          models.Q(comment='') | 
-                          models.Q(comment__length__lte=2000),
-                name='user_practical_assignment_comment_len_check'
             ),
             models.UniqueConstraint(
                 fields=['user', 'practical_assignment', 'attempt_number'],
@@ -1066,7 +1005,7 @@ class UserCourse(models.Model):
         help_text='Дата фактического завершения курса'
     )
     
-    course_price = models.DecimalField('Цена курса', max_digits=10, decimal_places=2, null=True, blank=True,
+    course_price = models.DecimalField('Цена курса на момент покупки', max_digits=10, decimal_places=2, null=True, blank=True,
         validators=[
             MinValueValidator(0, message='Цена не может быть отрицательной')
         ],
@@ -1121,17 +1060,17 @@ class UserCourse(models.Model):
         unique_together = ('user', 'course')
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(registration_date__lte=timezone.now().date()),
+                condition=Q(registration_date__lte=timezone.now().date()),
                 name='user_course_registration_date_past_check'
             ),
             models.CheckConstraint(
-                condition=~models.Q(status_course=True) | 
-                          models.Q(completion_date__isnull=False),
+                condition=~Q(status_course=True) | 
+                          Q(completion_date__isnull=False),
                 name='user_course_completion_date_required_check'
             ),
             models.CheckConstraint(
-                condition=models.Q(course_price__isnull=True) | 
-                          models.Q(course_price__gte=0),
+                condition=Q(course_price__isnull=True) | 
+                          Q(course_price__gte=0),
                 name='user_course_price_non_negative_check'
             ),
         ]
@@ -1214,14 +1153,6 @@ class Feedback(models.Model):
         db_table = 'feedback'
         verbose_name = 'Обратная связь'
         verbose_name_plural = 'Обратные связи'
-        constraints = [
-            models.CheckConstraint(
-                condition=models.Q(comment_feedback__isnull=True) | 
-                          models.Q(comment_feedback='') | 
-                          models.Q(comment_feedback__length__lte=5000),
-                name='feedback_comment_length_check'
-            ),
-        ]
 
 # 13. отзывы
 class Review(models.Model):
@@ -1252,12 +1183,6 @@ class Review(models.Model):
     def clean(self):
         super().clean()
         
-        if not self.review_text or len(self.review_text.strip()) < 10:
-            raise ValidationError({
-                'review_text': 'Текст отзыва должен содержать минимум 10 символов'
-            })
-        
-        self.review_text = self.review_text.strip()
         
         if self.comment_review and len(self.comment_review.strip()) > 2000:
             raise ValidationError({
@@ -1285,19 +1210,8 @@ class Review(models.Model):
         unique_together = ('course', 'user')
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(review_text__length__gte=10) & 
-                          models.Q(review_text__length__lte=5000),
-                name='review_text_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(comment_review__isnull=True) | 
-                          models.Q(comment_review='') | 
-                          models.Q(comment_review__length__lte=2000),
-                name='review_comment_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(rating__gte=1) & 
-                          models.Q(rating__lte=5),
+                condition=Q(rating__gte=1) & 
+                          Q(rating__lte=5),
                 name='review_rating_range_check'
             ),
         ]
@@ -1349,19 +1263,6 @@ class AnswerType(models.Model):
         db_table = 'answer_type'
         verbose_name = 'Тип ответа'
         verbose_name_plural = 'Типы ответов'
-        constraints = [
-            models.CheckConstraint(
-                condition=models.Q(answer_type_name__length__gte=2) & 
-                          models.Q(answer_type_name__length__lte=50),
-                name='answer_type_name_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(answer_type_description__isnull=True) | 
-                          models.Q(answer_type_description='') | 
-                          models.Q(answer_type_description__length__lte=1000),
-                name='answer_type_description_len_check'
-            ),
-        ]
 
 # 15. тесты
 class Test(models.Model):
@@ -1463,23 +1364,12 @@ class Test(models.Model):
         verbose_name_plural = 'Тесты'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(test_name__length__gte=3) & 
-                          models.Q(test_name__length__lte=200),
-                name='test_name_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(test_description__isnull=True) | 
-                          models.Q(test_description='') | 
-                          models.Q(test_description__length__lte=2000),
-                name='test_description_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(grading_form__in=['points', 'pass_fail']),
+                condition=Q(grading_form__in=['points', 'pass_fail']),
                 name='test_grading_form_check'
             ),
             models.CheckConstraint(
-                condition=models.Q(max_attempts__isnull=True) | 
-                          models.Q(max_attempts__gt=0),
+                condition=Q(max_attempts__isnull=True) | 
+                          Q(max_attempts__gt=0),
                 name='test_max_attempts_check'
             ),
         ]
@@ -1558,22 +1448,11 @@ class Question(models.Model):
         verbose_name_plural = 'Вопросы'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(question_text__length__gte=5) & 
-                          models.Q(question_text__length__lte=2000),
-                name='question_text_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(correct_text__isnull=True) | 
-                          models.Q(correct_text='') | 
-                          models.Q(correct_text__length__lte=2000),
-                name='question_correct_text_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(question_score__gte=0),
+                condition=Q(question_score__gte=0),
                 name='question_score_check'
             ),
             models.CheckConstraint(
-                condition=models.Q(question_order__gt=0),
+                condition=Q(question_order__gt=0),
                 name='question_order_check'
             ),
             models.UniqueConstraint(
@@ -1617,11 +1496,6 @@ class ChoiceOption(models.Model):
             raise ValidationError({
                 'option_text': 'Текст варианта не должен превышать 1000 символов'
             })
-        
-        if self.option_order <= 0:
-            raise ValidationError({
-                'option_order': 'Порядок варианта должен быть положительным'
-            })
     
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -1631,17 +1505,6 @@ class ChoiceOption(models.Model):
         db_table = 'choice_option'
         verbose_name = 'Вариант ответа'
         verbose_name_plural = 'Варианты ответов'
-        constraints = [
-            models.CheckConstraint(
-                condition=models.Q(option_text__length__gte=1) & 
-                          models.Q(option_text__length__lte=1000),
-                name='choice_option_text_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(option_order__gt=0),
-                name='choice_option_order_check'
-            ),
-        ]
 
 # 18. пользовательские пары соответствий
 class MatchingPair(models.Model):
@@ -1694,11 +1557,7 @@ class MatchingPair(models.Model):
                 'right_text': 'Правый текст не должен превышать 500 символов!'
             })
         
-        if self.pair_order <= 0:
-            raise ValidationError({
-                'pair_order': 'Порядок пары должен быть положительным!'
-            })
-    
+        
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
@@ -1707,22 +1566,6 @@ class MatchingPair(models.Model):
         db_table = 'matching_pair'
         verbose_name = 'Пара соответствия'
         verbose_name_plural = 'Пары соответствия'
-        constraints = [
-            models.CheckConstraint(
-                condition=models.Q(left_text__length__gte=1) & 
-                          models.Q(left_text__length__lte=500),
-                name='matching_left_text_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(right_text__length__gte=1) & 
-                          models.Q(right_text__length__lte=500),
-                name='matching_right_text_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(pair_order__gt=0),
-                name='matching_pair_order_check'
-            ),
-        ]
 
 # 19. ответы пользователей на тест
 class UserAnswer(models.Model):
@@ -1800,18 +1643,12 @@ class UserAnswer(models.Model):
         unique_together = ('user', 'question', 'attempt_number')
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(answer_text__isnull=True) | 
-                          models.Q(answer_text='') | 
-                          models.Q(answer_text__length__lte=2000),
-                name='user_answer_text_length_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(attempt_number__gt=0),
+                condition=Q(attempt_number__gt=0),
                 name='user_answer_attempt_number_check'
             ),
             models.CheckConstraint(
-                condition=models.Q(score__isnull=True) | 
-                          models.Q(score__gte=0),
+                condition=Q(score__isnull=True) | 
+                          Q(score__gte=0),
                 name='user_answer_score_check'
             ),
         ]
@@ -1901,13 +1738,6 @@ class UserMatchingAnswer(models.Model):
         verbose_name = 'Ответ на сопоставление'
         verbose_name_plural = 'Ответы на сопоставления'
         unique_together = ('user_answer', 'matching_pair')
-        constraints = [
-            models.CheckConstraint(
-                condition=models.Q(user_selected_right_text__length__gte=1) & 
-                          models.Q(user_selected_right_text__length__lte=500),
-                name='user_matching_answer_text_length_check'
-            ),
-        ]
 
 # 22. результаты тестов 
 class TestResult(models.Model):
@@ -2009,12 +1839,12 @@ class TestResult(models.Model):
         unique_together = ('user', 'test', 'attempt_number')
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(attempt_number__gt=0),
+                condition=Q(attempt_number__gt=0),
                 name='test_result_attempt_number_check'
             ),
             models.CheckConstraint(
-                condition=models.Q(time_spent__isnull=True) | 
-                          models.Q(time_spent__gte=0) & models.Q(time_spent__lte=86400),
+                condition=Q(time_spent__isnull=True) | 
+                          Q(time_spent__gte=0) & Q(time_spent__lte=86400),
                 name='test_result_time_spent_check'
             ),
         ]
@@ -2103,15 +1933,8 @@ class Certificate(models.Model):
         verbose_name_plural = 'Сертификаты'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(certificate_number__length__gte=5) & 
-                          models.Q(certificate_number__length__lte=50),
-                name='certificate_number_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(certificate_file_path__isnull=True) | 
-                          models.Q(certificate_file_path='') | 
-                          models.Q(certificate_file_path__length__lte=500),
-                name='certificate_file_path_len_check'
+                condition=Q(certificate_number__regex=r'^[A-Z0-9\-_]+$'),
+                name='certificate_number_format'
             ),
         ]
 
@@ -2191,19 +2014,8 @@ class AssignmentSubmissionFile(models.Model):
         verbose_name_plural = 'Файлы сдачи заданий'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(file_name__length__gte=1) & 
-                          models.Q(file_name__length__lte=255),
-                name='assignment_file_name_len_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(file_size__gte=0),
+                condition=Q(file_size__gte=0),
                 name='assignment_file_size_check'
-            ),
-            models.CheckConstraint(
-                condition=models.Q(description__isnull=True) | 
-                          models.Q(description='') | 
-                          models.Q(description__length__lte=500),
-                name='assignment_file_description_check'
             ),
         ]
 
@@ -2290,6 +2102,12 @@ class TeacherAssignmentFile(models.Model):
         verbose_name = 'Файл преподавателя к заданию'
         verbose_name_plural = 'Файлы преподавателей к заданиям'
         ordering = ['-uploaded_at']
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(file_type__in=['example', 'material', 'correction', 'template', 'other']),
+                name='teacher_file_type_check'
+            ),
+        ]
 
 # 26. коды восстановления
 class PasswordResetCode(models.Model):
@@ -2340,7 +2158,7 @@ class PasswordResetCode(models.Model):
         verbose_name_plural = 'Коды восстановления пароля'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(code__regex=r'^[0-9]{6}$'),
+                condition=Q(code__regex=r'^[0-9]{6}$'),
                 name='password_reset_code_format_check'
             ),
         ]

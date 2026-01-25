@@ -18,14 +18,14 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env()
-environ.Env.read_env()
+environ.Env.read_env(BASE_DIR / '.env')
 
 SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = []
-
+AUTH_USER_MODEL = 'unireax_main.User'
 
 # Application definition
 
@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'unireax_main'
 ]
 
 MIDDLEWARE = [
@@ -53,7 +54,7 @@ ROOT_URLCONF = 'unireax.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -73,8 +74,12 @@ WSGI_APPLICATION = 'unireax.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+        'NAME': 'diplomtest1',
+        'USER': 'postgres', 
+        'PASSWORD': '1'
     }
 }
 
@@ -109,7 +114,8 @@ WEAK_PASSWORDS = [
     'qwerty', 
     'qwerty123', 
     '123',
-    '1234'
+    '1234',
+    ''
 ]
 
 SUPERUSER_MIN_PASSWORD_LENGTH = 8
@@ -150,9 +156,9 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 BASE_URL = env('BASE_URL')
 SITE_URL = BASE_URL 
 
-DJANGO_SUPERUSER_USERNAME = env('SUPERUSER_USERNAME')
-DJANGO_SUPERUSER_EMAIL = env('SUPERUSER_EMAIL')
-DJANGO_SUPERUSER_PASSWORD = env('SUPERUSER_PASSWORD')
+SUPERUSER_USERNAME = env('SUPERUSER_USERNAME')
+SUPERUSER_EMAIL = env('SUPERUSER_EMAIL')
+SUPERUSER_PASSWORD = env('SUPERUSER_PASSWORD')
 
 REST_FRAMEWORK = {
     'DATETIME_FORMAT' : "%Y-%m-%d %H:%M:%S.%f%z",

@@ -10,7 +10,7 @@ def run_initial_setup():
         from unireax_main.models import User
         if User.objects.count() == 0:
             print(" [команда] запуск первоначальной настройки системы..")
-            call_command('initial_setup')
+            call_command('inital_setup')
     except (OperationalError, ProgrammingError):
         print("[команда] база данных не готова, пропускаем автоматическую настройку..")
     except Exception as e:

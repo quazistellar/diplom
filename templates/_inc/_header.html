@@ -1,0 +1,100 @@
+<!-- в данном файле находится код верстки шапки сайта (header) -->
+{% load static %}
+
+<header class="site-header">
+    <div class="container header-container">
+        <a href="/" class="logo-link">
+            <img src="{% static 'images/unireax_logo.PNG' %}" alt="UNIREAX" class="logo-icon">
+            <span class="logo-text">UNIREAX</span>
+        </a>
+
+        <div class="search-container desktop-search">
+            <div class="search-box">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" placeholder="Поиск курсов и материалов..." id="searchInput">
+                <div class="search-results" id="desktopSearchResults">
+                </div>
+            </div>
+        </div>
+
+        <nav class="main-nav">
+            <a href="/" class="nav-link {% if request.resolver_match.url_name == 'main' %}active{% endif %}">Главная</a>
+            <a href="#" class="nav-link">Каталог курсов</a>
+            
+            <div class="dropdown">
+                <a href="#" class="nav-link dropdown-toggle">
+                    О платформе <i class="fas fa-chevron-down dropdown-icon"></i>
+                </a>
+                <div class="dropdown-menu">
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-users dropdown-item-icon"></i>О нас
+                    </a>
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-chalkboard-teacher dropdown-item-icon"></i>Преподавателям
+                    </a>
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-comments dropdown-item-icon"></i>Обратная связь
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="auth-buttons">
+            <a href="#" class="btn btn-login">Войти</a>
+            <a href="#" class="btn btn-register">Регистрация</a>
+            
+            <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
+                <i class="fas fa-sun sun-icon"></i>
+                <i class="fas fa-moon moon-icon"></i>
+            </button>
+        </div>
+
+        <button class="burger-menu" id="burgerMenu" aria-label="Меню">
+            <span class="burger-line"></span>
+            <span class="burger-line"></span>
+            <span class="burger-line"></span>
+        </button>
+    </div>
+
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-search-container">
+            <div class="search-box">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input mobile-search-input" placeholder="Поиск курсов и материалов..." id="mobileSearchInput">
+                <div class="search-results mobile-search-results" id="mobileSearchResults">
+                </div>
+            </div>
+        </div>
+        
+        <nav class="mobile-nav">
+            <a href="/" class="nav-link {% if request.resolver_match.url_name == 'main' %}active{% endif %}">Главная</a>
+            <a href="#" class="nav-link">Каталог курсов</a>
+            
+            <a href="#" class="nav-link mobile-dropdown-header">
+                <i class="fas fa-info-circle" style="margin-right: 8px;"></i>О платформе
+            </a>
+            <a href="#" class="nav-link mobile-subitem">
+                <i class="fas fa-users" style="margin-right: 8px;"></i>О нас
+            </a>
+            <a href="#" class="nav-link mobile-subitem">
+                <i class="fas fa-chalkboard-teacher" style="margin-right: 8px;"></i>Преподавателям
+            </a>
+            <a href="#" class="nav-link mobile-subitem">
+                <i class="fas fa-comments" style="margin-right: 8px;"></i>Обратная связь
+            </a>
+        </nav>
+        
+        <div class="mobile-auth">
+            <a href="#" class="btn btn-login">Войти</a>
+            <a href="#" class="btn btn-register">Регистрация</a>
+        </div>
+        
+        <!-- Кнопка темы в мобильном меню -->
+        <div class="mobile-theme-toggle">
+            <button class="theme-toggle" id="themeToggleMobile" aria-label="Переключить тему">
+                <i class="fas fa-sun sun-icon"></i>
+                <i class="fas fa-moon moon-icon"></i>
+            </button>
+        </div>
+    </div>
+</header>
