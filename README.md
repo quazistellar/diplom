@@ -2,7 +2,11 @@
 
 ## Ссылка на веб-сайт платформы
 
-[https://unireax-moonkid.amvera.io/](https://unireax-moonkid.amvera.io/)
+<p align="center">
+  <a href="https://unireax-moonkid.amvera.io/" target="_blank">
+    <img src="https://img.shields.io/badge/🚀_UNIREAX_WEB-Открыть_сайт-5B2C8E?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Веб-сайт">
+  </a>
+</p>
 
 ---
 
@@ -67,7 +71,7 @@ UNIREAX - это платформа для дистанционного обуч
 
 <p align="center">
   <a href="https://drive.google.com/file/d/PkBxDeyg_/view?usp=sharing" target="_blank">
-    <img src="https://img.shields.io/badge/📱_UNIREAX_APK-Скачать_мобильное_приложение-25C3A5?style=for-the-badge&logo=android&logoColor=white" alt="Скачать APK">
+    <img src="https://img.shields.io/badge/_UNIREAX_APK-Скачать_мобильное_приложение-25C3A5?style=for-the-badge&logo=android&logoColor=white" alt="Скачать APK">
   </a>
 </p>
 
