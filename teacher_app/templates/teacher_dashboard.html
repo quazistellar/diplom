@@ -3,91 +3,6 @@
 
 {% block title %}UNIREAX - Дашборд преподавателя{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/teacher.css' %}">
-<style>
-
-    .teacher-course-inactive {
-        opacity: 0.85;
-        background: linear-gradient(135deg, rgba(231, 76, 60, 0.05), rgba(231, 76, 60, 0.02));
-        border-left: 3px solid #e74c3c;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .teacher-course-inactive::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 0;
-        height: 0;
-        border-style: solid;
-        border-width: 0 50px 50px 0;
-        border-color: transparent #e74c3c transparent transparent;
-        opacity: 0.1;
-    }
-    
-    .teacher-course-inactive:hover {
-        opacity: 1;
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    }
-    
-    .teacher-course-inactive .teacher-course-title small {
-        font-size: 12px;
-        color: #e74c3c;
-        font-weight: normal;
-    }
-    
-    .teacher-badge-warning {
-        background: linear-gradient(135deg, #f39c12, #e67e22);
-        color: white;
-    }
-    
-    .teacher-stat-inactive {
-        opacity: 0.6;
-    }
-    
-    .teacher-inactive-message {
-        background: rgba(231, 76, 60, 0.1);
-        border-radius: var(--radius);
-        padding: 10px;
-        text-align: center;
-        font-size: 13px;
-        color: #e74c3c;
-        margin-top: 10px;
-    }
-    
-    .teacher-inactive-message i {
-        margin-right: 5px;
-    }
-    
-    .teacher-action-disabled {
-        opacity: 0.5;
-        pointer-events: none;
-        cursor: not-allowed;
-    }
-    
-    .teacher-section-divider {
-        margin: 30px 0 20px;
-        border-top: 1px solid var(--border);
-        position: relative;
-    }
-    
-    .teacher-section-divider span {
-        position: absolute;
-        top: -12px;
-        left: 20px;
-        background: var(--bg-card);
-        padding: 0 15px;
-        color: var(--text-soft);
-        font-size: 13px;
-        font-weight: 500;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="teacher-dashboard-page">
     <div class="teacher-container">
@@ -377,6 +292,6 @@
 </style>
 {% endblock %}
 
-{% block extra_js %}
+{% block scripts %}
 <script src="{% static 'js/teacher.js' %}"></script>
 {% endblock %}

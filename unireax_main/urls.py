@@ -35,4 +35,3 @@ urlpatterns = [
     path('password-reset/confirm/', views.password_reset_confirm, name='password_reset_conf'),
 
 ]
-
