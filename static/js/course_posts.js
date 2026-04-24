@@ -1,6 +1,3 @@
-// static/js/course_posts.js
-// Управление объявлениями в курсе
-
 let currentCourseId = null;
 let canCreatePosts = false;
 let csrfToken = null;
