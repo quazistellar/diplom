@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавление на курс {{ course_name }}</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #8A4FFF 0%, #FF4FD8 100%);
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            color: white;
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .info-box {
+            background: #e8f5e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #4caf50;
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #8A4FFF 0%, #FF4FD8 100%);
+            color: white;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .footer {
+            background: #f5f5f5;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+        .tip {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #0d47a1;
+        }
+        .course-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .add-icon {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>UNIREAX</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0;">Образовательная платформа</p>
+        </div>
+        
+        <div class="content">
+            <div class="add-icon">📚</div>
+            <h2>Здравствуйте, {{ user.first_name }} {{ user.last_name }}!</h2>
+            
+            <p>Вас добавили на новый курс в системе UNIREAX.</p>
+            
+            <div class="info-box">
+                <strong>🎓 Информация о курсе:</strong><br>
+                <strong>Название курса:</strong> {{ course_name }}<br>
+                <strong>Статус:</strong> Доступ открыт
+            </div>
+            
+            <p>Вы можете приступить к обучению, используя свои существующие учетные данные.</p>
+            
+            <div style="text-align: center;">
+                <a href="{{ login_url }}" class="btn">Перейти к курсу</a>
+            </div>
+            
+            <div class="tip">
+                <strong>💡 Совет:</strong><br>
+                Курс уже доступен в вашем личном кабинете. Перейдите в раздел "Мои курсы", чтобы начать обучение.
+            </div>
+            
+            <div class="course-details">
+                <strong>📋 Что вас ждет на курсе:</strong>
+                <ul style="margin: 10px 0 0 20px; padding: 0;">
+                    <li>Интерактивные лекции и материалы</li>
+                    <li>Практические задания</li>
+                    <li>Тесты для проверки знаний</li>
+                    <li>Поддержка преподавателей</li>
+                </ul>
+            </div>
+            
+            <p>Если у вас возникли вопросы по курсу, пожалуйста, обратитесь к преподавателю.</p>
+            
+            <p>С уважением,<br>Команда UNIREAX</p>
+        </div>
+        
+        <div class="footer">
+            <p>Это письмо отправлено автоматически. Пожалуйста, не отвечайте на него.</p>
+            <p>&copy; {% now "Y" %} UNIREAX. Все права защищены.</p>
+        </div>
+    </div>
+</body>
+</html>

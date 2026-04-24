@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Конструктор курса: {{ course.course_name }}{% endblock %}
+
+{% block content %}
+<div class="methodist-course-detail-page">
+    <div class="methodist-container">
+        <div class="methodist-page-header">
+            <div>
+                <h1 class="methodist-page-title">{{ course.course_name }}</h1>
+                <p class="methodist-page-subtitle">Конструктор курса: добавление материалов</p>
+            </div>
+            <div class="methodist-header-actions">
+                <a href="{% url 'methodist_app:course_builder' course.id %}" class="methodist-btn methodist-btn-outline">
+                    <i class="fas fa-edit"></i> Редактировать курс
+                </a>
+                <a href="{% url 'methodist_app:dashboard' %}" class="methodist-btn methodist-btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к дашборду
+                </a>
+            </div>
+        </div>
+        
+        <div class="methodist-stats-grid">
+            <div class="methodist-stat-card">
+                <div class="methodist-stat-icon"><i class="fas fa-users"></i></div>
+                <div class="methodist-stat-info">
+                    <div class="methodist-stat-value">{{ total_students }}</div>
+                    <div class="methodist-stat-label">Всего слушателей</div>
+                </div>
+            </div>
+            <div class="methodist-stat-card">
+                <div class="methodist-stat-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="methodist-stat-info">
+                    <div class="methodist-stat-value">{{ completed_students }}</div>
+                    <div class="methodist-stat-label">Завершили курс</div>
+                </div>
+            </div>
+            <div class="methodist-stat-card">
+                <div class="methodist-stat-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="methodist-stat-info">
+                    <div class="methodist-stat-value">{{ completion_rate|floatformat:1 }}%</div>
+                    <div class="methodist-stat-label">Процент завершения</div>
+                </div>
+            </div>
+            <div class="methodist-stat-card">
+                <div class="methodist-stat-icon"><i class="fas fa-star"></i></div>
+                <div class="methodist-stat-info">
+                    <div class="methodist-stat-value">{{ avg_rating|floatformat:1 }}</div>
+                    <div class="methodist-stat-label">Средний рейтинг</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="methodist-quick-actions">
+            <a href="{% url 'methodist_app:lecture_create' course.id %}" class="methodist-action-card">
+                <i class="fas fa-book"></i>
+                <span>Добавить лекцию</span>
+            </a>
+            <a href="{% url 'methodist_app:assignment_create' course.id %}" class="methodist-action-card">
+                <i class="fas fa-tasks"></i>
+                <span>Добавить задание</span>
+            </a>
+            <a href="{% url 'methodist_app:test_create' course.id %}" class="methodist-action-card">
+                <i class="fas fa-question-circle"></i>
+                <span>Добавить тест</span>
+            </a>
+        </div>
+        
+        <div class="methodist-section">
+            <div class="methodist-section-header">
+                <h2><i class="fas fa-book"></i> Лекции курса</h2>
+                <a href="{% url 'methodist_app:lecture_create' course.id %}" class="methodist-btn methodist-btn-small methodist-btn-success">
+                    <i class="fas fa-plus"></i> Добавить лекцию
+                </a>
+            </div>
+            
+            {% if lectures %}
+            <div class="methodist-items-list">
+                {% for lecture in lectures %}
+                <div class="methodist-item-card">
+                    <div class="methodist-item-order">{{ lecture.lecture_order }}</div>
+                    <div class="methodist-item-info">
+                        <h3>{{ lecture.lecture_name }}</h3>
+                        <p class="methodist-item-meta">
+                            <span><i class="fas fa-calendar"></i> Создана: {{ lecture.created_at|date:"d.m.Y" }}</span>
+                        </p>
+                    </div>
+                    <div class="methodist-item-actions">
+                        <a href="{% url 'methodist_app:lecture_edit' lecture.id %}" class="methodist-btn methodist-btn-small methodist-btn-outline" title="Редактировать">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'methodist_app:lecture_delete' lecture.id %}" class="methodist-btn methodist-btn-small methodist-btn-danger" title="Удалить" onclick="return confirmDelete(this, '{{ lecture.lecture_name }}')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="methodist-empty-small">
+                <i class="fas fa-book-open"></i>
+                <p>Лекции еще не добавлены</p>
+                <a href="{% url 'methodist_app:lecture_create' course.id %}" class="methodist-link">Добавить первую лекцию</a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="methodist-section">
+            <div class="methodist-section-header">
+                <h2><i class="fas fa-tasks"></i> Практические задания</h2>
+                <a href="{% url 'methodist_app:assignment_create' course.id %}" class="methodist-btn methodist-btn-small methodist-btn-success">
+                    <i class="fas fa-plus"></i> Добавить задание
+                </a>
+            </div>
+            
+            {% if assignments %}
+            <div class="methodist-items-list">
+                {% for assignment in assignments %}
+                <div class="methodist-item-card">
+                    <div class="methodist-item-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="methodist-item-info">
+                        <h3>{{ assignment.practical_assignment_name }}</h3>
+                        <p class="methodist-item-meta">
+                            <span><i class="fas fa-book"></i> Лекция: {{ assignment.lecture.lecture_name }}</span>
+                            {% if assignment.assignment_deadline %}
+                            <span><i class="fas fa-clock"></i> Срок: {{ assignment.assignment_deadline|date:"d.m.Y H:i" }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="methodist-item-actions">
+                        <a href="{% url 'methodist_app:assignment_edit' assignment.id %}" class="methodist-btn methodist-btn-small methodist-btn-outline" title="Редактировать">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'methodist_app:assignment_delete' assignment.id %}" class="methodist-btn methodist-btn-small methodist-btn-danger" title="Удалить" onclick="return confirmDelete(this, '{{ assignment.practical_assignment_name }}')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="methodist-empty-small">
+                <i class="fas fa-tasks"></i>
+                <p>Практические задания еще не добавлены</p>
+                <a href="{% url 'methodist_app:assignment_create' course.id %}" class="methodist-link">Добавить первое задание</a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="methodist-section">
+            <div class="methodist-section-header">
+                <h2><i class="fas fa-question-circle"></i> Тесты</h2>
+                <a href="{% url 'methodist_app:test_create' course.id %}" class="methodist-btn methodist-btn-small methodist-btn-success">
+                    <i class="fas fa-plus"></i> Добавить тест
+                </a>
+            </div>
+            
+            {% if tests %}
+            <div class="methodist-items-list">
+                {% for test in tests %}
+                <div class="methodist-item-card">
+                    <div class="methodist-item-icon">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <div class="methodist-item-info">
+                        <h3>{{ test.test_name }}</h3>
+                        <p class="methodist-item-meta">
+                            <span><i class="fas fa-book"></i> Лекция: {{ test.lecture.lecture_name }}</span>
+                            {% if test.is_final %}
+                            <span class="methodist-badge methodist-badge-warning">Финальный</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="methodist-item-actions">
+                        <a href="{% url 'methodist_app:test_builder' test.id %}" class="methodist-btn methodist-btn-small methodist-btn-primary" title="Конструктор">
+                            <i class="fas fa-puzzle-piece"></i>
+                        </a>
+                        <a href="{% url 'methodist_app:test_edit' test.id %}" class="methodist-btn methodist-btn-small methodist-btn-outline" title="Редактировать">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'methodist_app:test_delete' test.id %}" class="methodist-btn methodist-btn-small methodist-btn-danger" title="Удалить" onclick="return confirmDelete(this, '{{ test.test_name }}')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="methodist-empty-small">
+                <i class="fas fa-question-circle"></i>
+                <p>Тесты еще не добавлены</p>
+                <a href="{% url 'methodist_app:test_create' course.id %}" class="methodist-link">Добавить первый тест</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/methodist.js' %}"></script>
+{% endblock %}

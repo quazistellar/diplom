@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Редактирование вопроса{% endblock %}
+
+{% block content %}
+<div class="methodist-question-edit-page">
+    <div class="methodist-container">
+        <div class="methodist-page-header">
+            <div>
+                <h1 class="methodist-page-title">Редактирование вопроса</h1>
+                <p class="methodist-page-subtitle">Тест: {{ test.test_name }}</p>
+            </div>
+            <div class="methodist-header-actions">
+                {% if user.role.role_name == 'методист' %}
+                    <a href="{% url 'methodist_app:test_builder' test.id %}" class="methodist-btn methodist-btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад к конструктору
+                    </a>
+                {% else %}
+                    <a href="{% url 'teacher_app:test_builder' test.id %}" class="methodist-btn methodist-btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад к конструктору
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="methodist-card">
+            <form method="post" id="question-form">
+                {% csrf_token %}
+                
+                <div class="methodist-form-group">
+                    <label for="{{ form.question_text.id_for_label }}">
+                        <i class="fas fa-question"></i> Текст вопроса
+                    </label>
+                    {{ form.question_text }}
+                </div>
+                
+                <div class="methodist-form-group">
+                    <label for="{{ form.answer_type.id_for_label }}">
+                        <i class="fas fa-tag"></i> Тип ответа
+                    </label>
+                    {{ form.answer_type }}
+                </div>
+                
+                <div class="methodist-form-group">
+                    <label for="{{ form.question_score.id_for_label }}">
+                        <i class="fas fa-star"></i> Балл за вопрос
+                    </label>
+                    {{ form.question_score }}
+                </div>
+                
+                <div class="methodist-form-group">
+                    <label for="{{ form.question_order.id_for_label }}">
+                        <i class="fas fa-sort-numeric-down"></i> Порядковый номер вопроса
+                    </label>
+                    {{ form.question_order }}
+                    <small class="form-text">Порядок отображения вопроса в тесте</small>
+                </div>
+                
+                <div id="correct-text-group" class="methodist-form-group" {% if answer_type_name != 'текст' %}style="display: none;"{% endif %}>
+                    <label for="{{ form.correct_text.id_for_label }}">
+                        <i class="fas fa-check"></i> Правильный ответ
+                    </label>
+                    {{ form.correct_text }}
+                    <small class="form-text">Введите правильный ответ для текстового вопроса</small>
+                </div>
+                
+                <div id="choice-options-panel" class="question-type-panel" {% if answer_type_name != 'один ответ' and answer_type_name != 'несколько ответов' %}style="display: none;"{% endif %}>
+                    <h4><i class="fas fa-list"></i> Варианты ответов</h4>
+                    <div id="options-container" class="options-list">
+                        {% for option in options %}
+                        <div class="option-item" data-id="{{ forloop.counter0 }}">
+                            <input type="text" name="option_text[]" value="{{ option.option_text }}" placeholder="Вариант ответа" required>
+                            <label class="option-correct-label">
+                                {% if answer_type_name == 'несколько ответов' %}
+                                    <input type="checkbox" name="is_correct[]" value="{{ forloop.counter0 }}" {% if option.is_correct %}checked{% endif %}>
+                                {% else %}
+                                    <input type="radio" name="is_correct" value="{{ forloop.counter0 }}" {% if option.is_correct %}checked{% endif %}>
+                                {% endif %}
+                                <span>Правильный</span>
+                            </label>
+                            <i class="fas fa-trash remove-option" style="cursor: pointer;"></i>
+                        </div>
+                        {% empty %}
+                        <div class="option-item" data-id="0">
+                            <input type="text" name="option_text[]" placeholder="Введите вариант ответа" required>
+                            <label class="option-correct-label">
+                                <input type="radio" name="is_correct" value="0">
+                                <span>Правильный</span>
+                            </label>
+                            <i class="fas fa-trash remove-option" style="cursor: pointer;"></i>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="add-btn" id="add-option-btn">
+                        <i class="fas fa-plus"></i> Добавить вариант
+                    </button>
+                    <div id="choice-validation" class="validation-message"></div>
+                </div>
+                
+                <div id="matching-pairs-panel" class="question-type-panel" {% if answer_type_name != 'сопоставление' %}style="display: none;"{% endif %}>
+                    <h4><i class="fas fa-exchange-alt"></i> Пары соответствия</h4>
+                    <div id="pairs-container" class="options-list">
+                        {% for pair in pairs %}
+                        <div class="matching-pair-item" data-id="{{ forloop.counter0 }}">
+                            <input type="text" name="left_text[]" value="{{ pair.left_text }}" placeholder="Левый элемент">
+                            <i class="fas fa-arrow-right"></i>
+                            <input type="text" name="right_text[]" value="{{ pair.right_text }}" placeholder="Правый элемент">
+                            <i class="fas fa-trash remove-pair" style="cursor: pointer;"></i>
+                        </div>
+                        {% empty %}
+                        <div class="matching-pair-item" data-id="0">
+                            <input type="text" name="left_text[]" placeholder="Левый элемент">
+                            <i class="fas fa-arrow-right"></i>
+                            <input type="text" name="right_text[]" placeholder="Правый элемент">
+                            <i class="fas fa-trash remove-pair" style="cursor: pointer;"></i>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="add-btn" id="add-pair-btn">
+                        <i class="fas fa-plus"></i> Добавить пару
+                    </button>
+                </div>
+                
+                <div class="methodist-form-actions">
+                    <button type="submit" class="methodist-btn methodist-btn-primary">
+                        <i class="fas fa-save"></i> Сохранить изменения
+                    </button>
+                    {% if user.role.role_name == 'методист' %}
+                        <a href="{% url 'methodist_app:test_builder' test.id %}" class="methodist-btn methodist-btn-secondary">
+                            <i class="fas fa-times"></i> Отмена
+                        </a>
+                    {% else %}
+                        <a href="{% url 'teacher_app:test_builder' test.id %}" class="methodist-btn methodist-btn-secondary">
+                            <i class="fas fa-times"></i> Отмена
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/test_builder.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof TestBuilder !== 'undefined') {
+            window.testBuilder = new TestBuilder();
+        } else {
+            console.error('ошибка загрузки!');
+        }
+    });
+</script>
+{% endblock %}

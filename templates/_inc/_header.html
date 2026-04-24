@@ -11,43 +11,154 @@
         <div class="search-container desktop-search">
             <div class="search-box">
                 <i class="fas fa-search search-icon"></i>
-                <input type="text" class="search-input" placeholder="Поиск курсов и материалов..." id="searchInput">
-                <div class="search-results" id="desktopSearchResults">
-                </div>
+                <input type="text" class="search-input" placeholder="Поиск курсов..." id="searchInput">
+                <div class="search-results" id="desktopSearchResults"></div>
             </div>
         </div>
 
         <nav class="main-nav">
-            <a href="/" class="nav-link {% if request.resolver_match.url_name == 'main' %}active{% endif %}">Главная</a>
-            <a href="#" class="nav-link">Каталог курсов</a>
+            <a href="/" class="nav-link {% if request.resolver_match.url_name == 'main_page' %}active{% endif %}">Главная</a>
+            <a href="{% url 'courses_page' %}" class="nav-link {% if request.resolver_match.url_name == 'courses_page' %}active{% endif %}">Каталог курсов</a>
             
             <div class="dropdown">
                 <a href="#" class="nav-link dropdown-toggle">
                     О платформе <i class="fas fa-chevron-down dropdown-icon"></i>
                 </a>
                 <div class="dropdown-menu">
-                    <a href="#" class="dropdown-item">
+                    <a href="{% url 'about_page' %}" class="dropdown-item">
                         <i class="fas fa-users dropdown-item-icon"></i>О нас
                     </a>
-                    <a href="#" class="dropdown-item">
+                    <a href="{% url 'teachers_page' %}" class="dropdown-item">
                         <i class="fas fa-chalkboard-teacher dropdown-item-icon"></i>Преподавателям
                     </a>
-                    <a href="#" class="dropdown-item">
+                    <a href="{% url 'feedback_page' %}" class="dropdown-item">
                         <i class="fas fa-comments dropdown-item-icon"></i>Обратная связь
                     </a>
                 </div>
             </div>
         </nav>
 
+        {% if user.is_authenticated %}
         <div class="auth-buttons">
-            <a href="#" class="btn btn-login">Войти</a>
-            <a href="#" class="btn btn-register">Регистрация</a>
+            <div class="header-profile-dropdown">
+                <a href="#" class="header-profile-btn" id="profileDropdownToggle">
+                    <i class="fas fa-user-circle"></i> 
+                    <span class="profile-name">Профиль</span>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                </a>
+                <div class="header-profile-menu" id="profileDropdownMenu">
+                    
+                    {% if user.role.role_name == 'администратор' or user.role.role_name == 'Администратор' or user.is_superuser %}
+                    <a href="{% url 'admin_app:admin_profile' %}" class="header-profile-item">
+                        <i class="fas fa-id-card"></i> Мой профиль
+                    </a>
+                    <a href="{% url 'admin_app:dashboard' %}" class="header-profile-item">
+                        <i class="fas fa-crown" style="color: #e74c3c;"></i> Панель администратора
+                    </a>
+                    <a href="{% url 'admin_app:backup_database' %}" class="header-profile-item">
+                        <i class="fas fa-database"></i> Управление бэкапами
+                    </a>
+                    <a href="{% url 'admin_app:logs_page' %}" class="header-profile-item">
+                        <i class="fas fa-history"></i> Журнал действий
+                    </a>
+                    {% endif %}
+                    
+                    {% if user.role.role_name == 'преподаватель' or user.role.role_name == 'Преподаватель' %}
+                    <a href="{% url 'teacher_app:profile' %}" class="header-profile-item">
+                        <i class="fas fa-id-card"></i> Мой профиль
+                    </a>
+                    <a href="{% url 'teacher_app:dashboard' %}" class="header-profile-item">
+                        <i class="fas fa-chalkboard-teacher" style="color: #3498db;"></i> Панель преподавателя
+                    </a>
+                    <a href="{% url 'teacher_app:course_create' %}" class="header-profile-item">
+                        <i class="fas fa-plus-circle"></i> Создать новый курс
+                    </a>
+                    <a href="{% url 'teacher_app:statistics' %}" class="header-profile-item">
+                        <i class="fas fa-chart-line"></i> Статистика
+                    </a>
+                    {% endif %}
+                    
+                    {% if user.role.role_name == 'методист' or user.role.role_name == 'Методист' %}
+                    <a href="{% url 'methodist_app:profile' %}" class="header-profile-item">
+                        <i class="fas fa-id-card"></i> Мой профиль
+                    </a>
+                    <a href="{% url 'methodist_app:dashboard' %}" class="header-profile-item">
+                        <i class="fas fa-clipboard-check" style="color: #2ecc71;"></i> Панель методиста
+                    </a>
+                    <a href="{% url 'methodist_app:course_builder' %}" class="header-profile-item">
+                        <i class="fas fa-plus-circle"></i> Создать новый курс
+                    </a>
+                     <a href="{% url 'methodist_app:teacher_applications' %}" class="header-profile-item">
+                        <i class="fas fa-chalkboard-user"></i> Заявки преподавателей
+                    </a>
+                    <a href="{% url 'methodist_app:statistics' %}" class="header-profile-item">
+                        <i class="fas fa-chart-line"></i> Статистика курсов
+                    </a>
+                    {% endif %}
+                    
+                    {% if user.role.role_name == 'слушатель курсов' or user.role.role_name == 'Слушатель курсов' or not user.role %}
+                    <a href="{% url 'listener_app:listener_profile' %}" class="header-profile-item">
+                        <i class="fas fa-id-card"></i> Мой профиль
+                    </a>
+                    <a href="{% url 'listener_app:dashboard' %}" class="header-profile-item">
+                        <i class="fas fa-tachometer-alt"></i> Дашборд
+                    </a>
+                    <a href="{% url 'listener_app:my_courses' %}" class="header-profile-item">
+                        <i class="fas fa-graduation-cap"></i> Мои курсы
+                    </a>
+                    <a href="{% url 'listener_app:my_certificates' %}" class="header-profile-item">
+                        <i class="fas fa-certificate"></i> Мои сертификаты
+                    </a>
+                    <a href="{% url 'listener_app:favorite_courses' %}" class="header-profile-item">
+                        <i class="fas fa-heart" style="color: #ff4757;"></i> Избранное
+                        {% if user.favorite_courses.count > 0 %}
+                        <span class="favorite-badge">{{ user.favorite_courses.count }}</span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+                    
+                    <div class="header-profile-divider"></div>
+                    
+                    <a href="{% url 'logout_move' %}" class="header-profile-item header-profile-logout">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </a>
+                    
+                </div>
+            </div>
+            
+            <a href="{% url 'logout_move' %}" class="header-logout-circle" title="Выйти">
+                <i class="fas fa-sign-out-alt"></i>
+            </a> 
+
+            <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
+                <i class="fas fa-sun sun-icon"></i>
+                <i class="fas fa-moon moon-icon"></i>
+            </button>
+
+            <button id="openAccessibilityBtn" class="panel-toggle" title="Панель доступности">
+                <i class="fas fa-universal-access"></i>
+            </button>
+        </div>
+        
+        {% else %}
+        <div class="auth-buttons">
+            <a href="{% url 'login_page' %}" class="btn btn-login">
+                <i class="fas fa-sign-in-alt"></i> Войти
+            </a>
+            <a href="{% url 'register_listener' %}" class="btn btn-register">
+                <i class="fas fa-user-plus"></i> Регистрация
+            </a>
             
             <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
                 <i class="fas fa-sun sun-icon"></i>
                 <i class="fas fa-moon moon-icon"></i>
             </button>
+
+            <button id="openAccessibilityBtn" class="panel-toggle" title="Панель доступности">
+                <i class="fas fa-universal-access"></i>
+            </button>
         </div>
+        {% endif %}
 
         <button class="burger-menu" id="burgerMenu" aria-label="Меню">
             <span class="burger-line"></span>
@@ -60,40 +171,122 @@
         <div class="mobile-search-container">
             <div class="search-box">
                 <i class="fas fa-search search-icon"></i>
-                <input type="text" class="search-input mobile-search-input" placeholder="Поиск курсов и материалов..." id="mobileSearchInput">
-                <div class="search-results mobile-search-results" id="mobileSearchResults">
-                </div>
+                <input type="text" class="search-input mobile-search-input" placeholder="Поиск курсов..." id="mobileSearchInput">
+                <div class="search-results mobile-search-results" id="mobileSearchResults"></div>
             </div>
         </div>
         
         <nav class="mobile-nav">
-            <a href="/" class="nav-link {% if request.resolver_match.url_name == 'main' %}active{% endif %}">Главная</a>
-            <a href="#" class="nav-link">Каталог курсов</a>
+            <a href="/" class="nav-link {% if request.resolver_match.url_name == 'main_page' %}active{% endif %}">Главная</a>
+            <a href="{% url 'courses_page' %}" class="nav-link {% if request.resolver_match.url_name == 'courses_page' %}active{% endif %}">Каталог курсов</a>
             
-            <a href="#" class="nav-link mobile-dropdown-header">
+            <a href="#" class="nav-link mobile-dropdown-header" style="margin-top: 10px;">
                 <i class="fas fa-info-circle" style="margin-right: 8px;"></i>О платформе
             </a>
-            <a href="#" class="nav-link mobile-subitem">
+            <a href="{% url 'about_page' %}" class="nav-link mobile-subitem">
                 <i class="fas fa-users" style="margin-right: 8px;"></i>О нас
             </a>
-            <a href="#" class="nav-link mobile-subitem">
+            <a href="{% url 'teachers_page' %}" class="nav-link mobile-subitem">
                 <i class="fas fa-chalkboard-teacher" style="margin-right: 8px;"></i>Преподавателям
             </a>
-            <a href="#" class="nav-link mobile-subitem">
+            <a href="{% url 'feedback_page' %}" class="nav-link mobile-subitem">
                 <i class="fas fa-comments" style="margin-right: 8px;"></i>Обратная связь
             </a>
+
+            {% if user.is_authenticated %}
+            <a href="#" class="nav-link mobile-dropdown-header" style="margin-top: 15px;">
+                <i class="fas fa-user-circle" style="margin-right: 8px; color: var(--primary);"></i>Профиль
+            </a>
+            
+            {% if user.role.role_name == 'администратор' or user.role.role_name == 'Администратор' or user.is_superuser %}
+            <a href="{% url 'admin_app:admin_profile' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-id-card" style="margin-right: 8px;"></i>Мой профиль
+            </a>
+            <a href="{% url 'admin_app:dashboard' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-crown" style="color: #e74c3c; margin-right: 8px;"></i>Панель администратора
+            </a>
+            <a href="{% url 'admin_app:backup_database' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-database" style="margin-right: 8px;"></i>Управление бэкапами
+            </a>
+            <a href="{% url 'admin_app:logs_page' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-history" style="margin-right: 8px;"></i>Журнал действий
+            </a>
+            {% endif %}
+            
+            {% if user.role.role_name == 'преподаватель' or user.role.role_name == 'Преподаватель' %}
+            <a href="{% url 'teacher_app:profile' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-id-card" style="margin-right: 8px;"></i>Мой профиль
+            </a>
+            <a href="{% url 'teacher_app:dashboard' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-chalkboard-teacher" style="color: #3498db; margin-right: 8px;"></i>Панель преподавателя
+            </a>
+            <a href="{% url 'teacher_app:course_create' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-plus-circle" style="margin-right: 8px;"></i>Создать новый курс
+            </a>
+            <a href="{% url 'teacher_app:statistics' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-chart-line" style="margin-right: 8px;"></i>Статистика
+            </a>
+            {% endif %}
+            
+            {% if user.role.role_name == 'методист' or user.role.role_name == 'Методист' %}
+            <a href="{% url 'methodist_app:profile' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-id-card" style="margin-right: 8px;"></i>Мой профиль
+            </a>
+            <a href="{% url 'methodist_app:dashboard' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-clipboard-check" style="color: #2ecc71; margin-right: 8px;"></i>Панель методиста
+            </a>
+            <a href="{% url 'methodist_app:course_builder' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-plus-circle" style="margin-right: 8px;"></i>Создать новый курс
+            </a>
+            <a href="{% url 'methodist_app:statistics' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-chart-line" style="margin-right: 8px;"></i>Статистика курсов
+            </a>
+            {% endif %}
+            
+            {% if user.role.role_name == 'слушатель курсов' or user.role.role_name == 'Слушатель курсов' or not user.role %}
+            <a href="{% url 'listener_app:listener_profile' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-id-card" style="margin-right: 8px;"></i>Мой профиль
+            </a>
+            <a href="{% url 'listener_app:dashboard' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-tachometer-alt" style="margin-right: 8px;"></i>Дашборд
+            </a>
+            <a href="{% url 'listener_app:my_courses' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-graduation-cap" style="margin-right: 8px;"></i>Мои курсы
+            </a>
+            <a href="{% url 'listener_app:my_certificates' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-certificate" style="margin-right: 8px;"></i>Мои сертификаты
+            </a>
+            {% endif %}
+            
+
+            <div style="height: 1px; background: var(--border-color); margin: 12px 0;"></div>
+            
+            <a href="{% url 'logout_move' %}" class="nav-link mobile-subitem" style="color: #e74c3c;">
+                <i class="fas fa-sign-out-alt" style="color: #e74c3c; margin-right: 8px;"></i> Выйти
+            </a>
+            
+            {% endif %}
         </nav>
         
         <div class="mobile-auth">
-            <a href="#" class="btn btn-login">Войти</a>
-            <a href="#" class="btn btn-register">Регистрация</a>
+            {% if user.is_authenticated %}
+            {% else %}
+            <a href="{% url 'login_page' %}" class="btn btn-login">
+                <i class="fas fa-sign-in-alt"></i> Войти
+            </a>
+            <a href="{% url 'register_listener' %}" class="btn btn-register">
+                <i class="fas fa-user-plus"></i> Регистрация
+            </a>
+            {% endif %}
         </div>
         
-        <!-- Кнопка темы в мобильном меню -->
         <div class="mobile-theme-toggle">
             <button class="theme-toggle" id="themeToggleMobile" aria-label="Переключить тему">
                 <i class="fas fa-sun sun-icon"></i>
                 <i class="fas fa-moon moon-icon"></i>
+            </button>
+            <button id="mobileAccessibilityBtn" class="panel-toggle" aria-label="Панель доступности">
+                <i class="fas fa-universal-access"></i>
             </button>
         </div>
     </div>

@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Сдача работы: {{ assignment.practical_assignment_name }} - UNIREAX{% endblock %}
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="breadcrumbs">
+            <a href="{% url 'listener_app:dashboard' %}">Личный кабинет</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'listener_app:course_study' assignment.lecture.course.id %}">{{ assignment.lecture.course.course_name }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Сдача работы</span>
+        </div>
+
+        <div class="practical-submit-layout">
+            <aside class="practical-sidebar">
+                <div class="practical-info-card">
+                    <h3><i class="fas fa-info-circle"></i> Информация</h3>
+                    <div class="info-item">
+                        <span class="info-label">Лекция:</span>
+                        <span class="info-value">{{ assignment.lecture.lecture_order }}. {{ assignment.lecture.lecture_name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Тип оценки:</span>
+                        <span class="info-value">{{ assignment.get_grading_type_display }}</span>
+                    </div>
+                    {% if assignment.max_score %}
+                    <div class="info-item">
+                        <span class="info-label">Макс. балл:</span>
+                        <span class="info-value">{{ assignment.max_score }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="info-item">
+                        <span class="info-label">Статус:</span>
+                        <span class="info-value {% if is_overdue %}text-danger{% else %}text-success{% endif %}">
+                            {% if is_overdue %}Просрочено{% else %}Активно{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                {% if assignment.assignment_document_path %}
+                <div class="materials-card">
+                    <h3><i class="fas fa-paperclip"></i> Материалы</h3>
+                    <a href="{{ assignment.assignment_document_path.url }}" class="download-link" target="_blank">
+                        <i class="fas fa-download"></i> Скачать задание
+                    </a>
+                </div>
+                {% endif %}
+
+                <div class="submission-rules">
+                    <h3><i class="fas fa-gavel"></i> Правила сдачи</h3>
+                    <ul>
+                        <li>Рекомендуемые форматы: PDF, DOC, DOCX, ZIP</li>
+                        <li>Максимальный размер: 50 МБ</li>
+                        <li>Можно прикрепить до 10 файлов</li>
+                    </ul>
+                </div>
+            </aside>
+
+            <main class="practical-main">
+                <div class="description-section">
+                    <h2><i class="fas fa-align-left"></i> Описание задания</h2>
+                    <div class="description-content">
+                        {{ assignment.practical_assignment_description|linebreaks }}
+                    </div>
+                </div>
+
+                {% if assignment.assignment_criteria %}
+                <div class="criteria-section">
+                    <h2><i class="fas fa-clipboard-list"></i> Критерии оценки</h2>
+                    <div class="criteria-content">
+                        {{ assignment.assignment_criteria|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if user_assignment %}
+                <div class="submission-status-section">
+                    <h2><i class="fas fa-history"></i> Статус сдачи</h2>
+                    <div class="status-card 
+                        {% if user_assignment.submission_status.assignment_status_name == 'завершено' %}status-completed
+                        {% elif user_assignment.submission_status.assignment_status_name == 'на проверке' %}status-checking
+                        {% else %}status-revision{% endif %}">
+                        <div class="status-header">
+                            <div class="status-title">
+                                {% if user_assignment.submission_status.assignment_status_name == 'завершено' %}
+                                    ✅ Работа сдана
+                                {% elif user_assignment.submission_status.assignment_status_name == 'на проверке' %}
+                                    ⏳ На проверке
+                                {% else %}
+                                    🔄 Требуется доработка
+                                {% endif %}
+                            </div>
+                            <span class="attempt-number">Попытка {{ user_assignment.attempt_number }}</span>
+                        </div>
+                        <div class="status-details">
+                            <div class="detail-item">
+                                <span>Дата сдачи:</span>
+                                <span>{{ user_assignment.submission_date|date:"d.m.Y H:i" }}</span>
+                            </div>
+                            {% if feedback %}
+                                {% if assignment.grading_type == 'points' and feedback.score %}
+                                <div class="detail-item">
+                                    <span>Оценка:</span>
+                                    <span><strong>{{ feedback.score }}/{{ assignment.max_score }}</strong></span>
+                                </div>
+                                {% elif assignment.grading_type == 'pass_fail' and feedback.is_passed is not None %}
+                                <div class="detail-item">
+                                    <span>Результат:</span>
+                                    <span>{% if feedback.is_passed %}Зачёт{% else %}Незачёт{% endif %}</span>
+                                </div>
+                                {% endif %}
+                                {% if feedback.comment_feedback %}
+                                <div class="detail-item">
+                                    <span>Комментарий:</span>
+                                    <span>{{ feedback.comment_feedback }}</span>
+                                </div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="submit-section">
+                    <h2><i class="fas fa-upload"></i> 
+                        {% if user_assignment and user_assignment.submission_status.assignment_status_name != 'завершено' %}
+                            Отправить новую версию
+                        {% else %}
+                            Сдать работу
+                        {% endif %}
+                    </h2>
+
+                    <form method="post" enctype="multipart/form-data" id="submitForm">
+                        {% csrf_token %}
+                        
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-bold">Файлы с решением *</label>
+                            <div class="file-upload-area" id="fileUploadArea">
+                                <input type="file" name="submission_files" id="submission_files" class="file-input" 
+                                       multiple accept=".pdf,.doc,.docx,.zip,.txt,.jpg,.png" style="display: none;">
+                                <div class="upload-placeholder">
+                                    <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                                    <div class="upload-text">Нажмите или перетащите файлы сюда</div>
+                                    <div class="upload-hint">PDF, DOC, DOCX, ZIP (макс. 50 МБ)</div>
+                                </div>
+                            </div>
+                            <div class="files-list" id="filesList"></div>
+                        </div>
+
+                        <div class="comment-field">
+                            <label for="comment">
+                                <i class="fas fa-comment-dots"></i> Комментарий к работе
+                            </label>
+                            <textarea name="comment" id="comment" rows="5" placeholder="Дополнительные пояснения, особенности выполнения, вопросы преподавателю...">{{ user_assignment.comment|default:'' }}</textarea>
+                            <small class="comment-hint">
+                                <i class="fas fa-info-circle"></i> 
+                                Опишите, что было сделано, какие трудности возникли, или задайте вопросы преподавателю
+                            </small>
+                        </div>
+
+                        <div class="submit-actions">
+                            <a href="{% url 'listener_app:course_study' assignment.lecture.course.id %}" class="lsn-btn lsn-btn-outline">
+                                <i class="fas fa-arrow-left"></i> Вернуться к курсу
+                            </a>
+                            <button type="submit" class="lsn-btn lsn-btn-primary" id="submitBtn">
+                                <i class="fas fa-paper-plane"></i> 
+                                {% if user_assignment and user_assignment.submission_status.assignment_status_name != 'завершено' %}
+                                    Отправить новую версию
+                                {% else %}
+                                    Отправить на проверку
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('submission_files');
+    const fileUploadArea = document.getElementById('fileUploadArea');
+    const filesList = document.getElementById('filesList');
+
+    let selectedFiles = [];
+    
+    function initSelectedFiles() {
+        if (fileInput.files.length > 0) {
+            for (let i = 0; i < fileInput.files.length; i++) {
+                selectedFiles.push(fileInput.files[i]);
+            }
+            updateFilesList();
+        }
+    }
+    
+    fileUploadArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    fileInput.addEventListener('change', function(e) {
+        for (let i = 0; i < e.target.files.length; i++) {
+            selectedFiles.push(e.target.files[i]);
+        }
+        updateFileInput();
+        updateFilesList();
+        fileInput.value = '';
+    });
+    
+    fileUploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragover');
+    });
+    
+    fileUploadArea.addEventListener('dragleave', function() {
+        fileUploadArea.classList.remove('dragover');
+    });
+    
+    fileUploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+        
+        const droppedFiles = e.dataTransfer.files;
+        for (let i = 0; i < droppedFiles.length; i++) {
+            selectedFiles.push(droppedFiles[i]);
+        }
+        updateFileInput();
+        updateFilesList();
+    });
+    
+    function updateFileInput() {
+        const dt = new DataTransfer();
+        for (let i = 0; i < selectedFiles.length; i++) {
+            dt.items.add(selectedFiles[i]);
+        }
+        fileInput.files = dt.files;
+    }
+    
+    function updateFilesList() {
+        filesList.innerHTML = '';
+        
+        if (selectedFiles.length === 0) return;
+        
+        for (let i = 0; i < selectedFiles.length; i++) {
+            const file = selectedFiles[i];
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.innerHTML = `
+                <div class="file-info">
+                    <i class="fas fa-file-alt"></i>
+                    <div>
+                        <div class="file-name">${escapeHtml(file.name)}</div>
+                        <div class="file-size">${formatFileSize(file.size)}</div>
+                    </div>
+                </div>
+                <button type="button" class="remove-file" data-index="${i}">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            filesList.appendChild(fileItem);
+        }
+        
+        document.querySelectorAll('.remove-file').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                removeFile(index);
+            });
+        });
+    }
+    
+    function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        updateFileInput();
+        updateFilesList();
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    document.getElementById('submitForm').addEventListener('submit', function(e) {
+        if (selectedFiles.length === 0) {
+            e.preventDefault();
+            alert('Пожалуйста, прикрепите хотя бы один файл');
+        }
+    });
+    
+    initSelectedFiles();
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/listener.js' %}"></script>
+{% endblock %}

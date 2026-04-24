@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - {% if test %}Редактирование теста{% else %}Создание теста{% endif %}{% endblock %}
+
+{% block content %}
+<div class="methodist-test-form-page">
+    <div class="methodist-container">
+        
+        <div class="methodist-page-header">
+            <div>
+                <h1 class="methodist-page-title">
+                    {% if test %}Редактирование теста{% else %}Создание теста{% endif %}
+                </h1>
+                <p class="methodist-page-subtitle">Для курса: {{ course.course_name }}</p>
+            </div>
+              {% if user.role.role_name == 'методист' %}
+                        <a href="{% url 'methodist_app:course_detail' course.id %}" class="methodist-btn methodist-btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Назад к курсу
+                        </a>
+                        {% elif user.role.role_name == 'преподаватель' %}
+                        <a href="{% url 'teacher_app:course_detail' course.id %}" class="teacher-btn teacher-btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Назад к курсу
+                        </a>
+              {% endif %}
+        </div>
+        
+        <div class="methodist-card">
+            <form method="post" class="methodist-form">
+                {% csrf_token %}
+                
+                <div class="methodist-form-group">
+                    <label for="{{ form.test_name.id_for_label }}">
+                        <i class="fas fa-heading"></i> {{ form.test_name.label }}
+                    </label>
+                    {{ form.test_name }}
+                    {% if form.test_name.errors %}
+                    <div class="methodist-form-error">
+                        {% for error in form.test_name.errors %}
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text">Название теста (3-200 символов)</small>
+                </div>
+                
+                <div class="methodist-form-group">
+                    <label for="{{ form.test_description.id_for_label }}">
+                        <i class="fas fa-align-left"></i> {{ form.test_description.label }}
+                    </label>
+                    {{ form.test_description }}
+                    {% if form.test_description.errors %}
+                    <div class="methodist-form-error">
+                        {% for error in form.test_description.errors %}
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text">Описание теста (до 2000 символов)</small>
+                </div>
+                
+                <div class="methodist-form-grid">
+                    <div class="methodist-form-group">
+                        <label for="{{ form.lecture.id_for_label }}">
+                            <i class="fas fa-book"></i> {{ form.lecture.label }}
+                        </label>
+                        {{ form.lecture }}
+                        {% if form.lecture.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.lecture.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="methodist-form-group">
+                        <label for="{{ form.grading_form.id_for_label }}">
+                            <i class="fas fa-chart-simple"></i> {{ form.grading_form.label }}
+                        </label>
+                        {{ form.grading_form }}
+                        {% if form.grading_form.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.grading_form.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="methodist-form-grid" id="passing-score-field">
+                    <div class="methodist-form-group">
+                        <label for="{{ form.passing_score.id_for_label }}">
+                            <i class="fas fa-check-double"></i> {{ form.passing_score.label }}
+                        </label>
+                        {{ form.passing_score }}
+                        {% if form.passing_score.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.passing_score.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Проходной балл (для балльной системы)</small>
+                    </div>
+                    
+                    <div class="methodist-form-group">
+                        <label for="{{ form.max_attempts.id_for_label }}">
+                            <i class="fas fa-repeat"></i> {{ form.max_attempts.label }}
+                        </label>
+                        {{ form.max_attempts }}
+                        {% if form.max_attempts.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.max_attempts.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Максимальное количество попыток (оставьте пустым для безлимита)</small>
+                    </div>
+                </div>
+                
+                <div class="methodist-form-grid">
+                    <div class="methodist-form-group checkbox-group">
+                        <label class="checkbox-label">
+                            {{ form.is_final }}
+                            <span><i class="fas fa-flag-checkered"></i> {{ form.is_final.label }}</span>
+                        </label>
+                    </div>
+                    
+                    <div class="methodist-form-group checkbox-group">
+                        <label class="checkbox-label">
+                            {{ form.is_active }}
+                            <span><i class="fas fa-eye"></i> {{ form.is_active.label }}</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="methodist-form-actions">
+                    <button type="submit" class="methodist-btn methodist-btn-primary">
+                        <i class="fas fa-save"></i> {% if test %}Сохранить изменения{% else %}Создать тест{% endif %}
+                    </button>
+                       {% if user.role.role_name == 'методист' %}
+                        <a href="{% url 'methodist_app:course_detail' course.id %}" class="methodist-btn methodist-btn-secondary">
+                            <i class="fas fas fa-times"></i> Отмена
+                        </a>
+                        {% elif user.role.role_name == 'преподаватель' %}
+                        <a href="{% url 'teacher_app:course_detail' course.id %}" class="teacher-btn teacher-btn-secondary">
+                            <i class="fas fas fa-times"></i> Отмена
+                        </a>
+                        {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gradingForm = document.getElementById('{{ form.grading_form.id_for_label }}');
+    const passingScoreField = document.getElementById('passing-score-field');
+    
+    function togglePassingScoreField() {
+        if (gradingForm.value === 'points') {
+            const passingScoreGroup = passingScoreField.querySelector('.methodist-form-group:first-child');
+            if (passingScoreGroup) passingScoreGroup.style.display = 'block';
+        } else {
+            const passingScoreGroup = passingScoreField.querySelector('.methodist-form-group:first-child');
+            if (passingScoreGroup) passingScoreGroup.style.display = 'none';
+        }
+    }
+    
+    gradingForm.addEventListener('change', togglePassingScoreField);
+    togglePassingScoreField();
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/methodist.js' %}"></script>
+{% endblock %}

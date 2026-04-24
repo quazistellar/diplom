@@ -1,15 +1,20 @@
 import uuid
 from django.conf import settings
 from django.utils import timezone
-from ..models import UserCourse
+from ..models import UserCourse, Course, User
 
 class YookassaPayment:
     """данный класс описывает логику интеграции системы с Юкассой для оплаты курсов"""
     
     def __init__(self):
         from yookassa import Configuration
-        Configuration.account_id = settings.YOOKASSA_SHOP_ID
-        Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
+        
+        shop_id = str(settings.YOOKASSA_SHOP_ID).strip()
+        secret_key = str(settings.YOOKASSA_SECRET_KEY).strip()
+        secret_key = secret_key.strip('"').strip("'")
+        
+        Configuration.account_id = shop_id
+        Configuration.secret_key = secret_key
     
     def create_payment(self, course, user, return_url):
         from yookassa import Payment
@@ -41,7 +46,6 @@ class YookassaPayment:
     
     def process_successful_payment(self, payment_id):
         from yookassa import Payment
-        from ..models import Course, User
         
         payment_info = Payment.find_one(payment_id)
         
@@ -52,16 +56,24 @@ class YookassaPayment:
             course = Course.objects.get(id=course_id)
             user = User.objects.get(id=user_id)
             
-            if not UserCourse.objects.filter(user=user, course=course).exists():
-                user_course = UserCourse(
-                    user=user,
-                    course=course,
-                    course_price=course.course_price,
-                    payment_date=timezone.now(),
-                    status_course=False,
-                    is_active=True
-                )
+            user_course, created = UserCourse.objects.get_or_create(
+                user=user,
+                course=course,
+                defaults={
+                    'course_price': course.course_price,
+                    'payment_date': timezone.now(),
+                    'payment_id': payment_id,
+                    'status_course': False,
+                    'is_active': True
+                }
+            )
+            
+            if not created and not user_course.is_active:
+                user_course.is_active = True
+                user_course.payment_date = timezone.now()
+                user_course.payment_id = payment_id
                 user_course.save()
-                return True
+            
+            return True, user_course
         
-        return False
+        return False, None

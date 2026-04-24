@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Конструктор теста: {{ test.test_name }}{% endblock %}
+
+{% block content %}
+<style>
+.question-card {
+    display: block !important;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px;
+    background: var(--surface);
+}
+.question-card.active {
+    display: block !important;
+}
+.questions-list .question-card {
+    display: block !important;
+}
+</style>
+<div class="methodist-test-builder-page">
+    <div class="methodist-container">
+        <div class="methodist-page-header">
+            <div>
+                <h1 class="methodist-page-title">Конструктор теста</h1>
+                <p class="methodist-page-subtitle">{{ test.test_name }}</p>
+            </div>
+            <div class="methodist-header-actions">
+                {% if user.role.role_name == 'методист' %}
+                    <a href="{% url 'methodist_app:test_edit' test.id %}" class="methodist-btn methodist-btn-outline">
+                        <i class="fas fa-edit"></i> Редактировать тест
+                    </a>
+                {% else %}
+                    <a href="{% url 'teacher_app:test_edit' test.id %}" class="methodist-btn methodist-btn-outline">
+                        <i class="fas fa-edit"></i> Редактировать тест
+                    </a>
+                {% endif %}
+                
+                {% if user.role.role_name == 'методист' %}
+                    <a href="{% url 'methodist_app:course_detail' course.id %}" class="methodist-btn methodist-btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Вернуться к курсу
+                    </a>
+                {% else %}
+                    <a href="{% url 'teacher_app:course_detail' course.id %}" class="methodist-btn methodist-btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Вернуться к курсу
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="methodist-card">
+            <div class="methodist-card-header">
+                <h2><i class="fas fa-info-circle"></i> Информация о тесте</h2>
+            </div>
+            <div class="methodist-info-grid">
+                <div class="methodist-info-item">
+                    <span class="methodist-info-label">Лекция:</span>
+                    <span class="methodist-info-value">{{ test.lecture.lecture_name }}</span>
+                </div>
+                <div class="methodist-info-item">
+                    <span class="methodist-info-label">Форма оценки:</span>
+                    <span class="methodist-info-value">
+                        {% if test.grading_form == 'points' %}По баллам{% else %}Зачёт/незачёт{% endif %}
+                    </span>
+                </div>
+                {% if test.passing_score %}
+                <div class="methodist-info-item">
+                    <span class="methodist-info-label">Проходной балл:</span>
+                    <span class="methodist-info-value">{{ test.passing_score }}</span>
+                </div>
+                {% endif %}
+                <div class="methodist-info-item">
+                    <span class="methodist-info-label">Максимум попыток:</span>
+                    <span class="methodist-info-value">{{ test.max_attempts|default:"Не ограничено" }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="methodist-card">
+            <div class="methodist-card-header">
+                <h2><i class="fas fa-list"></i> Вопросы теста</h2>
+                <p>Всего вопросов: {{ questions|length }}</p>
+            </div>
+            
+            {% if questions %}
+            <div class="questions-list">
+                {% for question in questions %}
+                <div class="question-card">
+                    <div class="question-header">
+                        <div class="question-order">{{ question.question_order }}</div>
+                        <div class="question-actions">
+                            {% if user.role.role_name == 'методист' %}
+                                <a href="{% url 'methodist_app:question_edit' question.id %}" class="methodist-btn methodist-btn-small methodist-btn-outline" title="Редактировать">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'methodist_app:question_delete' question.id %}" class="methodist-btn methodist-btn-small methodist-btn-danger" title="Удалить" onclick="return confirm('Удалить этот вопрос?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            {% else %}
+                                <a href="{% url 'teacher_app:question_edit' question.id %}" class="methodist-btn methodist-btn-small methodist-btn-outline" title="Редактировать">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'teacher_app:question_delete' question.id %}" class="methodist-btn methodist-btn-small methodist-btn-danger" title="Удалить" onclick="return confirm('Удалить этот вопрос?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="question-text">{{ question.question_text }}</div>
+                    <div class="question-score">
+                        <i class="fas fa-star"></i> Баллов: {{ question.question_score }}
+                    </div>
+                    <div class="answer-type-badge">{{ question.answer_type.answer_type_name }}</div>
+                    
+                    <div class="options-preview">
+                        {% if question.answer_type.answer_type_name|lower == 'один ответ' or question.answer_type.answer_type_name|lower == 'несколько ответов' %}
+                            {% for option in question.choiceoption_set.all %}
+                            <div class="option-preview {% if option.is_correct %}correct{% endif %}">
+                                <i class="fas {% if option.is_correct %}fa-check-circle{% else %}fa-circle{% endif %}"></i>
+                                <span>{{ option.option_text }}</span>
+                                {% if option.is_correct %}
+                                <span class="methodist-badge methodist-badge-success">Правильный</span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% elif question.answer_type.answer_type_name|lower == 'соответствие' %}
+                            <div class="matching-preview">
+                                {% for pair in question.matchingpair_set.all %}
+                                <div class="matching-preview-item">
+                                    <span>{{ pair.left_text }}</span>
+                                    <i class="fas fa-arrow-right matching-arrow"></i>
+                                    <span>{{ pair.right_text }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% elif question.answer_type.answer_type_name|lower == 'текстовый ответ' %}
+                            <div class="text-answer-preview">
+                                <i class="fas fa-pencil-alt"></i> Правильный ответ: {{ question.correct_text|default:"Не указан" }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="methodist-empty-small">
+                <i class="fas fa-question-circle"></i>
+                <p>Вопросы еще не добавлены</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="methodist-card">
+            <div class="methodist-card-header">
+                <h2><i class="fas fa-plus-circle"></i> Добавить новый вопрос</h2>
+                <p>Выберите тип вопроса и заполните поля</p>
+            </div>
+            
+            <form method="post" id="question-form">
+                {% csrf_token %}
+                
+                <div class="methodist-form-group">
+                    <label for="id_question_text">
+                        <i class="fas fa-question"></i> Текст вопроса
+                    </label>
+                    {{ question_form.question_text }}
+                </div>
+                
+                <div class="methodist-form-group">
+                    <label for="answer-type-select">
+                        <i class="fas fa-tag"></i> Тип ответа
+                    </label>
+                    {{ question_form.answer_type }}
+                </div>
+                
+                <div class="methodist-form-group">
+                    <label for="id_question_score">
+                        <i class="fas fa-star"></i> Балл за вопрос
+                    </label>
+                    {{ question_form.question_score }}
+                </div>
+                
+                <div class="methodist-form-group">
+                    <label for="id_question_order">
+                        <i class="fas fa-sort-numeric-down"></i> Порядковый номер вопроса
+                    </label>
+                    {{ question_form.question_order }}
+                    <small class="form-text">Порядковый номер вопроса в тесте</small>
+                </div>
+                
+                <div id="correct-text-group" class="methodist-form-group">
+                    <label for="id_correct_text">
+                        <i class="fas fa-check"></i> Правильный ответ
+                    </label>
+                    {{ question_form.correct_text }}
+                    <small class="form-text">Введите правильный ответ для текстового вопроса</small>
+                </div>
+                
+                <div id="choice-options-panel" class="question-type-panel">
+                    <h4><i class="fas fa-list"></i> Варианты ответов</h4>
+                    <div id="options-container" class="options-list">
+                    </div>
+                    <button type="button" class="add-btn" id="add-option-btn">
+                        <i class="fas fa-plus"></i> Добавить вариант
+                    </button>
+                    <div id="choice-validation" class="validation-message"></div>
+                </div>
+                
+                <div id="matching-pairs-panel" class="question-type-panel">
+                    <h4><i class="fas fa-exchange-alt"></i> Пары соответствия</h4>
+                    <div id="pairs-container" class="options-list">
+                    </div>
+                    <button type="button" class="add-btn" id="add-pair-btn">
+                        <i class="fas fa-plus"></i> Добавить пару
+                    </button>
+                </div>
+                
+                <div class="methodist-form-actions">
+                    <button type="submit" class="methodist-btn methodist-btn-primary">
+                        <i class="fas fa-save"></i> Добавить вопрос
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/test_builder.js' %}"></script>
+{% endblock %}

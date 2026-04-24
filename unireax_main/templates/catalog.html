@@ -1,0 +1,561 @@
+<!-- в данном файле находится html-верстка для страницы каталога курсов -->
+{% extends 'base.html' %}
+{% load static %}
+{% load filters %}
+
+{% block title %}UNIREAX - Каталог курсов{% endblock %}
+
+{% block content %}
+<div class="catalog-page">
+    <div class="container">
+
+        <div class="catalog-header">
+            <h1 class="catalog-title">Каталог курсов</h1>
+            <p class="catalog-subtitle">Выберите курс, начните или продолжите своё обучение</p>
+        </div>
+
+        <div class="catalog-filters">
+            <div class="search-wrapper">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" 
+                           class="search-input" 
+                           placeholder="Поиск курсов..." 
+                           id="searchInput"
+                           value="{{ search_query }}">
+                    {% if search_query %}
+                    <a href="{% get_filter_url request 'search' remove=True %}" class="clear-search">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button class="filter-btn" onclick="toggleFilters()">
+                    <i class="fas fa-filter"></i>
+                    Фильтры
+                    {% get_active_filters_count request as filters_count %}
+                    {% if filters_count > 0 %}
+                    <span class="filter-badge">{{ filters_count }}</span>
+                    {% endif %}
+                </button>
+                <button class="sort-btn" onclick="toggleSort()">
+                    <i class="fas fa-sort-amount-down"></i>
+                    Сортировка
+                </button>
+            </div>
+
+            {% if request|has_active_filters %}
+            <div class="active-filters">
+                <span class="active-filters-label">Активные фильтры:</span>
+                <div class="filter-chips">
+                    {% get_course_categories as categories %}
+                    {% get_course_types as types %}
+                    
+                    {% if search_query %}
+                    <span class="filter-chip">
+                        Поиск: "{{ search_query }}"
+                        <a href="{% get_filter_url request 'search' remove=True %}" class="remove-filter">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </span>
+                    {% endif %}
+                    
+                    {% for cat_id in selected_categories %}
+                        {% for cat in categories %}
+                            {% if cat.id == cat_id %}
+                            <span class="filter-chip">
+                                {{ cat.course_category_name }}
+                                <a href="{% get_filter_url request 'category' cat_id remove=True %}" class="remove-filter">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </span>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    
+                    {% for type_id in selected_types %}
+                        {% for type in types %}
+                            {% if type.id == type_id %}
+                            <span class="filter-chip">
+                                {{ type.course_type_name }}
+                                <a href="{% get_filter_url request 'type' type_id remove=True %}" class="remove-filter">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </span>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    
+                    {% if has_certificate %}
+                    <span class="filter-chip">
+                        С сертификатом
+                        <a href="{% get_filter_url request 'has_certificate' remove=True %}" class="remove-filter">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </span>
+                    {% endif %}
+                    
+                    {% if free_only %}
+                    <span class="filter-chip">
+                        Только бесплатные
+                        <a href="{% get_filter_url request 'free_only' remove=True %}" class="remove-filter">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </span>
+                    {% endif %}
+                    
+                    {% if price_min or price_max %}
+                    <span class="filter-chip">
+                        Цена: 
+                        {% if price_min and price_max %}
+                            {{ price_min }} - {{ price_max }} ₽
+                        {% elif price_min %}
+                            от {{ price_min }} ₽
+                        {% elif price_max %}
+                            до {{ price_max }} ₽
+                        {% endif %}
+                        <a href="{% get_filter_url request 'price_min' remove=True %}" class="remove-filter">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </span>
+                    {% endif %}
+                    
+                    {% if sort_by != 'popular' %}
+                    <span class="filter-chip">
+                        Сортировка: 
+                        {% if sort_by == 'price_asc' %}Сначала дешевые
+                        {% elif sort_by == 'price_desc' %}Сначала дорогие
+                        {% elif sort_by == 'rating_asc' %}По рейтингу (возрастание)
+                        {% elif sort_by == 'rating_desc' %}По рейтингу (убывание)
+                        {% elif sort_by == 'newest' %}Новые
+                        {% elif sort_by == 'hours_asc' %}По длительности (возр)
+                        {% elif sort_by == 'hours_desc' %}По длительности (убыв)
+                        {% endif %}
+                        <a href="{% get_filter_url request 'sort' remove=True %}" class="remove-filter">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </span>
+                    {% endif %}
+                    
+                    <a href="{% clear_all_filters_url request %}" class="clear-all-filters">
+                        Сбросить все
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="sort-panel" id="sortPanel" style="display: none;">
+            <div class="sort-options">
+                <a href="{% get_filter_url request 'sort' 'popular' %}" 
+                class="sort-option {% if sort_by == 'popular' %}active{% endif %}">
+                    <i class="fas fa-fire"></i> Популярные
+                </a>
+                <a href="{% get_filter_url request 'sort' 'price_asc' %}" 
+                class="sort-option {% if sort_by == 'price_asc' %}active{% endif %}">
+                    <i class="fas fa-arrow-up"></i> Сначала дешевые
+                </a>
+                <a href="{% get_filter_url request 'sort' 'price_desc' %}" 
+                class="sort-option {% if sort_by == 'price_desc' %}active{% endif %}">
+                    <i class="fas fa-arrow-down"></i> Сначала дорогие
+                </a>
+                <a href="{% get_filter_url request 'sort' 'rating_asc' %}" 
+                class="sort-option {% if sort_by == 'rating_asc' %}active{% endif %}">
+                    <i class="fas fa-star"></i> По рейтингу (возр)
+                </a>
+                <a href="{% get_filter_url request 'sort' 'rating_desc' %}" 
+                class="sort-option {% if sort_by == 'rating_desc' %}active{% endif %}">
+                    <i class="fas fa-star"></i> По рейтингу (убыв)
+                </a>
+                <a href="{% get_filter_url request 'sort' 'newest' %}" 
+                class="sort-option {% if sort_by == 'newest' %}active{% endif %}">
+                    <i class="fas fa-clock"></i> Новые
+                </a>
+                <a href="{% get_filter_url request 'sort' 'hours_asc' %}" 
+                class="sort-option {% if sort_by == 'hours_asc' %}active{% endif %}">
+                    <i class="fas fa-hourglass-half"></i> По длительности (возр)
+                </a>
+                <a href="{% get_filter_url request 'sort' 'hours_desc' %}" 
+                class="sort-option {% if sort_by == 'hours_desc' %}active{% endif %}">
+                    <i class="fas fa-hourglass-end"></i> По длительности (убыв)
+                </a>
+            </div>
+        </div>
+
+        <div class="filters-panel" id="filtersPanel" style="display: none;">
+            <div class="filters-header">
+                <h3>Фильтры</h3>
+                <button class="close-filters" onclick="toggleFilters()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form method="get" id="filterForm">
+                {% if search_query %}
+                <input type="hidden" name="search" value="{{ search_query }}">
+                {% endif %}
+                {% if sort_by != 'popular' %}
+                <input type="hidden" name="sort_by" value="{{ sort_by }}">
+                {% endif %}
+                <input type="hidden" name="view" value="{{ view_mode }}">
+
+                <div class="filters-content">
+
+                    <div class="filter-section">
+                        <h4>Категории</h4>
+                        <div class="filter-options">
+                            {% get_course_categories as categories %}
+                            {% for category in categories %}
+                            <label class="filter-checkbox">
+                                <input type="checkbox" 
+                                       name="category" 
+                                       value="{{ category.id }}"
+                                       {% if category.id|is_selected_category:request %}checked{% endif %}>
+                                {{ category.course_category_name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <h4>Тип обучения</h4>
+                        <div class="filter-options">
+                            {% get_course_types as types %}
+                            {% for type in types %}
+                            <label class="filter-checkbox">
+                                <input type="checkbox" 
+                                       name="type" 
+                                       value="{{ type.id }}"
+                                       {% if type.id|is_selected_type:request %}checked{% endif %}>
+                                {{ type.course_type_name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <h4>Дополнительно</h4>
+                        <div class="filter-options">
+                            <label class="filter-checkbox">
+                                <input type="checkbox" 
+                                       name="has_certificate" 
+                                       value="true"
+                                       {% if has_certificate %}checked{% endif %}>
+                                С сертификатом
+                            </label>
+                            <label class="filter-checkbox">
+                                <input type="checkbox" 
+                                       name="free_only" 
+                                       value="true"
+                                       {% if free_only %}checked{% endif %}>
+                                Только бесплатные
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <h4>Цена</h4>
+                        <div class="price-range-inputs">
+                            <input type="number" 
+                                   name="price_min" 
+                                   placeholder="От" 
+                                   value="{{ price_min|default:'' }}"
+                                   class="price-input"
+                                   min="0">
+                            <span class="price-separator">—</span>
+                            <input type="number" 
+                                   name="price_max" 
+                                   placeholder="До" 
+                                   value="{{ price_max|default:'' }}"
+                                   class="price-input"
+                                   min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filters-footer">
+                    <button type="submit" class="apply-filters-btn">
+                        Применить фильтры
+                    </button>
+                    {% if request|has_active_filters %}
+                    <a href="{% clear_all_filters_url request %}" class="clear-filters-btn">
+                        Сбросить
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <div class="catalog-view-controls">
+            <button class="view-btn {% if view_mode == 'grid' %}active{% endif %}" data-view="grid">
+                <i class="fas fa-th-large"></i> Сетка
+            </button>
+            <button class="view-btn {% if view_mode == 'list' %}active{% endif %}" data-view="list">
+                <i class="fas fa-list"></i> Список
+            </button>
+        </div>
+
+        <div class="catalog-results">
+            <div class="results-count">
+                Найдено курсов: {{ courses.paginator.count }}
+            </div>
+
+            <div id="courses-container" class="courses-container {% if view_mode == 'grid' %}grid-view{% else %}list-view{% endif %}">
+                {% for course in courses %}
+
+                <div class="course-card grid-card" {% if view_mode == 'list' %}style="display: none;"{% endif %}>
+                    <div class="course-image">
+                        {% if course.course_photo_path %}
+                        <img src="{{ course.course_photo_path.url }}" alt="{{ course.course_name }}">
+                        {% else %}
+                        <div class="course-image-placeholder">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="course-content">
+                        <div class="course-price-section">
+                            {% if course.course_price %}
+                            <div class="course-price-main">
+                                <span class="course-price-amount">{{ course.course_price|floatformat:"0" }}</span>
+                                <span class="course-price-currency">₽</span>
+                                {% if course.course_max_places %}
+                                <span class="course-price-info">/ До {{ course.course_max_places }} мест</span>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <div class="course-price-free">
+                                <span class="free-label">БЕСПЛАТНО</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="course-header">
+                            <h3 class="course-title" title="{{ course.course_name }}">
+                                {{ course.course_name }}
+                            </h3>
+                        </div>
+                        
+                        <p class="course-description" title="{{ course.course_description|default:'Описание курса скоро появится...' }}">
+                            {{ course.course_description|default:"Описание курса скоро появится..."|truncatechars:120 }}
+                        </p>
+
+                        <div class="course-meta-tags">
+                            {% if course.course_category %}
+                            <span class="course-meta-tag category-tag">
+                                <i class="fas fa-tag"></i> {{ course.course_category.course_category_name }}
+                            </span>
+                            {% endif %}
+                            
+                            {% if course.course_type %}
+                            <span class="course-meta-tag type-tag">
+                                <i class="fas fa-graduation-cap"></i> {{ course.course_type.course_type_name }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="course-features-grid">
+                            <div class="feature-item">
+                                <i class="fas fa-clock feature-icon"></i>
+                                <div class="feature-info">
+                                    <span class="feature-label">Длительность</span>
+                                    <span class="feature-value">{{ course.course_hours }} ч</span>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-item">
+                                <i class="fas fa-certificate feature-icon"></i>
+                                <div class="feature-info">
+                                    <span class="feature-label">Сертификат</span>
+                                    <span class="feature-value">{% if course.has_certificate %}Есть{% else %}Нет{% endif %}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle feature-icon"></i>
+                                <div class="feature-info">
+                                    <span class="feature-label">Материалы</span>
+                                    <span class="feature-value">{% if course.is_completed %}Готовы{% else %}Пополняются{% endif %}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-item">
+                                <i class="fas fa-star feature-icon" style="color: #ffc107;"></i>
+                                <div class="feature-info">
+                                    <span class="feature-label">Рейтинг</span>
+                                    <span class="feature-value">{{ course.avg_rating|floatformat:1|default:"0.0" }}</span>
+                                </div>
+                            </div>
+                            
+                            {% if course.course_max_places %}
+                            <div class="feature-item">
+                                <i class="fas fa-users feature-icon"></i>
+                                <div class="feature-info">
+                                    <span class="feature-label">Ограничение мест</span>
+                                    <span class="feature-value">До {{ course.course_max_places }}</span>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="feature-item">
+                                <i class="fas fa-user-graduate feature-icon"></i>
+                                <div class="feature-info">
+                                    <span class="feature-label">Слушателей</span>
+                                    <span class="feature-value">{{ course.student_count|default:0 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="course-actions">
+                            <a href="{% url 'course_detail' course.id %}" class="btn btn-register btn-block">
+                                <i class="fas fa-eye" style="margin-right: 6px;"></i>Подробнее
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="course-card list-card" {% if view_mode == 'grid' %}style="display: none;"{% endif %}>
+                    <div class="course-image">
+                        {% if course.course_photo_path %}
+                        <img src="{{ course.course_photo_path.url }}" alt="{{ course.course_name }}">
+                        {% else %}
+                        <div class="course-image-placeholder">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        {% endif %}
+                        
+                        {% if course.course_category %}
+                        <span class="course-category-badge">
+                            {{ course.course_category.course_category_name }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="course-content">
+                        <div class="course-header">
+                            <h3 class="course-title" title="{{ course.course_name }}">
+                                {{ course.course_name }}
+                            </h3>
+                        </div>
+                        
+                        <div class="course-tags">
+                            <span class="course-tag">
+                                <i class="fas fa-clock"></i> {{ course.course_hours }} ч
+                            </span>
+                            
+                            <span class="course-tag">
+                                <i class="fas fa-certificate"></i> {% if course.has_certificate %}Сертификат{% else %}Без сертификата{% endif %}
+                            </span>
+                            
+                            <span class="course-tag">
+                                <i class="fas fa-check-circle"></i> {% if course.is_completed %}Готов{% else %}В разработке{% endif %}
+                            </span>
+                            
+                            {% if course.course_max_places %}
+                            <span class="course-tag">
+                                <i class="fas fa-users"></i> До {{ course.course_max_places }} мест
+                            </span>
+                            {% endif %}
+                            
+                            {% if course.course_type %}
+                            <span class="course-tag">
+                                <i class="fas fa-graduation-cap"></i>
+                                {{ course.course_type.course_type_name }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <p class="course-description-list" title="{{ course.course_description|default:'Описание курса скоро появится...' }}">
+                            {{ course.course_description|default:"Описание курса скоро появится..." }}
+                        </p>
+                        
+                        <div class="course-details-row">
+                            <div class="detail-item">
+                                <i class="fas fa-calendar"></i>
+                                <span class="detail-label">{{ course.created_at|date:"d.m.Y" }}</span>
+                            </div>
+                            
+                            {% if course.created_by %}
+                            <div class="detail-item">
+                                <i class="fas fa-user-tie"></i>
+                                <span class="detail-label">{{ course.created_by.get_full_name|default:course.created_by.username|truncatechars:15 }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="detail-item">
+                                <i class="fas fa-star" style="color: #ffc107;"></i>
+                                <span class="detail-label">{{ course.avg_rating|floatformat:1|default:"0.0" }}</span>
+                            </div>
+                            
+                            <div class="detail-item">
+                                <i class="fas fa-user-graduate"></i>
+                                <span class="detail-label">{{ course.student_count|default:0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="course-sidebar">
+                        <div class="course-price-section">
+                            {% if course.course_price %}
+                            <div class="course-price-main">
+                                <div class="price-wrapper">
+                                    <span class="course-price-amount">{{ course.course_price|floatformat:"0" }}</span>
+                                    <span class="course-price-currency">₽</span>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="course-price-free">
+                                <span class="free-label-list">БЕСПЛАТНО</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="course-actions">
+                            <a href="{% url 'course_detail' course.id %}" class="btn btn-register btn-block">
+                                <i class="fas fa-eye" style="margin-right: 6px;"></i>Подробнее
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if courses.has_other_pages %}
+            <div class="pagination">
+                {% if courses.has_previous %}
+                <a href="?page={{ courses.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
+                   class="page-link">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                {% endif %}
+                
+                {% for i in courses.paginator.page_range %}
+                    {% if i == courses.number %}
+                    <span class="page-link active">{{ i }}</span>
+                    {% elif i > courses.number|add:'-3' and i < courses.number|add:'3' %}
+                    <a href="?page={{ i }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
+                       class="page-link">{{ i }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if courses.has_next %}
+                <a href="?page={{ courses.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" 
+                   class="page-link">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+{{ block.super }}
+<script src="{% static 'js/catalog.js' %}"></script>
+{% endblock %}
+
+{% endblock %}

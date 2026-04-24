@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Статистика - {{ course.course_name }} - UNIREAX{% endblock %}
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="breadcrumbs" style="margin-bottom: 20px;">
+            <a href="{% url 'listener_app:dashboard' %}">Личный кабинет</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'listener_app:course_study' course.id %}">{{ course.course_name }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Статистика</span>
+        </div>
+
+        <div class="lsn-header">
+            <h1 class="lsn-title">Статистика по курсу</h1>
+            <p class="lsn-subtitle">{{ course.course_name }}</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-big-card">
+                <div class="stat-big-value">{{ progress|floatformat:0 }}%</div>
+                <div class="stat-big-label">Общий прогресс</div>
+            </div>
+            <div class="stat-big-card">
+                <div class="stat-big-value">{{ passed_tests }}/{{ total_tests }}</div>
+                <div class="stat-big-label">Тестов сдано</div>
+            </div>
+            <div class="stat-big-card">
+                <div class="stat-big-value">{{ completed_practicals }}/{{ total_practicals }}</div>
+                <div class="stat-big-label">Работ выполнено</div>
+            </div>
+            <div class="stat-big-card">
+                <div class="stat-big-value">{{ test_results_count }}</div>
+                <div class="stat-big-label">Всего попыток</div>
+            </div>
+        </div>
+
+        <div class="detailed-stats">
+            <div class="stats-card">
+                <h3><i class="fas fa-question-circle"></i> Результаты тестов</h3>
+                <div class="score-display">
+                    <div class="score-value">{{ avg_test_score|floatformat:1 }}</div>
+                    <div class="score-label">Средний балл за тесты</div>
+                </div>
+                <div class="progress-item">
+                    <span class="progress-label">Сдано тестов</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {% widthratio passed_tests total_tests 100 %}%"></div>
+                    </div>
+                    <span class="progress-value">{{ passed_tests }}/{{ total_tests }}</span>
+                </div>
+            </div>
+
+            <div class="stats-card">
+                <h3><i class="fas fa-tasks"></i> Практические работы</h3>
+                <div class="score-display">
+                    <div class="score-value">{{ avg_practical_score|floatformat:1 }}</div>
+                    <div class="score-label">Средний балл за работы</div>
+                </div>
+                <div class="progress-item">
+                    <span class="progress-label">Выполнено работ</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {% widthratio completed_practicals total_practicals 100 %}%"></div>
+                    </div>
+                    <span class="progress-value">{{ completed_practicals }}/{{ total_practicals }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-actions">
+            <a href="{% url 'listener_app:course_study' course.id %}" class="lsn-btn lsn-btn-outline">
+                <i class="fas fa-arrow-left"></i> Вернуться к курсу
+            </a>
+            <a href="{% url 'listener_app:test_results_list' course.id %}" class="lsn-btn lsn-btn-primary">
+                <i class="fas fa-chart-line"></i> Результаты тестов
+            </a>
+            <a href="{% url 'listener_app:graded_assignments' course.id %}" class="lsn-btn lsn-btn-primary">
+                <i class="fas fa-check-circle"></i> Оцененные работы
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/listener.js' %}"></script>
+{% endblock %}

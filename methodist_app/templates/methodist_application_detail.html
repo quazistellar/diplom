@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Детали заявки - UNIREAX{% endblock %}
+
+{% block content %}
+<div class="methodist-page">
+    <div class="methodist-container">
+
+        <div class="methodist-page-header">
+            <div>
+                <h1 class="methodist-page-title">
+                    <i class="fas fa-file-alt"></i> Детали заявки
+                </h1>
+                <p class="methodist-page-subtitle">Просмотр и обработка заявки преподавателя</p>
+            </div>
+            <div class="methodist-header-actions">
+                <a href="{% url 'methodist_app:teacher_applications' %}" class="methodist-btn methodist-btn-outline">
+                    <i class="fas fa-arrow-left"></i> Назад к заявкам
+                </a>
+            </div>
+        </div>
+
+        {% if messages %}
+        <div class="methodist-messages">
+            {% for message in messages %}
+            <div class="methodist-message methodist-message-{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}success{% else %}info{% endif %}">
+                <i class="fas fa-{% if message.tags == 'error' %}exclamation-circle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="methodist-application-detail">
+            <div class="methodist-card">
+                <div class="methodist-card-header">
+                    <h2><i class="fas fa-info-circle"></i> Информация о заявке</h2>
+                </div>
+                
+                <div class="methodist-info-grid">
+                    <div class="methodist-info-item">
+                        <div class="methodist-info-label"><i class="fas fa-user"></i> Преподаватель</div>
+                        <div class="methodist-info-value">{{ application.teacher.get_full_name|default:application.teacher.username }}</div>
+                    </div>
+                    <div class="methodist-info-item">
+                        <div class="methodist-info-label"><i class="fas fa-envelope"></i> Email</div>
+                        <div class="methodist-info-value">{{ application.teacher.email }}</div>
+                    </div>
+                    <div class="methodist-info-item">
+                        <div class="methodist-info-label"><i class="fas fa-book-open"></i> Курс</div>
+                        <div class="methodist-info-value">{{ application.course.course_name }}</div>
+                    </div>
+                    <div class="methodist-info-item">
+                        <div class="methodist-info-label"><i class="fas fa-calendar-alt"></i> Дата подачи</div>
+                        <div class="methodist-info-value">{{ application.created_at|date:"d.m.Y H:i" }}</div>
+                    </div>
+                    <div class="methodist-info-item">
+                        <div class="methodist-info-label"><i class="fas fa-tag"></i> Статус</div>
+                        <div class="methodist-info-value">
+                            <span class="application-status-badge status-{{ application.status }}">
+                                {% if application.status == 'pending' %}
+                                    <i class="fas fa-clock"></i> На рассмотрении
+                                {% elif application.status == 'approved' %}
+                                    <i class="fas fa-check-circle"></i> Одобрена
+                                {% elif application.status == 'rejected' %}
+                                    <i class="fas fa-times-circle"></i> Отклонена
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% if application.comment %}
+                    <div class="methodist-info-item full-width">
+                        <div class="methodist-info-label"><i class="fas fa-comment"></i> Комментарий методиста</div>
+                        <div class="methodist-info-value">{{ application.comment }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if application.status == 'pending' %}
+            <div class="methodist-card">
+                <div class="methodist-card-header">
+                    <h2><i class="fas fa-gavel"></i> Обработка заявки</h2>
+                    <p>Одобрите или отклоните заявку преподавателя</p>
+                </div>
+                
+                <form method="post" class="methodist-form">
+                    {% csrf_token %}
+                    
+                    <div class="methodist-form-group full-width">
+                        <label class="methodist-form-label">
+                            <i class="fas fa-comment-dots"></i> Комментарий (для отклонения)
+                        </label>
+                        <textarea name="comment" class="methodist-form-textarea" rows="4" 
+                                  placeholder="Укажите причину отклонения заявки..."></textarea>
+                        <div class="form-text">При одобрении комментарий не требуется</div>
+                    </div>
+                    
+                    <div class="methodist-form-actions">
+                        <button type="submit" name="action" value="approve" class="methodist-btn methodist-btn-success">
+                            <i class="fas fa-check-circle"></i> Одобрить заявку
+                        </button>
+                        <button type="submit" name="action" value="reject" class="methodist-btn methodist-btn-danger">
+                            <i class="fas fa-times-circle"></i> Отклонить заявку
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            {% elif application.status == 'approved' %}
+            <div class="methodist-card">
+                <div class="methodist-card-header">
+                    <h2><i class="fas fa-check-circle"></i> Заявка одобрена</h2>
+                </div>
+                <div class="methodist-approved-info">
+                    <div class="alert alert-success">
+                        <i class="fas fa-envelope"></i>
+                        <p>Преподаватель получил уведомление об одобрении на почту <strong>{{ application.teacher.email }}</strong></p>
+                    </div>
+                    <div class="methodist-info-note">
+                        <p><i class="fas fa-info-circle"></i> Преподаватель теперь отображается в списке преподавателей курса.</p>
+                    </div>
+                </div>
+            </div>
+
+            {% if is_active_teacher %}
+            <div class="methodist-card">
+                <div class="methodist-card-header">
+                    <h2><i class="fas fa-user-minus"></i> Управление преподавателем</h2>
+                    <p>Удалить преподавателя с курса</p>
+                </div>
+                
+                <form method="post" class="methodist-form" onsubmit="return confirm('Вы уверены, что хотите удалить преподавателя {{ application.teacher.get_full_name }} с курса? Это действие нельзя отменить.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="remove">
+                    
+                    <div class="methodist-warning-box">
+                        <div class="warning-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="warning-content">
+                            <strong>Внимание!</strong>
+                            <span>При удалении преподавателя с курса будут удалены все его связи с материалами курса.</span>
+                        </div>
+                    </div>
+                    
+                    <div class="methodist-form-actions">
+                        <button type="submit" class="methodist-btn methodist-btn-remove">
+                            <i class="fas fa-trash-alt"></i> Удалить преподавателя с курса
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+
+            {% elif application.status == 'rejected' %}
+            <div class="methodist-card">
+                <div class="methodist-card-header">
+                    <h2><i class="fas fa-times-circle"></i> Заявка отклонена</h2>
+                </div>
+                <div class="methodist-rejected-info">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-envelope"></i>
+                        <p>Преподаватель получил уведомление об отклонении на почту <strong>{{ application.teacher.email }}</strong></p>
+                    </div>
+                    {% if application.comment %}
+                    <div class="methodist-rejection-comment">
+                        <strong><i class="fas fa-comment"></i> Причина отклонения:</strong>
+                        <p>{{ application.comment }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

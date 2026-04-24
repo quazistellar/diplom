@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Подтверждение удаления{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/teacher.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="teacher-delete-page">
+    <div class="teacher-container">
+        <div class="teacher-card">
+            <div class="teacher-card-header">
+                <h2><i class="fas fa-trash-alt"></i> Подтверждение удаления</h2>
+            </div>
+            
+            <div class="teacher-delete-content">
+                <div class="teacher-delete-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>Вы уверены, что хотите удалить?</h3>
+                <p><strong>{{ object_name }}</strong></p>
+                <p class="teacher-delete-warning">Это действие нельзя отменить. Все связанные данные будут удалены.</p>
+            </div>
+            
+            <form method="post" class="teacher-delete-form">
+                {% csrf_token %}
+                <div class="teacher-form-actions">
+                    <button type="submit" class="teacher-btn teacher-btn-danger">
+                        <i class="fas fa-trash"></i> Да, удалить
+                    </button>
+                    <a href="{{ cancel_url }}" class="teacher-btn teacher-btn-secondary">
+                        <i class="fas fa-times"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/teacher.js' %}"></script>
+{% endblock %}

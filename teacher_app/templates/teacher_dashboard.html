@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Дашборд преподавателя{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/teacher.css' %}">
+<style>
+
+    .teacher-course-inactive {
+        opacity: 0.85;
+        background: linear-gradient(135deg, rgba(231, 76, 60, 0.05), rgba(231, 76, 60, 0.02));
+        border-left: 3px solid #e74c3c;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .teacher-course-inactive::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 0 50px 50px 0;
+        border-color: transparent #e74c3c transparent transparent;
+        opacity: 0.1;
+    }
+    
+    .teacher-course-inactive:hover {
+        opacity: 1;
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    
+    .teacher-course-inactive .teacher-course-title small {
+        font-size: 12px;
+        color: #e74c3c;
+        font-weight: normal;
+    }
+    
+    .teacher-badge-warning {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        color: white;
+    }
+    
+    .teacher-stat-inactive {
+        opacity: 0.6;
+    }
+    
+    .teacher-inactive-message {
+        background: rgba(231, 76, 60, 0.1);
+        border-radius: var(--radius);
+        padding: 10px;
+        text-align: center;
+        font-size: 13px;
+        color: #e74c3c;
+        margin-top: 10px;
+    }
+    
+    .teacher-inactive-message i {
+        margin-right: 5px;
+    }
+    
+    .teacher-action-disabled {
+        opacity: 0.5;
+        pointer-events: none;
+        cursor: not-allowed;
+    }
+    
+    .teacher-section-divider {
+        margin: 30px 0 20px;
+        border-top: 1px solid var(--border);
+        position: relative;
+    }
+    
+    .teacher-section-divider span {
+        position: absolute;
+        top: -12px;
+        left: 20px;
+        background: var(--bg-card);
+        padding: 0 15px;
+        color: var(--text-soft);
+        font-size: 13px;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="teacher-dashboard-page">
+    <div class="teacher-container">
+        <div class="teacher-dashboard-header">
+            <div>
+                <h1 class="teacher-page-title">Дашборд преподавателя</h1>
+                <p class="teacher-page-subtitle">Управление вашими курсами и успеваемостью слушателей</p>
+            </div>
+            <div class="teacher-header-actions">
+                <a href="{% url 'teacher_app:profile' %}" class="teacher-btn teacher-btn-outline">
+                    <i class="fas fa-user"></i> Мой профиль
+                </a>
+                <a href="{% url 'teacher_app:statistics' %}" class="teacher-btn teacher-btn-outline">
+                    <i class="fas fa-chart-line"></i> Статистика
+                </a>
+                <a href="{% url 'teacher_app:course_create' %}" class="teacher-btn teacher-btn-primary">
+                    <i class="fas fa-plus"></i> Создать курс
+                </a>
+            </div>
+        </div>
+        
+        <div class="teacher-stats-row">
+            <div class="teacher-stat-item">
+                <div class="teacher-stat-value">{{ total_created_courses }}</div>
+                <div class="teacher-stat-label">Мои курсы</div>
+            </div>
+            <div class="teacher-stat-item">
+                <div class="teacher-stat-value">{{ total_teaching_courses }}</div>
+                <div class="teacher-stat-label">Курсы, где я веду</div>
+            </div>
+            <div class="teacher-stat-item">
+                <div class="teacher-stat-value">{{ total_students }}</div>
+                <div class="teacher-stat-label">Всего слушателей</div>
+            </div>
+            <div class="teacher-stat-item">
+                <div class="teacher-stat-value">{{ total_pending }}</div>
+                <div class="teacher-stat-label">Работ на проверке</div>
+            </div>
+        </div>
+        
+        {% if pending_submissions %}
+        <div class="teacher-card">
+            <div class="teacher-card-header">
+                <h2><i class="fas fa-tasks"></i> Работы на проверке</h2>
+                <p>Задания, ожидающие вашей оценки</p>
+            </div>
+            <div class="teacher-pending-list">
+                {% for submission in pending_submissions %}
+                <div class="teacher-pending-card">
+                    <div class="pending-info">
+                        <div class="student-avatar-small">
+                            {{ submission.user.last_name|first|upper }}{{ submission.user.first_name|first|upper }}
+                        </div>
+                        <div class="pending-details">
+                            <h4>{{ submission.user.last_name }} {{ submission.user.first_name }}</h4>
+                            <p class="assignment-name">{{ submission.practical_assignment.practical_assignment_name }}</p>
+                            <p class="course-name">{{ submission.practical_assignment.lecture.course.course_name }}</p>
+                            <p class="submission-date">
+                                <i class="fas fa-calendar-alt"></i> Сдано: {{ submission.submission_date|date:"d.m.Y H:i" }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="pending-actions">
+                        <a href="{% url 'teacher_app:grade_assignment' submission.id %}" class="teacher-btn teacher-btn-primary">
+                            <i class="fas fa-check"></i> Проверить
+                        </a>
+                        <a href="{% url 'teacher_app:listener_progress' submission.practical_assignment.lecture.course.id submission.user.id %}" class="teacher-btn teacher-btn-outline">
+                            <i class="fas fa-chart-line"></i> Прогресс
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if pending_submissions_count > 5 %}
+            <div class="teacher-card-footer">
+                <a href="{% url 'teacher_app:pending_submissions' %}" class="teacher-link">
+                    Посмотреть все работы на проверке ({{ pending_submissions_count }}) <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% elif total_pending == 0 %}
+        <div class="teacher-card">
+            <div class="teacher-card-header">
+                <h2><i class="fas fa-check-circle"></i> Работы на проверке</h2>
+                <p>Все работы проверены!</p>
+            </div>
+            <div class="teacher-empty-small">
+                <i class="fas fa-check-circle" style="color: #2ecc71;"></i>
+                <p>Нет работ, ожидающих проверки</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if created_courses %}
+        <div class="teacher-section">
+            <div class="teacher-section-header">
+                <h2><i class="fas fa-star"></i> Мои курсы</h2>
+                <p>Курсы, которые я создал(а) и веду</p>
+            </div>
+            <div class="teacher-courses-grid">
+                {% for stat in created_courses %}
+                <div class="teacher-course-card {% if not stat.is_active %}teacher-course-inactive{% endif %}">
+                    <div class="teacher-course-image">
+                        {% if stat.course.course_photo_path %}
+                            <img src="{{ stat.course.course_photo_path.url }}" alt="{{ stat.course.course_name }}">
+                        {% else %}
+                            <div class="teacher-course-placeholder">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                        {% endif %}
+                        <div class="teacher-course-status">
+                            {% if stat.is_active %}
+                                <span class="teacher-badge teacher-badge-success">Активен</span>
+                            {% else %}
+                                <span class="teacher-badge teacher-badge-danger">Неактивен</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="teacher-course-body">
+                        <h3 class="teacher-course-title">
+                            {{ stat.course.course_name }}
+                            {% if not stat.is_active %}
+                                <small>(архивный)</small>
+                            {% endif %}
+                        </h3>
+                        <p class="teacher-course-description">{{ stat.course.course_description|truncatechars:100 }}</p>
+                        
+                        <div class="teacher-course-stats {% if not stat.is_active %}teacher-stat-inactive{% endif %}">
+                            <div class="teacher-stat">
+                                <i class="fas fa-users"></i>
+                                <span>{{ stat.students_count }} слушателей</span>
+                            </div>
+                            <div class="teacher-stat">
+                                <i class="fas fa-clock"></i>
+                                <span>{{ stat.course.course_hours }} ч</span>
+                            </div>
+                            <div class="teacher-stat">
+                                <i class="fas fa-chart-line"></i>
+                                <span>{{ stat.avg_progress|floatformat:0 }}% завершили</span>
+                            </div>
+                            {% if stat.pending_count > 0 and stat.is_active %}
+                            <div class="teacher-stat teacher-stat-warning">
+                                <i class="fas fa-tasks"></i>
+                                <span>{{ stat.pending_count }} на проверке</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if stat.is_active %}
+                        <div class="teacher-progress">
+                            <div class="teacher-progress-bar">
+                                <div class="teacher-progress-fill" style="width: {{ stat.avg_progress }}%"></div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="teacher-inactive-message">
+                            <i class="fas fa-archive"></i> Курс архивирован. Слушатели не видят этот курс.
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="teacher-course-footer">
+                        {% if stat.is_active %}
+                        <a href="{% url 'teacher_app:course_detail' stat.course.id %}" class="teacher-btn teacher-btn-primary teacher-btn-block">
+                            <i class="fas fa-edit"></i> Управлять курсом
+                        </a>
+                        {% else %}
+                        <a href="{% url 'teacher_app:course_edit' stat.course.id %}" class="teacher-btn teacher-btn-warning teacher-btn-block">
+                            <i class="fas fa-archive"></i> Активировать курс
+                        </a>
+                        {% endif %}
+                        <div class="teacher-course-actions">
+                            <a href="{% url 'teacher_app:course_edit' stat.course.id %}" class="teacher-btn teacher-btn-small teacher-btn-outline" title="Редактировать">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'teacher_app:course_delete' stat.course.id %}" class="teacher-btn teacher-btn-small teacher-btn-danger" title="Удалить" onclick="return confirmDelete(this, '{{ stat.course.course_name }}')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if teaching_courses %}
+        <div class="teacher-section">
+            <div class="teacher-section-header">
+                <h2><i class="fas fa-chalkboard-teacher"></i> Курсы, где я преподаю</h2>
+                <p>Курсы, в которых я веду занятия (только проверка работ)</p>
+            </div>
+            <div class="teacher-courses-grid">
+                {% for stat in teaching_courses %}
+                <div class="teacher-course-card {% if not stat.is_active %}teacher-course-inactive{% endif %} teacher-teaching-card">
+                    <div class="teacher-course-image">
+                        {% if stat.course.course_photo_path %}
+                            <img src="{{ stat.course.course_photo_path.url }}" alt="{{ stat.course.course_name }}">
+                        {% else %}
+                            <div class="teacher-course-placeholder">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                            </div>
+                        {% endif %}
+                        <div class="teacher-course-status">
+                            {% if stat.is_active %}
+                                <span class="teacher-badge teacher-badge-success">Активен</span>
+                            {% else %}
+                                <span class="teacher-badge teacher-badge-danger">Неактивен</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="teacher-course-body">
+                        <h3 class="teacher-course-title">
+                            {{ stat.course.course_name }}
+                            {% if not stat.is_active %}
+                                <small>(архивный)</small>
+                            {% endif %}
+                        </h3>
+                        <p class="teacher-course-description">{{ stat.course.course_description|truncatechars:100 }}</p>
+                        
+                        <div class="teacher-course-stats {% if not stat.is_active %}teacher-stat-inactive{% endif %}">
+                            <div class="teacher-stat">
+                                <i class="fas fa-users"></i>
+                                <span>{{ stat.students_count }} слушателей</span>
+                            </div>
+                            <div class="teacher-stat">
+                                <i class="fas fa-chart-line"></i>
+                                <span>{{ stat.avg_progress|floatformat:0 }}% прогресс</span>
+                            </div>
+                            {% if stat.pending_count > 0 and stat.is_active %}
+                            <div class="teacher-stat teacher-stat-warning">
+                                <i class="fas fa-tasks"></i>
+                                <span>{{ stat.pending_count }} на проверке</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if stat.is_active %}
+                        <div class="teacher-progress">
+                            <div class="teacher-progress-bar">
+                                <div class="teacher-progress-fill" style="width: {{ stat.avg_progress }}%"></div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="teacher-inactive-message">
+                            <i class="fas fa-archive"></i> Курс архивирован
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="teacher-course-footer">
+                        {% if stat.is_active %}
+                        <a href="{% url 'teacher_app:course_detail' stat.course.id %}" class="teacher-btn teacher-btn-info teacher-btn-block">
+                            <i class="fas fa-chalkboard-teacher"></i> Проверка работ
+                        </a>
+                        {% else %}
+                        <div class="teacher-btn teacher-btn-disabled teacher-btn-block teacher-action-disabled">
+                            <i class="fas fa-archive"></i> Курс недоступен
+                        </div>
+                        {% endif %}
+                        <div class="teacher-course-actions">
+                            <a href="{% url 'teacher_app:listeners_list' stat.course.id %}" class="teacher-btn teacher-btn-small teacher-btn-outline {% if not stat.is_active %}teacher-action-disabled{% endif %}" title="Слушатели">
+                                <i class="fas fa-users"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if not created_courses and not teaching_courses %}
+        <div class="teacher-empty-state">
+            <i class="fas fa-book-open"></i>
+            <h3>У вас пока нет курсов</h3>
+            <p>Создайте свой первый курс или дождитесь назначения на курс</p>
+            <a href="{% url 'teacher_app:course_create' %}" class="teacher-btn teacher-btn-primary">
+                <i class="fas fa-plus"></i> Создать курс
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/teacher.js' %}"></script>
+{% endblock %}

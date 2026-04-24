@@ -149,7 +149,8 @@ class Command(BaseCommand):
             if not re.search(r'\d', password):
                 errors.append('цифру')
             if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-                errors.append('специальный символ')
+                self.stdout.write(self.style.WARNING('рекомендуется использовать специальный символ в пароле'))
+            
             if errors:
                 return 'пароль должен содержать хотя бы одну ' + ', '.join(errors)
 

@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Оценивание работы{% endblock %}
+
+{% block content %}
+<div class="teacher-grade-page">
+    <div class="teacher-container">
+        <div class="teacher-page-header">
+            <div>
+                <h1 class="teacher-page-title">Оценивание работы</h1>
+                <p class="teacher-page-subtitle">{{ submission.practical_assignment.practical_assignment_name }}</p>
+            </div>
+            <div class="teacher-header-actions">
+                <a href="{% url 'teacher_app:listener_progress' course.id submission.user.id %}" class="teacher-btn teacher-btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к прогрессу
+                </a>
+            </div>
+        </div>
+        
+        <div class="teacher-grade-content">
+            {% if is_overdue %}
+            <div class="deadline-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div class="warning-text">
+                    <strong>Работа сдана после срока!</strong>
+                    <span>Дата сдачи: {{ submission.submission_date|date:"d.m.Y H:i" }} | Срок сдачи был: {{ assignment.assignment_deadline|date:"d.m.Y H:i" }}</span>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if is_rejected %}
+            <div class="rejected-warning">
+                <i class="fas fa-times-circle"></i>
+                <div class="warning-text">
+                    <strong>Работа отклонена!</strong>
+                    <span>Эта работа была отклонена преподавателем. Слушатель не может её пересдать. Если слушатель исправил работу, вы можете принять её в работу кнопкой ниже.</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="teacher-grade-info-card">
+                <div class="info-row">
+                    <div class="info-label">Слушатель:</div>
+                    <div class="info-value">{{ submission.user.last_name }} {{ submission.user.first_name }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Email:</div>
+                    <div class="info-value">{{ submission.user.email }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Задание:</div>
+                    <div class="info-value">{{ assignment.practical_assignment_name }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Лекция:</div>
+                    <div class="info-value">{{ assignment.lecture.lecture_name }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Тип оценки:</div>
+                    <div class="info-value">
+                        {% if assignment.grading_type == 'points' %}
+                            Балльная система (максимум {{ assignment.max_score }} баллов)
+                        {% else %}
+                            Зачёт/незачёт (бинарная система)
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Попытка:</div>
+                    <div class="info-value">{{ submission.attempt_number }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Статус:</div>
+                    <div class="info-value">
+                        {% if is_rejected %}
+                            <span style="color: #e74c3c; font-weight: bold;">
+                                <i class="fas fa-ban"></i> Отклонено
+                            </span>
+                        {% elif submission.submission_status.assignment_status_name == 'завершено' %}
+                            <span style="color: #2ecc71; font-weight: bold;">
+                                <i class="fas fa-check-circle"></i> Завершено
+                            </span>
+                        {% elif submission.submission_status.assignment_status_name == 'на проверке' %}
+                            <span style="color: #f39c12; font-weight: bold;">
+                                <i class="fas fa-clock"></i> На проверке
+                            </span>
+                        {% elif submission.submission_status.assignment_status_name == 'на доработке' %}
+                            <span style="color: #3498db; font-weight: bold;">
+                                <i class="fas fa-edit"></i> На доработке
+                            </span>
+                        {% else %}
+                            <span>{{ submission.submission_status.assignment_status_name }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if submission.submission_date %}
+                <div class="info-row">
+                    <div class="info-label">Дата сдачи:</div>
+                    <div class="info-value">
+                        {{ submission.submission_date|date:"d.m.Y H:i" }}
+                        {% if is_overdue %}
+                            <span style="color: #e74c3c; margin-left: 8px;">
+                                <i class="fas fa-exclamation-circle"></i> Просрочено
+                            </span>
+                        {% else %}
+                            {% if assignment.assignment_deadline %}
+                                <span style="color: #2ecc71; margin-left: 8px;">
+                                    <i class="fas fa-check-circle"></i> Сдано вовремя
+                                </span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if assignment.assignment_deadline %}
+                <div class="info-row">
+                    <div class="info-label"><i class="fas fa-calendar-alt"></i> Срок сдачи:</div>
+                    <div class="info-value">
+                        {{ assignment.assignment_deadline|date:"d.m.Y H:i" }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if is_overdue and overdue_text %}
+                <div class="info-row">
+                    <div class="info-label"><i class="fas fa-hourglass-half"></i> Опоздание:</div>
+                    <div class="info-value" style="color: #e74c3c; font-weight: bold;">
+                        {{ overdue_text }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if assignment.passing_score %}
+                <div class="info-row">
+                    <div class="info-label">Проходной балл:</div>
+                    <div class="info-value">{{ assignment.passing_score }}</div>
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if submission.assignmentsubmissionfile_set.all %}
+            <div class="teacher-grade-section">
+                <h3><i class="fas fa-file-alt"></i> Прикрепленные файлы</h3>
+                <div class="files-list">
+                    {% for file in submission.assignmentsubmissionfile_set.all %}
+                    <div class="file-item">
+                        <a href="{{ file.file.url }}" class="file-link" target="_blank">
+                            <i class="fas fa-file"></i>
+                            {{ file.file_name }} ({{ file.file_size|filesizeformat }})
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if submission.comment %}
+            <div class="teacher-grade-section">
+                <h3><i class="fas fa-comment"></i> Комментарий слушателя</h3>
+                <div class="student-comment">
+                    {{ submission.comment }}
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="teacher-grade-section">
+                <h3><i class="fas fa-check-circle"></i> Оценивание работы</h3>
+                
+                {% if is_overdue and not is_rejected %}
+                <div class="info-warning">
+                    <i class="fas fa-info-circle"></i>
+                    <div class="info-text">
+                        <strong>Обратите внимание!</strong>
+                        <span>Работа сдана после срока. Вы можете применить штрафные баллы при оценке.</span>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <form method="post" class="teacher-grade-form">
+                    {% csrf_token %}
+                    
+                    {% if not is_rejected %}
+                        {% if assignment.grading_type == 'points' %}
+                        <div class="teacher-form-group">
+                            <label for="{{ form.score.id_for_label }}">
+                                Баллы (максимум {{ assignment.max_score }}):
+                            </label>
+                            {{ form.score }}
+                            <small class="form-text">Введите количество баллов от 0 до {{ assignment.max_score }}</small>
+                        </div>
+                        {% else %}
+                        <div class="teacher-form-group">
+                            <label>Оценка:</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="is_passed" value="true" {% if feedback and feedback.is_passed %}checked{% endif %}>
+                                    <span>Зачёт</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="is_passed" value="false" {% if feedback and feedback.is_passed == False %}checked{% endif %}>
+                                    <span>Незачёт</span>
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="teacher-form-group">
+                            <label for="{{ form.comment_feedback.id_for_label }}">
+                                <i class="fas fa-comment-dots"></i> Комментарий к работе:
+                            </label>
+                            {{ form.comment_feedback }}
+                            <small class="form-text">Оставьте развернутый комментарий для слушателя</small>
+                        </div>
+                        
+                        <div class="teacher-form-actions">
+                            <button type="submit" name="grade" class="teacher-btn teacher-btn-primary">
+                                <i class="fas fa-save"></i> Сохранить оценку
+                            </button>
+                            <button type="submit" name="reject" class="teacher-btn teacher-btn-danger" 
+                                    onclick="return confirm('Вы уверены, что хотите отклонить эту работу? Слушатель не сможет её пересдать.');">
+                                <i class="fas fa-ban"></i> Отклонить работу
+                            </button>
+                            <a href="{% url 'teacher_app:listener_progress' course.id submission.user.id %}" class="teacher-btn teacher-btn-secondary">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="rehabilitate-info">
+                            <i class="fas fa-info-circle"></i>
+                            <div class="info-text">
+                                <strong>Работа отклонена!</strong>
+                                <span>Если слушатель исправил работу и вы хотите принять её в работу, нажмите кнопку ниже.</span>
+                            </div>
+                        </div>
+                        
+                        <div class="teacher-form-group">
+                            <label for="comment_feedback">
+                                <i class="fas fa-comment-dots"></i> Комментарий к работе:
+                            </label>
+                            <textarea name="comment_feedback" id="comment_feedback" class="form-control" rows="3" placeholder="Напишите причину отзыва статуса отклонения работы..."></textarea>
+                        </div>
+                        
+                        <div class="teacher-form-actions">
+                            <button type="submit" name="rehabilitate" class="teacher-btn teacher-btn-success">
+                                <i class="fas fa-user-plus"></i> Принять в работу
+                            </button>
+                            <a href="{% url 'teacher_app:listener_progress' course.id submission.user.id %}" class="teacher-btn teacher-btn-secondary">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+
+/* Дополнительные стили */
+.teacher-btn-success {
+    background: #2ecc71;
+    color: white;
+}
+.teacher-btn-success:hover {
+    background: #27ae60;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+}
+
+.rehabilitate-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    background: #e8f5e9;
+    border-left: 4px solid #2ecc71;
+}
+.rehabilitate-info i {
+    font-size: 18px;
+    color: #2ecc71;
+}
+.rehabilitate-info .info-text {
+    flex: 1;
+}
+.rehabilitate-info .info-text strong {
+    font-size: 14px;
+    color: #27ae60;
+    margin-right: 8px;
+}
+.rehabilitate-info .info-text span {
+    font-size: 13px;
+    color: #2c3e50;
+}
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/teacher.js' %}"></script>
+{% endblock %}

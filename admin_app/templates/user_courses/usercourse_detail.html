@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="container">
+        <div class="admin-header">
+            <h1 class="admin-title">
+                <i class="{{ icon }}"></i>
+                {{ title }}
+            </h1>
+        </div>
+
+        <div class="admin-detail-card">
+            <div class="admin-detail-header">
+                <h2 class="admin-detail-title">
+                    <i class="fas fa-info-circle"></i>
+                    Информация о записи
+                </h2>
+                <div class="admin-detail-actions">
+                    <a href="{% url 'admin_app:user_course_edit' user_course.id %}" class="btn-admin btn-admin-primary">
+                        <i class="fas fa-edit"></i> Редактировать
+                    </a>
+                    <a href="{% url 'admin_app:user_course_delete' user_course.id %}" class="btn-admin btn-admin-danger" onclick="return confirmDelete({{ user_course.id }})">
+                        <i class="fas fa-trash"></i> Удалить
+                    </a>
+                    <a href="{% url 'admin_app:user_course_list' %}" class="btn-admin btn-admin-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад
+                    </a>
+                </div>
+            </div>
+            
+            <div class="admin-detail-grid">
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-id"></i> ID записи
+                    </div>
+                    <div class="admin-detail-value">{{ user_course.id }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-user"></i> Пользователь
+                    </div>
+                    <div class="admin-detail-value">
+                        <a href="{% url 'admin_app:user_detail' user_course.user.id %}">
+                            {{ user_course.user.get_full_name|default:user_course.user.username }}
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-book"></i> Курс
+                    </div>
+                    <div class="admin-detail-value">
+                        <a href="{% url 'admin_app:course_detail' user_course.course.id %}">
+                            {{ user_course.course.course_name }}
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-calendar-alt"></i> Дата регистрации
+                    </div>
+                    <div class="admin-detail-value">{{ user_course.registration_date|date:"d.m.Y" }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-calendar-check"></i> Дата завершения
+                    </div>
+                    <div class="admin-detail-value">{{ user_course.completion_date|date:"d.m.Y"|default:"—" }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-credit-card"></i> Дата оплаты
+                    </div>
+                    <div class="admin-detail-value">{{ user_course.payment_date|date:"d.m.Y H:i"|default:"—" }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-ruble-sign"></i> Цена покупки
+                    </div>
+                    <div class="admin-detail-value">{% if user_course.course_price %}{{ user_course.course_price }} ₽{% else %}—{% endif %}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-hashtag"></i> ID платежа
+                    </div>
+                    <div class="admin-detail-value">{{ user_course.payment_id|default:"—" }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-flag-checkered"></i> Курс завершён
+                    </div>
+                    <div class="admin-detail-value">
+                        {% if user_course.status_course %}
+                        <span class="badge-success">Да</span>
+                        {% else %}
+                        <span class="badge-warning">Нет</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-toggle-on"></i> Активен на курсе
+                    </div>
+                    <div class="admin-detail-value">
+                        {% if user_course.is_active %}
+                        <span class="badge-success">Да</span>
+                        {% else %}
+                        <span class="badge-neutral">Нет</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-clock"></i> Дата зачисления
+                    </div>
+                    <div class="admin-detail-value">{{ user_course.enrolled_at|date:"d.m.Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(id) {
+    return confirm(`Вы уверены, что хотите удалить запись #${id}? Это действие нельзя отменить.`);
+}
+</script>
+{% endblock %}

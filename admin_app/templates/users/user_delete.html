@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="container">
+        <div class="admin-modal" style="display: flex; position: relative; background: none; backdrop-filter: none;">
+            <div class="admin-modal-content">
+                <div class="admin-modal-header">
+                    <i class="fas fa-exclamation-triangle" style="color: #e74c3c; font-size: 24px;"></i>
+                    <h3>Подтверждение удаления</h3>
+                </div>
+                <div class="admin-modal-body">
+                    <p>Вы уверены, что хотите удалить пользователя <strong>"{{ object.get_full_name|default:object.username }}"</strong>?</p>
+                    <p class="delete-warning">Это действие нельзя отменить!</p>
+                    {% if object.usercourse_set.count > 0 or object.courseteacher_set.count > 0 %}
+                    <p style="color: #e74c3c; margin-top: 10px;">
+                        <i class="fas fa-exclamation-circle"></i>
+                        У пользователя есть связанные записи:
+                        {% if object.usercourse_set.count > 0 %}{{ object.usercourse_set.count }} записей на курсы,{% endif %}
+                        {% if object.courseteacher_set.count > 0 %}{{ object.courseteacher_set.count }} назначений преподавателем{% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="admin-modal-footer">
+                    <form method="post">
+                        {% csrf_token %}
+                        <a href="{% url 'admin_app:user_list' %}" class="btn-admin btn-admin-secondary">
+                            <i class="fas fa-times"></i> Отмена
+                        </a>
+                        <button type="submit" class="btn-admin btn-admin-danger">
+                            <i class="fas fa-trash"></i> Удалить
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

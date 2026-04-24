@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Подробная информация о пользователе - UNIREAX{% endblock %}
+
+{% block content %}
+<section class="ver-page">
+    <div class="ver-container">
+        <h1 class="ver-title">
+            <i class="fas fa-user-circle"></i> Подробная информация о пользователе
+        </h1>
+        
+        <div class="ver-detail-card">
+            <div class="ver-detail-grid">
+                <div class="ver-detail-section">
+                    <h3 class="ver-detail-section-title">
+                        <i class="fas fa-user"></i> Основная информация
+                    </h3>
+                    <p><strong><i class="fas fa-user"></i> ФИО:</strong> 
+                        {{ user_obj.last_name }} {{ user_obj.first_name }}
+                        {% if user_obj.patronymic %}{{ user_obj.patronymic }}{% else %}—{% endif %}
+                    </p>
+                    <p><strong><i class="fas fa-envelope"></i> Email:</strong> {{ user_obj.email }}</p>
+                    <p><strong><i class="fas fa-tag"></i> Желаемая роль:</strong> 
+                        <span class="ver-role-badge ver-role-{{ user_obj.role.role_name|lower }}">
+                            {{ user_obj.role.role_name }}
+                        </span>
+                    </p>
+                    <p><strong><i class="fas fa-flag-checkered"></i> Статус:</strong> 
+                        {% if user_obj.is_verified %}
+                            <span class="ver-status-badge ver-status-verified">
+                                <i class="fas fa-check-circle"></i> Подтверждён
+                            </span>
+                        {% else %}
+                            <span class="ver-status-badge ver-status-pending">
+                                <i class="fas fa-clock"></i> Ожидает подтверждения
+                            </span>
+                        {% endif %}
+                    </p>
+                    <p><strong><i class="fas fa-calendar-alt"></i> Дата регистрации:</strong> {{ user_obj.date_joined|date:'d.m.Y H:i' }}</p>
+                </div>
+                
+                <div class="ver-detail-section">
+                    <h3 class="ver-detail-section-title">
+                        <i class="fas fa-briefcase"></i> Профессиональная информация
+                    </h3>
+                    <p><strong><i class="fas fa-id-card"></i> Должность:</strong> {{ user_obj.position|default:"Не указана" }}</p>
+                    <p><strong><i class="fas fa-university"></i> Учебное заведение:</strong> {{ user_obj.educational_institution|default:"Не указано" }}</p>
+                </div>
+                
+                {% if user_obj.certificate_file %}
+                <div class="ver-detail-section">
+                    <h3 class="ver-detail-section-title">
+                        <i class="fas fa-file-alt"></i> Документы
+                    </h3>
+                    <div class="ver-document-preview">
+                        <a href="{{ user_obj.certificate_file.url }}" target="_blank" class="ver-document-link">
+                            <i class="fas fa-download"></i> Просмотреть документ
+                        </a>
+                        <div class="ver-document-info">
+                            <i class="fas fa-file"></i> Формат: {{ user_obj.certificate_file.name|slice:'-3:'|upper }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if not user_obj.is_verified %}
+        <div class="ver-verification-actions">
+            <h2><i class="fas fa-gavel"></i> Подтверждение доступа</h2>
+            
+            <form method="post" class="ver-form">
+                {% csrf_token %}
+                
+                <div class="ver-form-field">
+                    <label class="ver-form-label">
+                        <i class="fas fa-comment"></i> Комментарий (необязательно)
+                    </label>
+                    <textarea name="comment" class="ver-form-textarea" 
+                              placeholder="Можете оставить комментарий для пользователя, например, что нужно исправить в регистрационных данных..."></textarea>
+                    <div class="ver-form-help-text">
+                        <i class="fas fa-info-circle"></i> Этот комментарий будет отправлен пользователю на его почту, которую он указал при регистрации.
+                    </div>
+                </div>
+
+                <div class="ver-buttons">
+                    <button type="submit" name="action" value="approve" class="ver-btn ver-btn-approve">
+                        <i class="fas fa-check-circle"></i> Подтвердить доступ
+                    </button>
+                    <button type="submit" name="action" value="reject" class="ver-btn ver-btn-reject">
+                        <i class="fas fa-times-circle"></i> Отклонить доступ
+                    </button>
+                    <a href="{% url 'admin_app:admin_user_verification_list' %}" class="ver-btn ver-btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад к списку
+                    </a>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        <div class="ver-detail-actions">
+            <div class="ver-status-already">
+                <p><i class="fas fa-check-circle"></i> Аккаунт пользователя уже подтвержден</p>
+            </div>
+            <a href="{% url 'admin_app:admin_user_verification_list' %}" class="ver-btn ver-btn-secondary">
+                <i class="fas fa-arrow-left"></i> Назад к списку
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Подтверждение удаления{% endblock %}
+
+{% block content %}
+<div class="methodist-delete-page">
+    <div class="methodist-container">
+        <div class="methodist-card">
+            <div class="methodist-card-header">
+                <h2><i class="fas fa-trash-alt"></i> Подтверждение удаления</h2>
+            </div>
+            
+            <div class="methodist-delete-content">
+                <div class="methodist-delete-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>Вы уверены, что хотите удалить?</h3>
+                <p><strong>{{ object_name }}</strong></p>
+                <p class="methodist-delete-warning">Это действие нельзя отменить. Все связанные данные будут удалены.</p>
+            </div>
+            
+            <form method="post" class="methodist-delete-form">
+                {% csrf_token %}
+                <div class="methodist-form-actions">
+                    <button type="submit" class="methodist-btn methodist-btn-danger">
+                        <i class="fas fa-trash"></i> Да, удалить
+                    </button>
+                    <a href="{{ cancel_url }}" class="methodist-btn methodist-btn-secondary">
+                        <i class="fas fa-times"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/methodist.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,119 @@
+<!-- в данном файле находится html-верстка для страницы обратной связи -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title_name %}UNIREAX - Обратная связь{% endblock %}
+
+{% block content %}
+<div class="feedback-page">
+    <div class="container">
+        <div class="feedback-header">
+            <h1 class="feedback-title">Свяжитесь с нами</h1>
+            <p class="feedback-subtitle">
+                Мы всегда рады вашим вопросам, предложениям и отзывам. Напишите нам, и мы ответим в ближайшее время!
+            </p>
+        </div>
+
+        <div class="feedback-grid">
+            <div class="feedback-info">
+                <h2 class="feedback-info-title">Наши контакты</h2>
+                
+                <div class="feedback-contact-item">
+                    <div class="feedback-contact-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <div class="feedback-contact-content">
+                        <div class="feedback-contact-label">Адрес</div>
+                        <div class="feedback-contact-value">г. Москва, ул. Космическая, д. 42</div>
+                    </div>
+                </div>
+
+                <div class="feedback-contact-item">
+                    <div class="feedback-contact-icon">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <div class="feedback-contact-content">
+                        <div class="feedback-contact-label">Телефон</div>
+                        <div class="feedback-contact-value">+7 (999) 123-45-67</div>
+                    </div>
+                </div>
+
+                <div class="feedback-contact-item">
+                    <div class="feedback-contact-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div class="feedback-contact-content">
+                        <div class="feedback-contact-label">Email</div>
+                        <div class="feedback-contact-value">
+                            <a href="mailto:unireax@mail.ru">unireax@mail.ru</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feedback-contact-item">
+                    <div class="feedback-contact-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="feedback-contact-content">
+                        <div class="feedback-contact-label">Время работы</div>
+                        <div class="feedback-contact-value">Пн-Пт: 9:00 - 20:00</div>
+                        <div class="feedback-contact-value">Сб-Вс: 10:00 - 18:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feedback-form-wrapper">
+                <h2 class="feedback-form-title">Напишите нам</h2>
+
+                <form method="POST" class="feedback-form">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="id_name">Ваше имя <span>*</span></label>
+                        <input type="text" class="form-control" id="id_name" name="name" required 
+                               placeholder="Введите ваше имя" value="{{ form.name.value|default:'' }}">
+                        {% if form.name.errors %}
+                            <div class="error" style="color: red; font-size: 14px;">{{ form.name.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_email">Email <span>*</span></label>
+                        <input type="email" class="form-control" id="id_email" name="email" required 
+                               placeholder="Введите ваш email" value="{{ form.email.value|default:'' }}">
+                        {% if form.email.errors %}
+                            <div class="error" style="color: red; font-size: 14px;">{{ form.email.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_subject">Тема обращения</label>
+                        <input type="text" class="form-control" id="id_subject" name="subject" 
+                               placeholder="Например: Вопрос о курсе, предложение, жалоба" value="{{ form.subject.value|default:'' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_message">Сообщение <span>*</span></label>
+                        <textarea class="form-control" id="id_message" name="message" rows="6" 
+                                  placeholder="Напишите ваше сообщение..." required>{{ form.message.value|default:'' }}</textarea>
+                        {% if form.message.errors %}
+                            <div class="error" style="color: red; font-size: 14px;">{{ form.message.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        {{ form.captcha }}
+                        {% if form.captcha.errors %}
+                            <div class="error" style="color: red; font-size: 14px;">{{ form.captcha.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="feedback-submit-btn">
+                        <i class="fas fa-paper-plane"></i>Отправить сообщение
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

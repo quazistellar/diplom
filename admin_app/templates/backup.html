@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Управление бэкапами{% endblock %}
+
+{% block content %}
+<div class="backup-page">
+    <div class="container">
+    <h1 class="backup-title">
+        <i class="fas fa-database"></i>
+            Управление резервными копиями
+    </h1>
+        <div class="backup-header">
+            <div class="backup-stats">
+                <span class="stat-badge">
+                    <i class="fas fa-copy"></i> Доступно копий: {{ backups|length }}
+                </span>
+            </div>
+              <div class="backup-stats">
+                 <a href="{% url 'admin_app:dashboard' %}" class="btn-admin btn-admin-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад
+                   </a>
+            </div>
+        </div>
+
+        <div id="backupMessageContainer" class="backup-message-container"></div>
+
+        <div class="backup-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div class="warning-content">
+                <strong>ВАЖНОЕ ПРЕДУПРЕЖДЕНИЕ</strong>
+                <p>Восстановление базы данных полностью заменит все текущие данные на данные из выбранного бэкапа. Эта операция необратима и может привести к потере данных. Всегда создавайте новый бэкап перед восстановлением!</p>
+            </div>
+        </div>
+
+        <div class="backup-actions-grid">
+            <div class="backup-action-card">
+                <div class="card-icon">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <h3 class="card-title">Создать резервную копию</h3>
+                <p class="card-description">Создайте полную резервную копию всей базы данных. Файл будет сохранен в формате SQL с временной меткой в названии.</p>
+                <button type="button" id="showCreateModalBtn" class="btn-backup btn-backup-create">
+                    <i class="fas fa-save"></i>
+                    Создать бэкап
+                </button>
+            </div>
+
+            <div class="backup-action-card restore">
+                <div class="card-icon">
+                    <i class="fas fa-undo-alt"></i>
+                </div>
+                <h3 class="card-title">Восстановить из копии</h3>
+                <p class="card-description">Восстановите базу данных из ранее созданной резервной копии. Все текущие данные будут заменены.</p>
+                <div class="backup-form-group">
+                    {% if backups %}
+                    <div class="select-wrapper">
+                        <i class="fas fa-chevron-down select-arrow"></i>
+                        <select id="backupFileSelect" class="backup-select" required>
+                            <option value="">-- Выберите файл бэкапа --</option>
+                            {% for backup in backups %}
+                            <option value="{{ backup.name }}">
+                                {{ backup.name }} ({{ backup.formatted_size }}) - {{ backup.formatted_time }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="button" id="showRestoreModalBtn" class="btn-backup btn-backup-restore">
+                        <i class="fas fa-undo-alt"></i>
+                        Восстановить
+                    </button>
+                    {% else %}
+                    <button class="btn-backup btn-backup-restore" disabled>
+                        <i class="fas fa-ban"></i>
+                        Нет доступных бэкапов
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="backup-list-section">
+            <h2 class="section-title">
+                <i class="fas fa-list"></i>
+                Доступные резервные копии
+            </h2>
+            
+            <div id="backupList" class="backup-list">
+                {% if backups %}
+                    {% for backup in backups %}
+                    <div class="backup-item" data-backup-name="{{ backup.name }}">
+                        <div class="backup-info">
+                            <div class="backup-name-wrapper">
+                                <i class="fas fa-file-archive"></i>
+                                <span class="backup-name">{{ backup.name }}</span>
+                            </div>
+                            <div class="backup-details">
+                                <span class="detail-badge">
+                                    <i class="fas fa-weight-hanging"></i>
+                                    {{ backup.formatted_size }}
+                                </span>
+                                <span class="detail-badge">
+                                    <i class="far fa-calendar-alt"></i>
+                                    {{ backup.formatted_time }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="backup-actions">
+                            <button type="button" class="btn-backup btn-backup-restore btn-small restore-single-btn" 
+                                    data-backup="{{ backup.name }}">
+                                <i class="fas fa-undo-alt"></i>
+                                Восстановить
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="backup-empty" id="emptyBackupMessage">
+                        <i class="fas fa-database"></i>
+                        <h3>Резервные копии отсутствуют</h3>
+                        <p>Создайте первую резервную копию для защиты данных</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="createBackupModal" class="backup-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <div class="modal-icon">
+                <i class="fas fa-database"></i>
+            </div>
+            <h3 class="modal-title">Создание резервной копии</h3>
+            <button type="button" class="modal-close" onclick="window.backupManager?.hideModals()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-message">
+                <p>Вы уверены, что хотите создать резервную копию базы данных?</p>
+                <p class="modal-warning-text">Будет создана полная копия текущей базы данных. Это может занять некоторое время в зависимости от размера базы.</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-btn modal-btn-secondary" onclick="window.backupManager?.hideModals()">
+                <i class="fas fa-times"></i>
+                Отмена
+            </button>
+            <button type="button" id="confirmCreateBtn" class="modal-btn modal-btn-primary">
+                <i class="fas fa-check"></i>
+                Создать бэкап
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="restoreModalFirst" class="backup-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <div class="modal-icon warning">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="modal-title">ВНИМАНИЕ! КРИТИЧЕСКОЕ ПРЕДУПРЕЖДЕНИЕ</h3>
+            <button type="button" class="modal-close" onclick="window.backupManager?.hideModals()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-message">
+                <p id="restoreFileName" class="modal-highlight"></p>
+                <div class="warning-box-modal">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <div>
+                        <strong>ВСЕ ТЕКУЩИЕ ДАННЫЕ БУДУТ ПОЛНОСТЬЮ УДАЛЕНЫ И ЗАМЕНЕНЫ!</strong><br>
+                        <span>ЭТО ДЕЙСТВИЕ НЕОБРАТИМО!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-btn modal-btn-secondary" onclick="window.backupManager?.hideModals()">
+                <i class="fas fa-times"></i>
+                Отмена
+            </button>
+            <button type="button" id="confirmRestoreFirstBtn" class="modal-btn modal-btn-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                Я понимаю, продолжить
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="restoreModalFinal" class="backup-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <div class="modal-icon danger">
+                <i class="fas fa-skull-crosswalk"></i>
+            </div>
+            <h3 class="modal-title">ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ</h3>
+            <button type="button" class="modal-close" onclick="window.backupManager?.hideModals()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-message">
+                <p>Это приведет к ПОЛНОЙ замене всех данных в системе.</p>
+                <p class="modal-danger-text">Отменить восстановление будет НЕВОЗМОЖНО!</p>
+                <div class="confirm-input-group">
+                    <label for="confirmText">Введите "ПОДТВЕРЖДАЮ" для продолжения:</label>
+                    <input type="text" id="confirmText" class="confirm-input" placeholder="ПОДТВЕРЖДАЮ">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-btn modal-btn-secondary" onclick="window.backupManager?.hideModals()">
+                <i class="fas fa-times"></i>
+                Отмена
+            </button>
+            <button type="button" id="confirmRestoreFinalBtn" class="modal-btn modal-btn-danger" disabled>
+                <i class="fas fa-check"></i>
+                Подтвердить восстановление
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script src="{% static 'js/backup.js' %}"></script>
+{% endblock %}

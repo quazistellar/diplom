@@ -1,0 +1,856 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ course.course_name }} - UNIREAX{% endblock %}
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="lsn-header">
+            <div class="breadcrumbs">
+                <a href="{% url 'listener_app:dashboard' %}">Личный кабинет</a>
+                <i class="fas fa-chevron-right"></i>
+                <a href="{% url 'listener_app:my_courses' %}">Мои курсы</a>
+                <i class="fas fa-chevron-right"></i>
+                <span>{{ course.course_name|truncatechars:50 }}</span>
+            </div>
+        </div>
+
+        <div class="lsn-course-detail-grid">
+            <div class="lsn-course-detail-main">
+                <div class="lsn-course-detail-header">
+                    <h1 class="lsn-course-detail-title">{{ course.course_name }}</h1>
+                    {% if user.is_authenticated and user.role.role_name == 'преподаватель' and course.is_find_teacher %}
+                    <div class="find-teacher-badge">
+                        <i class="fas fa-search"></i> Ведётся поиск преподавателей
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="lsn-course-detail-meta">
+                    <div class="lsn-meta-rating">
+                        <i class="fas fa-star"></i>
+                        <span>{{ avg_rating|default:0|floatformat:1 }}</span>
+                        <span class="rating-count">({{ review_count }} отзывов)</span>
+                    </div>
+                    <div class="lsn-meta-students">
+                        <i class="fas fa-users"></i>
+                        <span>{{ student_count }} слушателей</span>
+                    </div>
+                </div>
+
+                <div class="lsn-course-detail-image">
+                    {% if course.course_photo_path %}
+                    <img src="{{ course.course_photo_path.url }}" alt="{{ course.course_name }}">
+                    {% else %}
+                    <div class="lsn-course-placeholder" style="height: 300px;">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="lsn-course-detail-section">
+                    <h2 class="lsn-section-title">О курсе</h2>
+                    <div class="lsn-course-description">
+                        {{ course.course_description|default:"Описание курса скоро появится..."|linebreaks }}
+                    </div>
+                </div>
+
+                <div class="lsn-course-detail-section">
+                    <h2 class="lsn-section-title">Программа курса</h2>
+                    
+                    <div class="course-materials-accordion">
+                        {% for lecture in lectures %}
+                        <div class="accordion-item">
+                            <div class="accordion-header" onclick="toggleAccordion(this)">
+                                <div class="accordion-title">
+                                    <span class="lecture-order">{{ lecture.order }}</span>
+                                    <span class="lecture-name">{{ lecture.name }}</span>
+                                </div>
+                                <i class="fas fa-chevron-down accordion-icon"></i>
+                            </div>
+                            <div class="accordion-content">
+                                {% if lecture.assignments %}
+                                <div class="materials-subsection">
+                                    <h4 class="subsection-title">
+                                        <i class="fas fa-tasks"></i> Практические задания
+                                    </h4>
+                                    <ul class="materials-list">
+                                        {% for assignment in lecture.assignments %}
+                                        <li class="material-item">
+                                            <i class="fas fa-file-alt material-icon"></i>
+                                            <span class="material-name">{{ assignment.name }}</span>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                                
+                                {% if lecture.tests %}
+                                <div class="materials-subsection">
+                                    <h4 class="subsection-title">
+                                        <i class="fas fa-question-circle"></i> Тесты
+                                    </h4>
+                                    <ul class="materials-list">
+                                        {% for test in lecture.tests %}
+                                        <li class="material-item">
+                                            <i class="fas fa-clipboard-list material-icon"></i>
+                                            <span class="material-name">{{ test.name }}</span>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="lsn-course-detail-section">
+                    <h2 class="lsn-section-title">Отзывы слушателей</h2>
+                    
+                    {% if reviews %}
+                    <div class="lsn-reviews-list">
+                        {% for review in reviews %}
+                        <div class="lsn-review-item" id="review-{{ review.id }}">
+                            <div class="lsn-review-header">
+                                <div>
+                                    <span class="lsn-reviewer-name">{{ review.user.get_full_name|default:review.user.username }}</span>
+                                    <span class="lsn-review-date">{{ review.publish_date|date:"d.m.Y" }}</span>
+                                </div>
+                                <div class="lsn-review-rating">
+                                    {% for i in "12345"|make_list %}
+                                    <i class="fas fa-star {% if forloop.counter <= review.rating %}active{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="lsn-review-content" id="review-content-{{ review.id }}">
+                                {{ review.comment_review }}
+                            </div>
+                            
+                            {% if user.is_authenticated and review.user == user %}
+                            <div class="review-actions">
+                                <button class="lsn-btn lsn-btn-outline lsn-btn-small" onclick="editReview({{ review.id }}, '{{ review.comment_review|escapejs }}', {{ review.rating }})">
+                                    <i class="fas fa-edit"></i> Редактировать
+                                </button>
+                                <form method="post" action="{% url 'listener_app:delete_review' course.id review.id %}" class="delete-review-form" onsubmit="return confirm('Вы уверены, что хотите удалить свой отзыв?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="lsn-btn lsn-btn-danger lsn-btn-small">
+                                        <i class="fas fa-trash"></i> Удалить
+                                    </button>
+                                </form>
+                            </div>
+                            <div id="edit-review-form-{{ review.id }}" style="display: none;" class="edit-review-form">
+                                <form method="post" action="{% url 'listener_app:edit_review' course.id review.id %}">
+                                    {% csrf_token %}
+                                    <div class="rating-input">
+                                        <span>Ваша оценка:</span>
+                                        <div class="stars" id="edit-stars-{{ review.id }}">
+                                            <input type="radio" name="rating" value="5" id="edit_star5_{{ review.id }}"><label for="edit_star5_{{ review.id }}">★</label>
+                                            <input type="radio" name="rating" value="4" id="edit_star4_{{ review.id }}"><label for="edit_star4_{{ review.id }}">★</label>
+                                            <input type="radio" name="rating" value="3" id="edit_star3_{{ review.id }}"><label for="edit_star3_{{ review.id }}">★</label>
+                                            <input type="radio" name="rating" value="2" id="edit_star2_{{ review.id }}"><label for="edit_star2_{{ review.id }}">★</label>
+                                            <input type="radio" name="rating" value="1" id="edit_star1_{{ review.id }}"><label for="edit_star1_{{ review.id }}">★</label>
+                                        </div>
+                                    </div>
+                                    <textarea name="comment" rows="3" style="width: 100%; padding: 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); margin: 15px 0;">{{ review.comment_review }}</textarea>
+                                    <div style="display: flex; gap: 10px;">
+                                        <button type="submit" class="lsn-btn lsn-btn-primary">Сохранить</button>
+                                        <button type="button" class="lsn-btn lsn-btn-outline" onclick="cancelEdit({{ review.id }})">Отмена</button>
+                                    </div>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="lsn-empty-state">
+                        <i class="fas fa-comment"></i>
+                        <p>Пока нет отзывов</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if user.is_authenticated %}
+                        {% if is_enrolled %}
+                            {% if user_review %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> Вы уже оставили отзыв на этот курс. Вы можете отредактировать его выше.
+                                </div>
+                            {% else %}
+                                {% if progress >= 50 %}
+                                    <div class="add-review">
+                                        <button class="lsn-btn lsn-btn-outline" onclick="showReviewForm()">
+                                            <i class="fas fa-plus"></i> Оставить отзыв
+                                        </button>
+                                        <div id="reviewForm" style="display: none; margin-top: 20px;">
+                                            <form method="post" action="{% url 'listener_app:add_review' course.id %}">
+                                                {% csrf_token %}
+                                                <div class="rating-input">
+                                                    <span>Ваша оценка:</span>
+                                                    <div class="stars" id="add-stars">
+                                                        <input type="radio" name="rating" value="5" id="star5"><label for="star5">★</label>
+                                                        <input type="radio" name="rating" value="4" id="star4"><label for="star4">★</label>
+                                                        <input type="radio" name="rating" value="3" id="star3"><label for="star3">★</label>
+                                                        <input type="radio" name="rating" value="2" id="star2"><label for="star2">★</label>
+                                                        <input type="radio" name="rating" value="1" id="star1"><label for="star1">★</label>
+                                                    </div>
+                                                </div>
+                                                <textarea name="comment" placeholder="Ваш отзыв..." rows="4" style="width: 100%; padding: 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); margin: 15px 0;"></textarea>
+                                                <button type="submit" class="lsn-btn lsn-btn-primary">Отправить</button>
+                                                <button type="button" class="lsn-btn lsn-btn-outline" onclick="hideReviewForm()">Отмена</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="review-requirement-block">
+                                        <div class="review-requirement-icon">
+                                            <i class="fas fa-lock"></i>
+                                        </div>
+                                        <div class="review-requirement-content">
+                                            <h4>Отзыв станет доступен после прохождения 50% курса</h4>
+                                            <p>Продолжайте обучение, чтобы поделиться своим мнением о курсе</p>
+                                            <div class="progress-requirement">
+                                                <div class="progress-label">
+                                                    <span>Ваш прогресс:</span>
+                                                    <strong>{{ progress|floatformat:0 }}%</strong>
+                                                    <span class="need-label">Нужно: 50%</span>
+                                                </div>
+                                                <div class="progress-bar-wrapper">
+                                                    <div class="progress-bar-bg">
+                                                        <div class="progress-bar-fill" style="width: {{ progress|floatformat:0 }}%"></div>
+                                                    </div>
+                                                    <div class="progress-marker" style="left: 50%">
+                                                        <div class="marker-line"></div>
+                                                        <span class="marker-label">50%</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> Запишитесь на курс, чтобы оставить отзыв.
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-sign-in-alt"></i> <a href="{% url 'login_page' %}?next={{ request.path }}">Войдите</a>, чтобы оставить отзыв
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="lsn-course-sidebar">
+                <div class="lsn-sidebar-card">
+                    <div class="lsn-sidebar-price">
+                        {% if course.course_price %}
+                        <div class="lsn-price-large">{{ course.course_price|floatformat:"0" }} ₽</div>
+                        {% else %}
+                        <div class="lsn-price-free-large">Бесплатно</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="sidebar-actions">
+                        {% if user.is_authenticated %}
+                            
+                            {% if user.role.role_name == 'администратор' %}
+                                <div class="enrolled-status admin-blocked">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span>Вы вошли как администратор</span>
+                                    <div class="admin-note">Запись на курсы доступна только слушателям</div>
+                                </div>
+                                <button class="lsn-btn lsn-btn-outline lsn-btn-block" disabled style="opacity: 0.6; cursor: not-allowed;">
+                                    <i class="fas fa-lock"></i> Запись недоступна
+                                </button>
+
+                            {% elif user.role.role_name == 'преподаватель' %}
+                                {% if is_teacher_applied %}
+                                    <div class="enrolled-status teacher-applied">
+                                        <i class="fas fa-clock"></i>
+                                        <span>Заявка на преподавание отправлена</span>
+                                        <div class="teacher-note">Методист рассмотрит вашу заявку в ближайшее время</div>
+                                    </div>
+                                {% else %}
+                                    <form method="post" action="{% url 'teacher_app:apply_for_teaching' course.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="lsn-btn lsn-btn-primary lsn-btn-block">
+                                            <i class="fas fa-chalkboard-user"></i> Подать заявку на преподавание
+                                        </button>
+                                    </form>
+                                {% endif %}
+
+                            {% elif user.role.role_name == 'слушатель курсов' %}
+                                {% if is_enrolled %}
+                                    <div class="enrolled-status">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Вы записаны на курс!</span>
+                                        <div class="enroll-stat-progress-txt">Прогресс: {{ progress|floatformat:0 }}%</div>
+                                    </div>
+                                    <a href="{% url 'listener_app:course_study' course.id %}" class="lsn-btn lsn-btn-primary lsn-btn-block">
+                                        <i class="fas fa-play"></i> Продолжить обучение
+                                    </a>
+                                    <a href="{% url 'listener_app:exit_course' course.id %}" class="lsn-btn lsn-btn-outline lsn-btn-block" style="margin-top: 10px;">
+                                        <i class="fas fa-sign-out-alt"></i> Выйти из курса
+                                    </a>
+                                {% elif was_enrolled %}
+                                    <div class="return-status">
+                                        <i class="fas fa-history"></i>
+                                        <span>Вы уже были записаны</span>
+                                        <div class="enroll-stat-progress-txt">Ваш прогресс сохранен. Вы можете вернуться бесплатно.</div>
+                                    </div>
+                                    <a href="{% url 'listener_app:return_to_course' course.id %}" class="lsn-btn lsn-btn-primary lsn-btn-block">
+                                        <i class="fas fa-undo-alt"></i> Вернуться на курс
+                                    </a>
+                                {% elif course.course_price and course.course_price > 0 %}
+                                    <a href="{% url 'listener_app:create_payment' course.id %}" class="lsn-btn lsn-btn-primary lsn-btn-block">
+                                        <i class="fas fa-credit-card"></i> Оплатить {{ course.course_price }} ₽
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'listener_app:return_to_course' course.id %}" class="lsn-btn lsn-btn-primary lsn-btn-block">
+                                        <i class="fas fa-graduation-cap"></i> Записаться бесплатно
+                                    </a>
+                                {% endif %}
+                            
+                            {% else %}
+                                <div class="enrolled-status other-role">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>Запись на курсы доступна только слушателям</span>
+                                </div>
+                                <button class="lsn-btn lsn-btn-outline lsn-btn-block" disabled style="opacity: 0.6; cursor: not-allowed;">
+                                    <i class="fas fa-lock"></i> Запись недоступна
+                                </button>
+                            {% endif %}
+                            
+                        {% else %}
+                            <a href="{% url 'login_page' %}?next={{ request.path }}" class="lsn-btn lsn-btn-primary lsn-btn-block">
+                                <i class="fas fa-sign-in-alt"></i> Войти для записи
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    {% if user.is_authenticated and user.role.role_name == 'слушатель курсов' %}
+                    <div class="favorite-btn" style="margin-top: 15px;">
+                        <form method="post" action="{% url 'listener_app:toggle_favorite' course.id %}">
+                            {% csrf_token %}
+                            {% if is_favorited %}
+                            <button type="submit" class="lsn-btn lsn-btn-outline lsn-btn-block" style="border-color: #ff4757; color: #ff4757;">
+                                <i class="fas fa-heart"></i> В избранном
+                            </button>
+                            {% else %}
+                            <button type="submit" class="lsn-btn lsn-btn-outline lsn-btn-block">
+                                <i class="far fa-heart"></i> В избранное
+                            </button>
+                            {% endif %}
+                        </form>
+                    </div>
+                    {% endif %}
+
+                    <div class="lsn-sidebar-info">
+                        <div class="lsn-info-item">
+                            <i class="fas fa-clock"></i>
+                            <span>Длительность: {{ course.course_hours }} часов</span>
+                        </div>
+                        <div class="lsn-info-item">
+                            <i class="fas fa-tag"></i>
+                            <span>Категория: {{ course.course_category.course_category_name|default:"Не указана" }}</span>
+                        </div>
+                        <div class="lsn-info-item">
+                            <i class="fas fa-certificate"></i>
+                            <span>Сертификат: {% if course.has_certificate %}Предусмотрен{% else %}Не предусмотрен{% endif %}</span>
+                        </div>
+                        <div class="lsn-info-item">
+                            <i class="fas fa-users"></i>
+                            <span>Макс. мест: {% if course.course_max_places %}{{ course.course_max_places }}{% else %}Не ограничено{% endif %}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Стили для бейджа поиска преподавателя */
+.lsn-course-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.find-teacher-badge {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(243, 156, 18, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(243, 156, 18, 0);
+    }
+}
+
+/* Стили для ролевых блоков */
+.admin-blocked, .other-role {
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.admin-blocked i, .other-role i {
+    color: #e74c3c;
+    font-size: 20px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.admin-note {
+    font-size: 11px;
+    color: #e74c3c;
+    margin-top: 5px;
+}
+
+.teacher-applied {
+    background: rgba(46, 204, 113, 0.1);
+    border: 1px solid rgba(46, 204, 113, 0.3);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.teacher-applied i {
+    color: #2ecc71;
+    font-size: 20px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.teacher-note {
+    font-size: 11px;
+    color: #2ecc71;
+    margin-top: 5px;
+}
+
+.return-status {
+    background: rgba(52, 152, 219, 0.1);
+    border: 1px solid rgba(52, 152, 219, 0.3);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.return-status i {
+    color: #3498db;
+    font-size: 20px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.enrolled-status {
+    background: rgba(46, 204, 113, 0.1);
+    border: 1px solid rgba(46, 204, 113, 0.3);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.enrolled-status i {
+    color: #2ecc71;
+    font-size: 20px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.enroll-stat-progress-txt {
+    text-align: center;
+    font-size: 12px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: rgba(46, 204, 113, 0.15);
+    border-radius: 20px;
+    color: #2ecc71;
+    font-weight: 900;
+}
+
+/* Стили для постоянного блока с требованием к отзыву */
+.review-requirement-block {
+    display: flex;
+    gap: 20px;
+    padding: 25px;
+    background: linear-gradient(135deg, rgba(138, 79, 255, 0.08) 0%, rgba(255, 79, 216, 0.05) 100%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    margin-top: 30px;
+    transition: all 0.3s ease;
+}
+
+.review-requirement-block:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.review-requirement-icon {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    background: rgba(138, 79, 255, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.review-requirement-icon i {
+    font-size: 28px;
+    color: var(--primary);
+}
+
+.review-requirement-content {
+    flex: 1;
+}
+
+.review-requirement-content h4 {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-family: 'Arial Black', 'Arial Black Local', 'Arial', sans-serif;
+}
+
+.review-requirement-content p {
+    font-size: 14px;
+    color: var(--text-soft);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.progress-requirement {
+    background: var(--bg);
+    border-radius: 16px;
+    padding: 15px 20px;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--text-soft);
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.progress-label strong {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--primary);
+}
+
+.need-label {
+    background: rgba(138, 79, 255, 0.1);
+    padding: 4px 12px;
+    border-radius: 20px;
+    color: var(--primary);
+    font-weight: 900;
+}
+
+.progress-bar-wrapper {
+    position: relative;
+    margin: 8px 0;
+}
+
+.progress-bar-bg {
+    height: 10px;
+    background: rgba(138, 79, 255, 0.15);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-radius: 10px;
+    transition: width 0.5s ease;
+}
+
+.progress-marker {
+    position: absolute;
+    top: -20px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.marker-line {
+    width: 2px;
+    height: 15px;
+    background: var(--primary);
+    margin-bottom: 4px;
+}
+
+.marker-label {
+    font-size: 10px;
+    font-weight: 900;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .review-requirement-block {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .review-requirement-icon {
+        margin: 0 auto;
+    }
+    
+    .progress-label {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .progress-marker {
+        display: none;
+    }
+    
+    .lsn-course-detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+.lsn-course-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 40px;
+}
+
+.lsn-course-detail-main {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.lsn-sidebar-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 25px;
+    position: sticky;
+    top: 100px;
+}
+
+.lsn-btn-block {
+    width: 100%;
+    justify-content: center;
+}
+
+.accordion-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    cursor: pointer;
+    background: var(--surface);
+    transition: all 0.3s ease;
+}
+
+.accordion-header:hover {
+    background: rgba(138, 79, 255, 0.05);
+}
+
+.accordion-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.lecture-order {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.lecture-name {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--text);
+}
+
+.accordion-icon {
+    color: var(--text-soft);
+    transition: transform 0.3s ease;
+}
+
+.accordion-content {
+    display: none;
+    padding: 0 20px 20px 20px;
+    border-top: 1px solid var(--border);
+    background: rgba(138, 79, 255, 0.02);
+}
+
+.accordion-item.active .accordion-content {
+    display: block;
+}
+
+.materials-subsection {
+    margin-top: 16px;
+}
+
+.subsection-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+}
+
+.materials-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.material-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.material-item:hover {
+    background: rgba(138, 79, 255, 0.05);
+}
+
+.material-icon {
+    width: 18px;
+    font-size: 14px;
+    color: var(--primary);
+}
+
+.material-name {
+    font-size: 14px;
+    color: var(--text-soft);
+}
+
+@media (max-width: 992px) {
+    .lsn-course-detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .lsn-sidebar-card {
+        position: static;
+    }
+}
+</style>
+
+<script>
+function toggleAccordion(header) {
+    const item = header.closest('.accordion-item');
+    const content = item.querySelector('.accordion-content');
+    const icon = header.querySelector('.accordion-icon');
+    
+    if (item.classList.contains('active')) {
+        item.classList.remove('active');
+        content.style.display = 'none';
+        icon.style.transform = 'rotate(0deg)';
+    } else {
+        item.classList.add('active');
+        content.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)';
+    }
+}
+
+function showReviewForm() {
+    document.getElementById('reviewForm').style.display = 'block';
+}
+
+function hideReviewForm() {
+    document.getElementById('reviewForm').style.display = 'none';
+}
+
+function editReview(reviewId, currentComment, currentRating) {
+    const editForm = document.getElementById(`edit-review-form-${reviewId}`);
+    if (editForm.style.display === 'none') {
+        editForm.style.display = 'block';
+    } else {
+        editForm.style.display = 'none';
+    }
+    
+    const stars = document.querySelectorAll(`#edit-stars-${reviewId} input`);
+    stars.forEach(star => {
+        if (parseInt(star.value) === currentRating) {
+            star.checked = true;
+        }
+    });
+}
+
+function cancelEdit(reviewId) {
+    document.getElementById(`edit-review-form-${reviewId}`).style.display = 'none';
+}
+
+document.querySelectorAll('.accordion-content').forEach(content => {
+    content.style.display = 'none';
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const stars = document.querySelectorAll('#add-stars label');
+    stars.forEach((star, index) => {
+        star.addEventListener('click', function() {
+            const rating = 5 - index;
+            document.querySelector(`input[name="rating"][value="${rating}"]`).checked = true;
+        });
+    });
+});
+</script>
+{% endblock %}

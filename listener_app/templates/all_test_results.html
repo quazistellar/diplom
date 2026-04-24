@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Результаты тестов - {{ course.course_name }} - UNIREAX{% endblock %}
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="breadcrumbs">
+            <a href="{% url 'listener_app:dashboard' %}">Личный кабинет</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'listener_app:course_study' course.id %}">{{ course.course_name }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Результаты тестов</span>
+        </div>
+
+        <div class="lsn-header">
+            <h1 class="lsn-title">Результаты тестов</h1>
+            <p class="lsn-subtitle">{{ course.course_name }}</p>
+        </div>
+
+        <div class="stats-summary">
+            <div class="summary-stat">
+                <div class="summary-value">{{ total_tests }}</div>
+                <div class="summary-label">Всего тестов</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-value">{{ total_passed }}</div>
+                <div class="summary-label">Пройдено</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-value">{{ success_rate }}%</div>
+                <div class="summary-label">Успешность</div>
+            </div>
+        </div>
+
+        <div class="tests-list-container">
+            {% for test_data in tests_data %}
+            <div class="test-result-card">
+                <div class="test-result-header">
+                    <div>
+                        <div class="test-result-title">{{ test_data.test.test_name }}</div>
+                        <div class="test-result-lecture">Лекция {{ test_data.test.lecture.lecture_order }}: {{ test_data.test.lecture.lecture_name }}</div>
+                    </div>
+                    <div>
+                        <span class="test-result-status 
+                            {% if test_data.is_passed %}status-passed
+                            {% elif test_data.has_results %}status-failed
+                            {% else %}status-not-taken{% endif %}">
+                            <i class="fas {% if test_data.is_passed %}fa-check-circle{% elif test_data.has_results %}fa-times-circle{% else %}fa-clock{% endif %}"></i>
+                            {% if test_data.is_passed %}Сдан
+                            {% elif test_data.has_results %}Не сдан
+                            {% else %}Не пройден{% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="test-result-body">
+                    <div class="test-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Попыток</span>
+                            <span class="stat-value">{{ test_data.attempts_count }}</span>
+                        </div>
+                        {% if test_data.best_result %}
+                            {% if test_data.test.grading_form == 'points' %}
+                            <div class="stat-item">
+                                <span class="stat-label">Лучший результат</span>
+                                <span class="best-score-value">{{ test_data.best_result.final_score|default:0 }}/{{ test_data.max_score }}</span>
+                            </div>
+                            {% else %}
+                            <div class="stat-item">
+                                <span class="stat-label">Лучший результат</span>
+                                <span class="best-score-value">{{ test_data.best_result.is_passed|yesno:"Зачёт,Незачёт" }}</span>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="test-actions">
+                        {% if test_data.has_results %}
+                        <a href="{% url 'listener_app:test_result_detail' test_data.best_result.id %}" class="lsn-btn lsn-btn-outline">
+                            <i class="fas fa-chart-line"></i> Детали
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'listener_app:test_start' test_data.test.id %}" class="lsn-btn lsn-btn-primary">
+                            <i class="fas fa-play"></i> 
+                            {% if test_data.is_passed %}Пройти еще раз{% else %}Начать тест{% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="lsn-empty-state">
+                <i class="fas fa-question-circle"></i>
+                <h3>Тестов пока нет</h3>
+                <p>Проверочные работы появятся позже</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="stats-actions" style="margin-top: 30px;">
+            <a href="{% url 'listener_app:course_study' course.id %}" class="lsn-btn lsn-btn-outline">
+                <i class="fas fa-arrow-left"></i> Вернуться к курсу
+            </a>
+            <a href="{% url 'listener_app:statistics' course.id %}" class="lsn-btn lsn-btn-primary">
+                <i class="fas fa-chart-bar"></i> Статистика
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/listener.js' %}"></script>
+{% endblock %}

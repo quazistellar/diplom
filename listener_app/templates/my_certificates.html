@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мои сертификаты - UNIREAX{% endblock %}
+
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="breadcrumbs" style="margin-bottom: 20px;">
+            <a href="{% url 'listener_app:dashboard' %}">Личный кабинет</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Мои сертификаты</span>
+        </div>
+
+        <div class="lsn-header">
+            <h1 class="lsn-title">Мои сертификаты</h1>
+            <p class="lsn-subtitle">Достижения и подтверждения пройденных курсов</p>
+        </div>
+
+        {% if eligible_courses %}
+        <div class="eligible-section">
+            <h2 class="section-title">
+                <i class="fas fa-gift"></i> Доступные для получения
+            </h2>
+            {% for item in eligible_courses %}
+            <div class="eligible-card">
+                <div class="eligible-info">
+                    <h3>{{ item.course.course_name }}</h3>
+                    <p>{{ item.course.course_description|truncatechars:100 }}</p>
+                    <div class="eligible-progress">
+                        <div class="lsn-progress-bar">
+                            <div class="lsn-progress-fill" style="width: {{ item.progress }}%"></div>
+                        </div>
+                        <span class="lsn-progress-text">Прогресс: {{ item.progress }}%</span>
+                    </div>
+                </div>
+                <a href="{% url 'listener_app:generate_certificate' item.course.id %}" class="lsn-btn lsn-btn-primary">
+                    <i class="fas fa-download"></i> Получить сертификат
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="received-section">
+            <h2 class="section-title">
+                <i class="fas fa-award"></i> Полученные сертификаты
+                <span class="certificates-count">({{ certificates|length }})</span>
+            </h2>
+
+            {% if certificates %}
+            <div class="certificates-grid">
+                {% for certificate in certificates %}
+                <div class="certificate-card">
+                    <div class="certificate-header">
+                        <div class="certificate-badge">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="certificate-status">Действителен</div>
+                    </div>
+                    <div class="certificate-body">
+                        <div class="certificate-list-course-name">{{ certificate.user_course.course.course_name }}</div>
+                        <div class="certificate-student">
+                            {{ certificate.user_course.user.last_name }} {{ certificate.user_course.user.first_name }}
+                        </div>
+                        <div class="certificate-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Номер:</span>
+                                <span class="detail-value">{{ certificate.certificate_number }}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Выдан:</span>
+                                <span class="detail-value">{{ certificate.issue_date|date:"d.m.Y" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="certificate-footer">
+                        <a href="{% url 'listener_app:certificate_detail' certificate.id %}" class="lsn-btn lsn-btn-outline">
+                            <i class="fas fa-eye"></i> Просмотр
+                        </a>
+                        <a href="{% url 'listener_app:download_certificate' certificate.id %}" class="lsn-btn lsn-btn-primary">
+                            <i class="fas fa-download"></i> Скачать
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="lsn-empty-state">
+                <i class="fas fa-certificate"></i>
+                <h3>Сертификатов пока нет</h3>
+                <p>Завершите курсы, чтобы получить сертификаты</p>
+                <a href="{% url 'courses_page' %}" class="lsn-btn lsn-btn-primary">Перейти к курсам</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/listener.js' %}"></script>
+{% endblock %}

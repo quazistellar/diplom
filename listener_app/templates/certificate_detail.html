@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Сертификат {{ certificate.certificate_number }} - UNIREAX{% endblock %}
+
+{% block extra_css %}
+<style>
+    .certificate-detail-layout {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 30px;
+        margin-top: 30px;
+    }
+    
+    .certificate-info-card,
+    .certificate-preview-card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid var(--border);
+    }
+    
+    .certificate-info-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .certificate-info-header h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .certificate-info-header h3 i {
+        color: var(--primary);
+        margin-right: 8px;
+    }
+    
+    .certificate-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .certificate-details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+    
+    .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .detail-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+    
+    .detail-label i {
+        width: 16px;
+        margin-right: 4px;
+    }
+    
+    .detail-value {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text);
+    }
+    
+    .status-active {
+        color: #2ecc71;
+    }
+    
+    .certificate-preview-card h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+    
+    .certificate-preview-card h3 i {
+        color: var(--primary);
+        margin-right: 8px;
+    }
+    
+    .certificate-preview {
+        background: #f5f5f5;
+        border-radius: 12px;
+        padding: 30px;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .certificate-border {
+        background: white;
+        border: 2px solid #7B7FD5;
+        padding: 40px 50px;
+        text-align: center;
+        max-width: 500px;
+        width: 100%;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .certificate-logo {
+        font-size: 28px;
+        font-weight: bold;
+        color: #7B7FD5;
+        margin-bottom: 20px;
+    }
+    
+    .certificate-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #151D49;
+        margin-bottom: 20px;
+        letter-spacing: 2px;
+    }
+    
+    .certificate-text {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 10px;
+    }
+    
+    .certificate-student-name {
+        font-size: 22px;
+        font-weight: bold;
+        color: #7B7FD5;
+        margin: 15px 0;
+    }
+    
+    .certificate-course-name {
+        font-size: 18px;
+        font-weight: bold;
+        color: #151D49;
+        margin: 15px 0;
+    }
+    
+    .certificate-detail-line {
+        font-size: 12px;
+        color: #666;
+        margin: 5px 0;
+    }
+    
+    /* Блок с баллами */
+    .certificate-score-block {
+        background: #F8F9FF;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+        border: 1px solid #E0E0E0;
+    }
+    
+    .certificate-score {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+    
+    .certificate-score-label {
+        font-size: 12px;
+        color: #666;
+    }
+    
+    .certificate-score-value {
+        font-size: 14px;
+        font-weight: bold;
+        color: #7B7FD5;
+    }
+    
+    .certificate-percentage {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+    
+    .certificate-honors {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px dashed #FFD700;
+        text-align: center;
+    }
+    
+    .certificate-honors span {
+        font-size: 14px;
+        font-weight: bold;
+        color: #FFD700;
+        letter-spacing: 1px;
+    }
+    
+    .certificate-honors i {
+        color: #FFD700;
+        margin: 0 5px;
+    }
+    
+    .certificate-number {
+        font-size: 10px;
+        color: #999;
+        margin-top: 20px;
+        font-family: monospace;
+    }
+    
+    .certificate-signature {
+        margin-top: 30px;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .signature-line {
+        width: 150px;
+        border-top: 1px solid #333;
+        margin-bottom: 5px;
+    }
+    
+    .signature-title {
+        font-size: 10px;
+        color: #666;
+    }
+    
+    .preview-note {
+        margin-top: 15px;
+        padding: 10px;
+        background: rgba(52, 152, 219, 0.1);
+        border-radius: 8px;
+        font-size: 12px;
+        color: #3498db;
+        text-align: center;
+    }
+    
+    .stats-actions {
+        margin-top: 30px;
+        text-align: center;
+    }
+    
+    @media (max-width: 992px) {
+        .certificate-detail-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .certificate-border {
+            padding: 20px;
+        }
+        
+        .certificate-details-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .certificate-info-header {
+            flex-direction: column;
+            gap: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="breadcrumbs">
+            <a href="{% url 'listener_app:dashboard' %}">Личный кабинет</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'listener_app:my_certificates' %}">Мои сертификаты</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Сертификат</span>
+        </div>
+
+        <div class="certificate-detail-layout">
+            <div class="certificate-info-card">
+                <div class="certificate-info-header">
+                    <h3><i class="fas fa-info-circle"></i> Информация о сертификате</h3>
+                    <div class="certificate-actions">
+                        <a href="{% url 'listener_app:download_certificate' certificate.id %}" class="lsn-btn lsn-btn-primary">
+                            <i class="fas fa-download"></i> Скачать PDF
+                        </a>
+                        {% if show_regenerate_button %}
+                        <a href="{% url 'listener_app:regenerate_certificate' certificate.id %}" class="lsn-btn lsn-btn-outline" onclick="return confirm('Обновить сертификат с актуальной статистикой?')">
+                            <i class="fas fa-sync-alt"></i> Обновить
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="certificate-details-grid">
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-user"></i> Слушатель:</span>
+                        <span class="detail-value">
+                            {{ certificate.user_course.user.last_name }} {{ certificate.user_course.user.first_name }}
+                            {% if certificate.user_course.user.patronymic %}
+                                {{ certificate.user_course.user.patronymic }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-graduation-cap"></i> Курс:</span>
+                        <span class="detail-value">{{ certificate.user_course.course.course_name }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-calendar-alt"></i> Дата выдачи:</span>
+                        <span class="detail-value">{{ certificate.issue_date|date:"d.m.Y" }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-clock"></i> Продолжительность:</span>
+                        <span class="detail-value">{{ certificate.user_course.course.course_hours }} часов</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-check-circle"></i> Статус:</span>
+                        <span class="detail-value status-active">Действителен</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-hashtag"></i> Номер сертификата:</span>
+                        <span class="detail-value">{{ certificate.certificate_number }}</span>
+                    </div>
+                    {% if score_data %}
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-star"></i> Набрано баллов:</span>
+                        <span class="detail-value">{{ score_data.total_earned }} из {{ score_data.total_max }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-chart-line"></i> Процент выполнения:</span>
+                        <span class="detail-value">{{ score_data.percentage }}%</span>
+                    </div>
+                    {% if score_data.with_honors %}
+                    <div class="detail-item">
+                        <span class="detail-label"><i class="fas fa-trophy"></i> Отличие:</span>
+                        <span class="detail-value" style="color: #FFD700; font-weight: bold;">С ОТЛИЧИЕМ!</span>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="certificate-preview-card">
+                <h3><i class="fas fa-eye"></i> Предпросмотр сертификата</h3>
+                <div class="certificate-preview">
+                    <div class="certificate-border">
+                        <div class="certificate-logo">UNIREAX</div>
+                        <div class="certificate-title">СЕРТИФИКАТ</div>
+                        <div class="certificate-text">Настоящим удостоверяется, что</div>
+                        <div class="certificate-student-name">
+                            {{ certificate.user_course.user.last_name|upper }} 
+                            {{ certificate.user_course.user.first_name|upper }}
+                            {% if certificate.user_course.user.patronymic %}
+                                {{ certificate.user_course.user.patronymic|upper }}
+                            {% endif %}
+                        </div>
+                        <div class="certificate-text">успешно завершил(а) курс</div>
+                        <div class="certificate-course-name">{{ certificate.user_course.course.course_name|upper }}</div>
+                        
+                        {% if score_data %}
+                        <div class="certificate-score-block">
+                            <div class="certificate-score">
+                                <span class="certificate-score-label">Набрано баллов:</span>
+                                <span class="certificate-score-value">{{ score_data.total_earned }} из {{ score_data.total_max }}</span>
+                            </div>
+                            <div class="certificate-percentage">
+                                <span class="certificate-score-label">Процент выполнения:</span>
+                                <span class="certificate-score-value">{{ score_data.percentage }}%</span>
+                            </div>
+                            {% if score_data.with_honors %}
+                            <div class="certificate-honors">
+                                <span class="honors-cert">С ОТЛИЧИЕМ!</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="certificate-detail-line">
+                            Продолжительность: {{ certificate.user_course.course.course_hours }} часов
+                        </div>
+                        <div class="certificate-detail-line">
+                            Дата выдачи: {{ certificate.issue_date|date:"d.m.Y" }}
+                        </div>
+                        <div class="certificate-number">
+                            № {{ certificate.certificate_number }}
+                        </div>
+                        
+                        <div class="certificate-signature">
+                            <div>
+                                <div class="signature-line"></div>
+                                <div class="signature-title">Директор UNIREAX</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="preview-note">
+                    <i class="fas fa-info-circle"></i> Это предпросмотр. Для получения официального документа с подписью скачайте PDF-версию.
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-actions">
+            <a href="{% url 'listener_app:my_certificates' %}" class="lsn-btn lsn-btn-outline">
+                <i class="fas fa-arrow-left"></i> Все сертификаты
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/listener.js' %}"></script>
+{% endblock %}

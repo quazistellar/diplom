@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Избранные курсы - UNIREAX{% endblock %}
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="lsn-header">
+            <div class="breadcrumbs">
+                <a href="{% url 'listener_app:dashboard' %}">Личный кабинет</a>
+                <i class="fas fa-chevron-right"></i>
+                <span>Избранные курсы</span>
+            </div>
+        </div>
+
+        <div class="lsn-page-header">
+            <h1 class="lsn-page-title">
+                <i class="fas fa-heart" style="color: #ff4757;"></i> Избранные курсы
+            </h1>
+            <p class="lsn-page-subtitle">Курсы, которые вы добавили в избранное</p>
+        </div>
+
+        {% if favorites %}
+            <div class="favorite-courses-list">
+                {% for item in favorites %}
+                <div class="favorite-course-card" id="favorite-{{ item.id }}">
+                    <div class="favorite-course-image">
+                        {% if item.course.course_photo_path %}
+                        <img src="{{ item.course.course_photo_path.url }}" alt="{{ item.course.course_name }}">
+                        {% else %}
+                        <div class="favorite-course-image-placeholder">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="favorite-course-info">
+                        <h3 class="favorite-course-title">
+                            <a href="{% url 'listener_app:course_detail' item.course.id %}">{{ item.course.course_name }}</a>
+                        </h3>
+                        <div class="favorite-course-meta">
+                            <span><i class="fas fa-clock"></i> {{ item.course.course_hours }} часов</span>
+                            <span><i class="fas fa-users"></i> {{ item.student_count }} слушателей</span>
+                            {% if item.course.course_category %}
+                            <span><i class="fas fa-tag"></i> {{ item.course.course_category.course_category_name }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="favorite-course-rating">
+                            <div class="stars">
+                                {% for i in "12345"|make_list %}
+                                <i class="fas fa-star {% if forloop.counter <= item.avg_rating %}active{% else %}inactive{% endif %}"></i>
+                                {% endfor %}
+                            </div>
+                            <span>{{ item.avg_rating|floatformat:1 }}</span>
+                        </div>
+                        <div class="favorite-added-date">
+                            <i class="far fa-calendar-alt"></i> Добавлено: {{ item.added_at|date:"d.m.Y" }}
+                        </div>
+                    </div>
+                    <div class="favorite-course-actions">
+                        <a href="{% url 'listener_app:course_detail' item.course.id %}" class="lsn-btn lsn-btn-primary">
+                            <i class="fas fa-play"></i> Перейти
+                        </a>
+                        <form method="post" action="{% url 'listener_app:remove_favorite' item.id %}" 
+                              onsubmit="return confirm('Удалить курс из избранного?')" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="lsn-btn lsn-btn-danger">
+                                <i class="fas fa-trash"></i> Удалить
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="favorite-empty">
+                <i class="far fa-heart"></i>
+                <h3>У вас пока нет избранных курсов.</h3>
+                <p>Добавляйте курсы в избранное, чтобы не потерять их и вернуться к ним позже</p>
+                <a href="{% url 'courses_page' %}" class="lsn-btn lsn-btn-primary">
+                    Перейти на поиски в каталог курсов!
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

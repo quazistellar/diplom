@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Панель администратора{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="profile-container">
+        <div class="profile-layout">
+            <div class="profile-sidebar">
+                <div class="profile-avatar-large">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" alt="Avatar">
+                    {% else %}
+                        <i class="fas fa-user-circle"></i>
+                    {% endif %}
+                </div>
+                <div class="profile-name-sidebar">
+                    <h3>{{ full_name }}</h3>
+                    <span class="profile-role-badge admin">Администратор</span>
+                </div>
+                
+                <nav class="profile-nav">
+                    <button type="button" class="profile-nav-btn active" data-tab="info" onclick="switchTab(this, 'info')">
+                        <i class="fas fa-user"></i>
+                        <span>Личная информация</span>
+                    </button>
+                    <button type="button" class="profile-nav-btn" data-tab="password" onclick="switchTab(this, 'password')">
+                        <i class="fas fa-key"></i>
+                        <span>Смена пароля</span>
+                    </button>
+                    <button type="button" class="profile-nav-btn" data-tab="analytics" onclick="switchTab(this, 'analytics')">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Аналитика платформы</span>
+                    </button>
+                </nav>
+                
+                <div class="profile-sidebar-footer">
+                    <a href="{% url 'admin_app:dashboard' %}" class="profile-sidebar-btn">
+                        <i class="fas fa-cog"></i> Панель управления
+                    </a>
+                    <a href="{% url 'main_page' %}" class="profile-sidebar-btn">
+                        <i class="fas fa-home"></i> На главную
+                    </a>
+                    <a href="{% url 'logout_move' %}" class="profile-sidebar-btn logout">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </a>
+                </div>
+            </div>
+            
+            <div class="profile-content">
+
+                <div class="profile-tab active" id="tab-info">
+                    <div class="profile-card">
+                        <div class="profile-card-header">
+                            <h2><i class="fas fa-user-circle"></i> Редактирование профиля</h2>
+                            <p>Измените свои личные данные</p>
+                        </div>
+                        
+                        <form method="post" class="profile-edit-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="1">
+                            
+                            <div class="profile-edit-grid">
+                                <div class="profile-form-group">
+                                    <label for="{{ form.username.id_for_label }}">
+                                        <i class="fas fa-user"></i> {{ form.username.label }}
+                                    </label>
+                                    {{ form.username }}
+                                    {% if form.username.errors %}
+                                    <div class="profile-form-error">
+                                        {% for error in form.username.errors %}
+                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <small class="form-text">Уникальное имя пользователя для входа</small>
+                                </div>
+                                
+                                <div class="profile-form-group">
+                                    <label for="{{ form.email.id_for_label }}">
+                                        <i class="fas fa-envelope"></i> {{ form.email.label }}
+                                    </label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                    <div class="profile-form-error">
+                                        {% for error in form.email.errors %}
+                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <small class="form-text">Используется для связи и восстановления пароля</small>
+                                </div>
+                                
+                                <div class="profile-form-group">
+                                    <label for="{{ form.last_name.id_for_label }}">
+                                        <i class="fas fa-user-tag"></i> {{ form.last_name.label }}
+                                    </label>
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}
+                                    <div class="profile-form-error">
+                                        {% for error in form.last_name.errors %}
+                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="profile-form-group">
+                                    <label for="{{ form.first_name.id_for_label }}">
+                                        <i class="fas fa-user"></i> {{ form.first_name.label }}
+                                    </label>
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}
+                                    <div class="profile-form-error">
+                                        {% for error in form.first_name.errors %}
+                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="profile-form-group">
+                                    <label for="{{ form.patronymic.id_for_label }}">
+                                        <i class="fas fa-user-circle"></i> {{ form.patronymic.label }}
+                                    </label>
+                                    {{ form.patronymic }}
+                                    {% if form.patronymic.errors %}
+                                    <div class="profile-form-error">
+                                        {% for error in form.patronymic.errors %}
+                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="profile-form-actions">
+                                <button type="submit" class="profile-btn profile-btn-primary">
+                                    <i class="fas fa-save"></i> Сохранить изменения
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="profile-tab" id="tab-password">
+                    <div class="profile-card">
+                        <div class="profile-card-header">
+                            <h2><i class="fas fa-key"></i> Смена пароля</h2>
+                            <p>Измените свой пароль для входа в систему</p>
+                        </div>
+                        <form method="post" class="profile-password-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="change_password" value="1">
+                            
+                            <div class="profile-form-group">
+                                <label for="{{ password_form.old_password.id_for_label }}">
+                                    <i class="fas fa-lock"></i> {{ password_form.old_password.label }}
+                                </label>
+                                {{ password_form.old_password }}
+                                {% if password_form.old_password.errors %}
+                                <div class="profile-form-error">
+                                    {% for error in password_form.old_password.errors %}
+                                        <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="profile-form-group">
+                                <label for="{{ password_form.new_password1.id_for_label }}">
+                                    <i class="fas fa-key"></i> {{ password_form.new_password1.label }}
+                                </label>
+                                {{ password_form.new_password1 }}
+                                {% if password_form.new_password1.errors %}
+                                <div class="profile-form-error">
+                                    {% for error in password_form.new_password1.errors %}
+                                        <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <small class="form-text">
+                                    Пароль должен содержать не менее 8 символов и не должен быть слишком простым
+                                </small>
+                            </div>
+                            
+                            <div class="profile-form-group">
+                                <label for="{{ password_form.new_password2.id_for_label }}">
+                                    <i class="fas fa-check-circle"></i> {{ password_form.new_password2.label }}
+                                </label>
+                                {{ password_form.new_password2 }}
+                                {% if password_form.new_password2.errors %}
+                                <div class="profile-form-error">
+                                    {% for error in password_form.new_password2.errors %}
+                                        <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <button type="submit" class="profile-btn profile-btn-primary">
+                                <i class="fas fa-save"></i> Сменить пароль
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="profile-tab" id="tab-analytics">
+                    <div class="profile-card">
+                        <div class="profile-card-header">
+                            <h2><i class="fas fa-chart-pie"></i> Аналитика платформы</h2>
+                            <p>Общая статистика и метрики системы UNIREAX</p>
+                        </div>
+                        
+                        <div class="admin-stats-grid">
+                            <div class="admin-stat-card primary">
+                                <div class="admin-stat-value">{{ analytics.total_users }}</div>
+                                <div class="admin-stat-label">Всего пользователей</div>
+                                <div class="admin-stat-detail">из них {{ analytics.active_users }} активных</div>
+                            </div>
+                            <div class="admin-stat-card success">
+                                <div class="admin-stat-value">{{ analytics.total_courses }}</div>
+                                <div class="admin-stat-label">Всего курсов</div>
+                                <div class="admin-stat-detail">из них {{ analytics.active_courses }} активных</div>
+                            </div>
+                            <div class="admin-stat-card warning">
+                                <div class="admin-stat-value">{{ analytics.total_enrollments }}</div>
+                                <div class="admin-stat-label">Записей на курсы</div>
+                                <div class="admin-stat-detail">{{ analytics.completed_enrollments }} завершено</div>
+                            </div>
+                            <div class="admin-stat-card info">
+                                <div class="admin-stat-value">{{ analytics.completion_rate|floatformat:1 }}%</div>
+                                <div class="admin-stat-label">Процент завершения</div>
+                                <div class="admin-stat-detail">от общего числа записей</div>
+                            </div>
+                        </div>
+                        
+                        <div class="admin-analytics-section">
+                            <h3>Активность пользователей на курсах за последние 30 дней</h3>
+                            <div class="admin-chart-container">
+                                <canvas id="activityChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="admin-analytics-section">
+                            <h3>Входы пользователей за последние 7 дней</h3>
+                            <div class="admin-chart-container">
+                                <canvas id="loginChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="admin-analytics-grid">
+                            <div class="admin-analytics-card">
+                                <h3>Распределение по ролям</h3>
+                                <div class="admin-role-list">
+                                    {% for role in role_distribution %}
+                                    <div class="admin-role-item">
+                                        <span class="admin-role-name">{{ role.name }}</span>
+                                        <span class="admin-role-count">{{ role.count }}</span>
+                                    </div>
+                                    {% empty %}
+                                    <p class="admin-no-data">Нет данных о ролях</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <div class="admin-analytics-card">
+                                <h3>Популярные курсы</h3>
+                                <div class="admin-popular-list">
+                                    {% for course in popular_courses %}
+                                    <div class="admin-popular-item">
+                                        <span class="admin-course-name">{{ course.course_name }}</span>
+                                        <span class="admin-enrollment-count">{{ course.enrollment_count }} записей</span>
+                                    </div>
+                                    {% empty %}
+                                    <p class="admin-no-data">Нет данных о курсах</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="admin-analytics-section">
+                            <h3>Регистрации за последние 7 дней</h3>
+                            <div class="admin-registration-list">
+                                {% for reg in registrations %}
+                                <div class="admin-registration-item">
+                                    <span class="admin-reg-date">{{ reg.date|date:"d.m.Y" }}</span>
+                                    <span class="admin-reg-count">{{ reg.count }} новых</span>
+                                </div>
+                                {% empty %}
+                                <p class="admin-no-data">Нет данных о регистрациях</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script id="activity-labels-data" type="application/json">{{ activity_labels|default:'[]'|safe }}</script>
+<script id="activity-data-data" type="application/json">{{ activity_data|default:'[]'|safe }}</script>
+<script id="login-labels-data" type="application/json">{{ login_labels|default:'[]'|safe }}</script>
+<script id="login-data-data" type="application/json">{{ login_data|default:'[]'|safe }}</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/admin_profile.js' %}"></script>
+{% endblock %}

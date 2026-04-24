@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="container">
+        <div class="admin-header">
+            <h1 class="admin-title">
+                <i class="{{ icon }}"></i>
+                {{ title }}
+            </h1>
+        </div>
+
+        <div class="admin-form">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="admin-form-errors">
+                    {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="admin-form-grid">
+                    <div class="admin-form-group full-width">
+                        <label class="admin-form-label">
+                            <i class="fas fa-tag"></i> {{ form.course_name.label }}
+                        </label>
+                        {{ form.course_name }}
+                        {% if form.course_name.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.course_name.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group full-width">
+                        <label class="admin-form-label">
+                            <i class="fas fa-align-left"></i> {{ form.course_description.label }}
+                        </label>
+                        {{ form.course_description }}
+                        {% if form.course_description.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.course_description.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-folder"></i> {{ form.course_category.label }}
+                        </label>
+                        {{ form.course_category }}
+                        {% if form.course_category.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.course_category.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-tag"></i> {{ form.course_type.label }}
+                        </label>
+                        {{ form.course_type }}
+                        {% if form.course_type.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.course_type.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-ruble-sign"></i> {{ form.course_price.label }}
+                        </label>
+                        {{ form.course_price }}
+                        {% if form.course_price.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.course_price.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-clock"></i> {{ form.course_hours.label }}
+                        </label>
+                        {{ form.course_hours }}
+                        {% if form.course_hours.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.course_hours.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-users"></i> {{ form.course_max_places.label }}
+                        </label>
+                        {{ form.course_max_places }}
+                        {% if form.course_max_places.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.course_max_places.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-user"></i> {{ form.created_by.label }}
+                        </label>
+                        {{ form.created_by }}
+                        {% if form.created_by.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.created_by.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-image"></i> {{ form.course_photo_path.label }}
+                        </label>
+                        {% if form.instance.course_photo_path %}
+                        <div style="margin-bottom: 10px;">
+                            <img src="{{ form.instance.course_photo_path.url }}" alt="Текущее изображение" style="max-width: 200px; border-radius: 8px;">
+                        </div>
+                        {% endif %}
+                        {{ form.course_photo_path }}
+                        {% if form.course_photo_path.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.course_photo_path.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-link"></i> {{ form.code_link.label }}
+                        </label>
+                        {{ form.code_link }}
+                        {% if form.code_link.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.code_link.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-certificate"></i> {{ form.has_certificate.label }}
+                        </label>
+                        <label class="admin-form-checkbox">
+                            {{ form.has_certificate }} <span>Выдавать сертификат</span>
+                        </label>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-check-circle"></i> {{ form.is_completed.label }}
+                        </label>
+                        <label class="admin-form-checkbox">
+                            {{ form.is_completed }} <span>Курс полностью наполнен материалами</span>
+                        </label>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-eye"></i> {{ form.is_active.label }}
+                        </label>
+                        <label class="admin-form-checkbox">
+                            {{ form.is_active }} <span>Курс активен</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn-admin btn-admin-primary">
+                        <i class="fas fa-save"></i> {% if course %}Сохранить изменения{% else %}Создать курс{% endif %}
+                    </button>
+                    <a href="{% url 'admin_app:course_list' %}" class="btn-admin btn-admin-secondary">
+                        <i class="fas fa-times"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

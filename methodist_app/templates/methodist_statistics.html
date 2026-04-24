@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Статистика курсов{% endblock %}
+
+{% block content %}
+<div class="methodist-statistics-page">
+    <div class="methodist-container">
+        <div class="methodist-page-header">
+            <div>
+                <h1 class="methodist-page-title">Статистика курсов</h1>
+                <p class="methodist-page-subtitle">Аналитика эффективности и популярности ваших курсов</p>
+            </div>
+            <div class="methodist-header-actions">
+                <a href="{% url 'methodist_app:profile' %}" class="methodist-btn methodist-btn-outline">
+                    <i class="fas fa-user"></i> Мой профиль
+                </a>
+                <a href="{% url 'methodist_app:dashboard' %}" class="methodist-btn methodist-btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к дашборду
+                </a>
+            </div>
+        </div>
+        
+        <div class="methodist-filter-card">
+            <h3 class="methodist-filter-title">
+                <i class="fas fa-calendar-alt"></i> Фильтр по датам
+            </h3>
+            <form method="get" class="methodist-filter-form">
+                <div class="methodist-filter-grid">
+                    <div class="methodist-form-field">
+                        <label class="methodist-form-label">Начальная дата</label>
+                        <input type="date" name="start_date" class="methodist-form-input" value="{{ start_date|date:'Y-m-d' }}">
+                    </div>
+                    <div class="methodist-form-field">
+                        <label class="methodist-form-label">Конечная дата</label>
+                        <input type="date" name="end_date" class="methodist-form-input" value="{{ end_date|date:'Y-m-d' }}">
+                    </div>
+                    <div class="methodist-filter-actions">
+                        <button type="submit" class="methodist-btn methodist-btn-primary">
+                            <i class="fas fa-search"></i> Применить
+                        </button>
+                        <a href="{% url 'methodist_app:statistics' %}" class="methodist-btn methodist-btn-outline">
+                            <i class="fas fa-refresh"></i> Сбросить
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="methodist-export-section">
+            <h3 class="methodist-export-title">
+                <i class="fas fa-download"></i> Экспорт отчетов
+            </h3>
+            <div class="methodist-export-buttons">
+                <div class="methodist-export-group">
+                    <span class="methodist-export-label">Статистика слушателей</span>
+                    <div class="methodist-export-actions">
+                        <a href="{% url 'methodist_app:export_statistics' 'students' 'csv' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}" 
+                        class="methodist-btn methodist-btn-success methodist-btn-small">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </a>
+                        <a href="{% url 'methodist_app:export_statistics' 'students' 'pdf' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}" 
+                        class="methodist-btn methodist-btn-danger methodist-btn-small">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </a>
+                    </div>
+                </div>
+                <div class="methodist-export-group">
+                    <span class="methodist-export-label">Популярные курсы</span>
+                    <div class="methodist-export-actions">
+                        <a href="{% url 'methodist_app:export_statistics' 'popular' 'csv' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}" 
+                        class="methodist-btn methodist-btn-success methodist-btn-small">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </a>
+                        <a href="{% url 'methodist_app:export_statistics' 'popular' 'pdf' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}" 
+                        class="methodist-btn methodist-btn-danger methodist-btn-small">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="methodist-period-info">
+            <i class="fas fa-info-circle"></i>
+            Отображена статистика за период: <strong>{{ start_date|date:"d.m.Y" }}</strong> - <strong>{{ end_date|date:"d.m.Y" }}</strong>
+        </div>
+        
+        <div class="methodist-charts-section">
+            <div class="methodist-chart-grid">
+                <div class="methodist-chart-card">
+                    <div class="methodist-chart-header">
+                        <h3 class="methodist-chart-title">
+                            <i class="fas fa-users"></i> Распределение слушателей по курсам
+                        </h3>
+                    </div>
+                    <div class="methodist-chart-body">
+                        <canvas id="studentsChart"></canvas>
+                    </div>
+                </div>
+                <div class="methodist-chart-card">
+                    <div class="methodist-chart-header">
+                        <h3 class="methodist-chart-title">
+                            <i class="fas fa-star"></i> Рейтинги популярных курсов
+                        </h3>
+                    </div>
+                    <div class="methodist-chart-body">
+                        <canvas id="ratingsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="methodist-stats-section">
+            <div class="methodist-stats-header">
+                <h2 class="methodist-stats-title">
+                    <i class="fas fa-chart-line"></i> Статистика слушателей по вашим курсам
+                </h2>
+            </div>
+            
+            {% if course_stats %}
+            <div class="methodist-table-container">
+                <table class="methodist-stats-table">
+                    <thead>
+                        <tr>
+                            <th width="25%">Курс</th>
+                            <th width="12%" class="text-center">Всего записей</th>
+                            <th width="12%" class="text-center">Завершено</th>
+                            <th width="12%" class="text-center">В процессе</th>
+                            <th width="26%">Процент завершения</th>
+                            <th width="13%">Рейтинг</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in course_stats %}
+                        <tr>
+                            <td>
+                                <div class="methodist-course-info">
+                                    <strong class="methodist-course-name">{{ stat.course.course_name }}</strong>
+                                    <span class="methodist-course-category">{{ stat.course.course_category.course_category_name|default:"Без категории" }}</span>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="methodist-stat-badge methodist-stat-primary">{{ stat.total_enrollments }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="methodist-stat-badge methodist-stat-success">{{ stat.completed }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="methodist-stat-badge methodist-stat-warning">{{ stat.in_progress }}</span>
+                            </td>
+                            <td>
+                                <div class="methodist-progress-container">
+                                    <div class="methodist-progress-bar">
+                                        <div class="methodist-progress-fill {% if stat.completion_rate > 70 %}methodist-progress-success{% elif stat.completion_rate > 40 %}methodist-progress-warning{% else %}methodist-progress-danger{% endif %}" 
+                                             style="width: {{ stat.completion_rate }}%">
+                                            <span class="methodist-progress-text">{{ stat.completion_rate|floatformat:1 }}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="methodist-rating-display">
+                                    <span class="methodist-rating-value">{{ stat.avg_rating|floatformat:1 }}</span>
+                                    <div class="methodist-rating-stars">
+                                        {% for i in "12345"|make_list %}
+                                            {% if forloop.counter <= stat.avg_rating %}
+                                                <i class="fas fa-star methodist-star-filled"></i>
+                                            {% else %}
+                                                <i class="far fa-star methodist-star-empty"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="methodist-empty-state">
+                <i class="fas fa-chart-bar"></i>
+                <h3>Нет данных за выбранный период</h3>
+                <p>Попробуйте изменить даты фильтра</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="methodist-stats-section">
+            <div class="methodist-stats-header">
+                <h2 class="methodist-stats-title">
+                    <i class="fas fa-trophy"></i> Самые популярные курсы на платформе
+                </h2>
+                <p class="methodist-stats-subtitle">Рейтинг основан на отзывах и количестве слушателей</p>
+            </div>
+            
+            {% if popular_courses %}
+            <div class="methodist-table-container">
+                <table class="methodist-stats-table">
+                    <thead>
+                        <tr>
+                            <th width="30%">Курс</th>
+                            <th width="15%">Категория</th>
+                            <th width="15%" class="text-center">Слушателей</th>
+                            <th width="20%">Рейтинг</th>
+                            <th width="10%">Тип</th>
+                            <th width="10%" class="text-center">Часы</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in popular_courses %}
+                        <tr>
+                            <td>
+                                <strong class="methodist-course-name">{{ course.course_name }}</strong>
+                            </td>
+                            <td>
+                                <span class="methodist-category-badge">{{ course.course_category.course_category_name|default:"Без категории" }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="methodist-stat-badge methodist-stat-info">{{ course.total_students }}</span>
+                            </td>
+                            <td>
+                                <div class="methodist-rating-display">
+                                    <span class="methodist-rating-value">{{ course.avg_rating|default:0|floatformat:1 }}</span>
+                                    <div class="methodist-rating-stars">
+                                        {% with rating=course.avg_rating|default:0 %}
+                                            {% for i in "12345"|make_list %}
+                                                {% if forloop.counter <= rating %}
+                                                    <i class="fas fa-star methodist-star-filled"></i>
+                                                {% else %}
+                                                    <i class="far fa-star methodist-star-empty"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endwith %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="methodist-type-badge">{{ course.course_type.course_type_name }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="methodist-hours-badge">{{ course.course_hours }}ч</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="methodist-empty-state">
+                <i class="fas fa-trophy"></i>
+                <h3>Нет данных о популярных курсах</h3>
+                <p>За выбранный период нет данных о курсах с рейтингом</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/methodist.js' %}"></script>
+<script src="{% static 'js/methodist_statistics.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const courseNames = {{ course_names_json|safe }};
+    const totalData = {{ total_data_json|safe }};
+    const completedData = {{ completed_data_json|safe }};
+    const popularNames = {{ popular_names_json|safe }};
+    const popularRatings = {{ popular_ratings_json|safe }};
+    const popularStudents = {{ popular_students_json|safe }};
+</script>
+{% endblock %}

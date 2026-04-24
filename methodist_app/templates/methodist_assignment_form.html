@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - {% if assignment %}Редактирование задания{% else %}Создание практического задания{% endif %}{% endblock %}
+
+{% block content %}
+<div class="methodist-assignment-form-page">
+    <div class="methodist-container">
+        
+        <div class="methodist-page-header">
+            <div>
+                <h1 class="methodist-page-title">
+                    {% if assignment %}Редактирование задания{% else %}Создание практического задания{% endif %}
+                </h1>
+                <p class="methodist-page-subtitle">Для курса: {{ course.course_name }}</p>
+            </div>
+            {% if user.role.role_name == 'методист' %}
+                        <a href="{% url 'methodist_app:course_detail' course.id %}" class="methodist-btn methodist-btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Назад к курсу
+                        </a>
+                        {% elif user.role.role_name == 'преподаватель' %}
+                        <a href="{% url 'teacher_app:course_detail' course.id %}" class="teacher-btn teacher-btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Назад к курсу
+                        </a>
+                        {% endif %}
+        </div>
+        
+        <div class="methodist-card">
+            <form method="post" enctype="multipart/form-data" class="methodist-form">
+                {% csrf_token %}
+                
+                <div class="methodist-form-group">
+                    <label for="{{ form.practical_assignment_name.id_for_label }}">
+                        <i class="fas fa-heading"></i> {{ form.practical_assignment_name.label }}
+                    </label>
+                    {{ form.practical_assignment_name }}
+                    {% if form.practical_assignment_name.errors %}
+                    <div class="methodist-form-error">
+                        {% for error in form.practical_assignment_name.errors %}
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text">Название задания (3-200 символов)</small>
+                </div>
+                
+                <div class="methodist-form-group">
+                    <label for="{{ form.practical_assignment_description.id_for_label }}">
+                        <i class="fas fa-align-left"></i> {{ form.practical_assignment_description.label }}
+                    </label>
+                    {{ form.practical_assignment_description }}
+                    {% if form.practical_assignment_description.errors %}
+                    <div class="methodist-form-error">
+                        {% for error in form.practical_assignment_description.errors %}
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text">Описание задания (минимум 20 символов)</small>
+                </div>
+
+                <div class="methodist-form-group">
+                    <label for="{{ form.lecture.id_for_label }}">
+                        <i class="fas fa-book"></i> {{ form.lecture.label }}
+                    </label>
+                    {{ form.lecture }}
+                    {% if form.lecture.errors %}
+                    <div class="methodist-form-error">
+                        {% for error in form.lecture.errors %}
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text">
+                        <i class="fas fa-info-circle"></i> 
+                        Выберите лекцию, к которой относится задание. 
+                        Доступны только лекции текущего курса.
+                    </small>
+                    {% if lectures %}
+                    <small class="form-text methodist-lectures-count">
+                        <i class="fas fa-list"></i> 
+                        Доступно лекций: {{ lectures.count }}
+                    </small>
+                    {% endif %}
+                </div>
+                
+                <div class="methodist-form-grid">
+                    <div class="methodist-form-group">
+                        <label for="{{ form.grading_type.id_for_label }}">
+                            <i class="fas fa-chart-simple"></i> {{ form.grading_type.label }}
+                        </label>
+                        {{ form.grading_type }}
+                        {% if form.grading_type.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.grading_type.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="methodist-form-group">
+                        <label for="{{ form.max_score.id_for_label }}">
+                            <i class="fas fa-star"></i> {{ form.max_score.label }}
+                        </label>
+                        {{ form.max_score }}
+                        {% if form.max_score.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.max_score.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Максимальный балл за задание</small>
+                    </div>
+                </div>
+                
+                <div class="methodist-form-group">
+                    <label for="{{ form.passing_score.id_for_label }}">
+                        <i class="fas fa-check-double"></i> {{ form.passing_score.label }}
+                    </label>
+                    {{ form.passing_score }}
+                    {% if form.passing_score.errors %}
+                    <div class="methodist-form-error">
+                        {% for error in form.passing_score.errors %}
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text">Проходной балл (для балльной системы)</small>
+                </div>
+                
+                <div class="methodist-form-group">
+                    <label for="{{ form.assignment_criteria.id_for_label }}">
+                        <i class="fas fa-clipboard-list"></i> {{ form.assignment_criteria.label }}
+                    </label>
+                    {{ form.assignment_criteria }}
+                    {% if form.assignment_criteria.errors %}
+                    <div class="methodist-form-error">
+                        {% for error in form.assignment_criteria.errors %}
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text">Критерии оценки задания (до 2000 символов)</small>
+                </div>
+                
+                <div class="methodist-form-grid">
+                    <div class="methodist-form-group">
+                        <label for="{{ form.assignment_deadline.id_for_label }}">
+                            <i class="fas fa-calendar-alt"></i> {{ form.assignment_deadline.label }}
+                        </label>
+                        {{ form.assignment_deadline }}
+                        {% if form.assignment_deadline.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.assignment_deadline.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Крайний срок сдачи задания</small>
+                    </div>
+                    
+                    <div class="methodist-form-group">
+                        <label for="{{ form.assignment_document_path.id_for_label }}">
+                            <i class="fas fa-file-upload"></i> {{ form.assignment_document_path.label }}
+                        </label>
+                        {{ form.assignment_document_path }}
+                        {% if form.assignment_document_path.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.assignment_document_path.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% if assignment and assignment.assignment_document_path %}
+                        <small class="form-text">
+                            Текущий файл: 
+                            <a href="{{ assignment.assignment_document_path.url }}" 
+                               target="_blank" 
+                               class="methodist-current-file-link">
+                                {{ assignment.assignment_document_path.name }}
+                            </a>
+                        </small>
+                        {% endif %}
+                        <small class="form-text">PDF, DOC, DOCX, ZIP, RAR (до 100 МБ)</small>
+                    </div>
+                </div>
+                
+                <div class="methodist-form-grid">
+                    <div class="methodist-form-group checkbox-group">
+                        <label class="checkbox-label">
+                            {{ form.is_active }}
+                            <span><i class="fas fa-eye"></i> {{ form.is_active.label }}</span>
+                        </label>
+                    </div>
+                    
+                    <div class="methodist-form-group checkbox-group">
+                        <label class="checkbox-label">
+                            {{ form.is_can_pin_after_deadline }}
+                            <span><i class="fas fa-clock"></i> {{ form.is_can_pin_after_deadline.label }}</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="methodist-form-actions">
+                    <button type="submit" class="methodist-btn methodist-btn-primary">
+                        <i class="fas fa-save"></i> {% if assignment %}Сохранить изменения{% else %}Создать задание{% endif %}
+                    </button>
+                       {% if user.role.role_name == 'методист' %}
+                        <a href="{% url 'methodist_app:course_detail' course.id %}" class="methodist-btn methodist-btn-secondary">
+                            <i class="fas fas fa-times"></i> Отмена
+                        </a>
+                        {% elif user.role.role_name == 'преподаватель' %}
+                        <a href="{% url 'teacher_app:course_detail' course.id %}" class="teacher-btn teacher-btn-secondary">
+                            <i class="fas fas fa-times"></i> Отмена
+                        </a>
+                        {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gradingType = document.getElementById('{{ form.grading_type.id_for_label }}');
+    const maxScoreField = document.getElementById('{{ form.max_score.id_for_label }}')?.closest('.methodist-form-group');
+    const passingScoreField = document.getElementById('{{ form.passing_score.id_for_label }}')?.closest('.methodist-form-group');
+    
+    function toggleScoreFields() {
+        if (gradingType && gradingType.value === 'points') {
+            if (maxScoreField) maxScoreField.style.display = 'block';
+            if (passingScoreField) passingScoreField.style.display = 'block';
+        } else {
+            if (maxScoreField) maxScoreField.style.display = 'none';
+            if (passingScoreField) passingScoreField.style.display = 'none';
+        }
+    }
+    
+    if (gradingType) {
+        gradingType.addEventListener('change', toggleScoreFields);
+        toggleScoreFields();
+    }
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/methodist.js' %}"></script>
+{% endblock %}

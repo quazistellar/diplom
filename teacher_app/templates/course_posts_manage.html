@@ -1,0 +1,453 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Управление объявлениями - {{ course.course_name }}{% endblock %}
+
+{% block content %}
+<div class="teacher-page">
+    <div class="teacher-container">
+        <div class="teacher-page-header">
+            <div>
+                <h1 class="teacher-page-title">Управление объявлениями</h1>
+                <p class="teacher-page-subtitle">Курс: {{ course.course_name }}</p>
+            </div>
+            <div class="teacher-header-actions">
+                <a href="{% url 'teacher_app:course_detail' course.id %}" class="teacher-btn teacher-btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к курсу
+                </a>
+                <a href="{% url 'teacher_app:course_post_create' course.id %}" class="teacher-btn teacher-btn-primary">
+                    <i class="fas fa-plus"></i> Создать объявление
+                </a>
+            </div>
+        </div>
+
+        {% if messages %}
+        <div class="teacher-messages">
+            {% for message in messages %}
+            <div class="teacher-message teacher-message-{{ message.tags }}">
+                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="teacher-card">
+            <div class="teacher-card-header">
+                <h2><i class="fas fa-bullhorn"></i> Все объявления</h2>
+                <p>Здесь вы можете создавать, редактировать и удалять объявления для слушателей, а также отвечать на комментарии</p>
+            </div>
+
+            {% if posts %}
+            <div class="posts-manage-list">
+                {% for post in posts %}
+                <div class="post-manage-item {% if post.is_pinned %}pinned{% endif %}" data-post-id="{{ post.id }}">
+                    <div class="post-manage-info">
+                        <div class="post-manage-header">
+                            <div class="post-badges">
+                                <span class="post-type-badge post-type-{{ post.post_type }}">
+                                    <i class="fas 
+                                        {% if post.post_type == 'announcement' %}fa-bullhorn
+                                        {% elif post.post_type == 'question' %}fa-question-circle
+                                        {% else %}fa-bell{% endif %}"></i>
+                                    {{ post.get_post_type_display }}
+                                </span>
+                                {% if post.is_pinned %}
+                                <span class="pinned-badge">
+                                    <i class="fas fa-thumbtack"></i> Закреплено
+                                </span>
+                                {% endif %}
+                                <span class="post-status {% if post.is_active %}active{% else %}inactive{% endif %}">
+                                    <i class="fas fa-{% if post.is_active %}eye{% else %}eye-slash{% endif %}"></i>
+                                    {% if post.is_active %}Активно{% else %}Скрыто{% endif %}
+                                </span>
+                            </div>
+                            <div class="post-manage-actions">
+                                <a href="{% url 'teacher_app:course_post_edit' post.id %}" class="post-edit-link" title="Редактировать">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="post-delete-link" onclick="openDeleteModal({{ post.id }}, '{{ post.title|escapejs }}')" title="Удалить">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <h3 class="post-manage-title">{{ post.title }}</h3>
+                        <div class="post-manage-content">
+                            {{ post.content|linebreaks }}
+                        </div>
+                        <div class="post-manage-meta">
+                            <span><i class="fas fa-user"></i> {{ post.author.get_full_name|default:post.author.username }}</span>
+                            <span><i class="fas fa-calendar"></i> {{ post.created_at|date:"d.m.Y H:i" }}</span>
+                            <span><i class="fas fa-comments"></i> {{ post.comments.count }} комментариев</span>
+                        </div>
+
+                        <div class="comments-manage-section" id="comments-section-{{ post.id }}">
+                            <div class="comments-manage-header" onclick="toggleComments({{ post.id }})">
+                                <i class="fas fa-comments"></i>
+                                <span>Показать комментарии ({{ post.comments.count }})</span>
+                                <i class="fas fa-chevron-down toggle-icon"></i>
+                            </div>
+                            <div class="comments-manage-body" id="comments-body-{{ post.id }}" style="display: none;">
+                                <div class="comments-list" id="comments-list-{{ post.id }}">
+                                    {% for comment in post.comments.all %}
+                                        {% if not comment.parent %}
+                                        <div class="comment-manage-item" data-comment-id="{{ comment.id }}">
+                                            <div class="comment-manage-header">
+                                                <div>
+                                                    <span class="comment-author {% if comment.author.role.role_name == 'преподаватель' %}teacher-comment{% endif %}">
+                                                        <i class="fas {% if comment.author.role.role_name == 'преподаватель' %}fa-chalkboard-teacher{% else %}fa-user-graduate{% endif %}"></i>
+                                                        {{ comment.author.get_full_name|default:comment.author.username }}
+                                                        {% if comment.author.role.role_name == 'преподаватель' %}
+                                                        <span class="teacher-badge">Преподаватель</span>
+                                                        {% endif %}
+                                                    </span>
+                                                    <span class="comment-date">{{ comment.created_at|date:"d.m.Y H:i" }}</span>
+                                                </div>
+                                                <div class="comment-actions">
+                                                    <button type="button" class="comment-reply-btn" onclick="showReplyForm({{ post.id }}, {{ comment.id }}, '{{ comment.author.get_full_name|default:comment.author.username|escapejs }}')">
+                                                        <i class="fas fa-reply"></i> Ответить
+                                                    </button>
+                                                    {% if user.is_admin or comment.author == user %}
+                                                    <button type="button" class="comment-delete-btn" onclick="deleteComment({{ comment.id }}, {{ post.id }})">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="comment-manage-content">
+                                                {{ comment.content|linebreaks }}
+                                            </div>
+                                            
+                                            {% if comment.replies.exists %}
+                                            <div class="replies-section">
+                                                <div class="replies-title"><i class="fas fa-reply-all"></i> Ответы ({{ comment.replies.count }})</div>
+                                                {% for reply in comment.replies.all %}
+                                                <div class="reply-item">
+                                                    <div class="reply-header">
+                                                        <div style="flex: 1;">
+                                                            <div>
+                                                                <span class="reply-author {% if reply.author.role.role_name == 'преподаватель' %}teacher-comment{% endif %}">
+                                                                    <i class="fas {% if reply.author.role.role_name == 'преподаватель' %}fa-chalkboard-teacher{% else %}fa-user-graduate{% endif %}"></i>
+                                                                    {{ reply.author.get_full_name|default:reply.author.username }}
+                                                                    {% if reply.author.role.role_name == 'преподаватель' %}
+                                                                    <span class="teacher-badge">Преподаватель</span>
+                                                                    {% endif %}
+                                                                </span>
+                                                                <span class="reply-date">{{ reply.created_at|date:"d.m.Y H:i" }}</span>
+                                                            </div>
+                                                            <div class="reply-to">
+                                                                <i class="fas fa-reply"></i> в ответ 
+                                                                <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                                                            </div>
+                                                        </div>
+                                                        {% if user.is_admin or reply.author == user %}
+                                                        <button type="button" class="reply-delete" onclick="deleteComment({{ reply.id }}, {{ post.id }})">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="reply-content">{{ reply.content|linebreaks }}</div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <div class="reply-form-container" id="reply-form-{{ post.id }}-{{ comment.id }}" style="display: none;">
+                                                <div class="reply-indicator" id="reply-indicator-{{ post.id }}-{{ comment.id }}" style="display: none;"></div>
+                                                <textarea id="reply-text-{{ post.id }}-{{ comment.id }}" rows="2" placeholder="Написать ответ..."></textarea>
+                                                <div class="reply-form-actions">
+                                                    <button class="teacher-btn-sm" onclick="cancelReply({{ post.id }}, {{ comment.id }})">Отмена</button>
+                                                    <button class="teacher-btn-sm teacher-btn-primary" onclick="submitReply({{ post.id }}, {{ comment.id }})">Отправить</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    {% empty %}
+                                    <div class="no-comments" id="no-comments-{{ post.id }}">
+                                        <p>Нет комментариев. Будьте первым, кто оставит комментарий!</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="add-comment-manage-form">
+                                    <textarea id="new-comment-{{ post.id }}" rows="3" placeholder="Написать комментарий как преподаватель..."></textarea>
+                                    <button class="teacher-btn teacher-btn-primary" onclick="submitNewComment({{ post.id }})">
+                                        <i class="fas fa-paper-plane"></i> Отправить комментарий
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="teacher-empty-state">
+                <i class="fas fa-bullhorn"></i>
+                <h3>Нет объявлений</h3>
+                <p>Создайте первое объявление для слушателей курса</p>
+                <a href="{% url 'teacher_app:course_post_create' course.id %}" class="teacher-btn teacher-btn-primary">
+                    <i class="fas fa-plus"></i> Создать объявление
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div id="deleteModal" class="teacher-modal" style="display: none;">
+    <div class="teacher-modal-overlay"></div>
+    <div class="teacher-modal-container">
+        <div class="teacher-modal-header">
+            <div class="teacher-modal-icon">
+                <i class="fas fa-trash-alt"></i>
+            </div>
+            <h3 class="teacher-modal-title">Удаление объявления</h3>
+            <button class="teacher-modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="teacher-modal-body">
+            <p class="teacher-modal-text">
+                Вы действительно хотите удалить объявление <strong id="deletePostTitle"></strong>?
+            </p>
+            <div class="teacher-modal-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Это действие необратимо!</span>
+            </div>
+            <form method="post" id="deleteForm">
+                {% csrf_token %}
+            </form>
+        </div>
+        <div class="teacher-modal-footer">
+            <button type="button" class="teacher-modal-btn teacher-modal-btn-cancel" onclick="closeDeleteModal()">
+                <i class="fas fa-times"></i> Отмена
+            </button>
+            <button type="button" class="teacher-modal-btn teacher-modal-btn-danger" onclick="submitDelete()">
+                <i class="fas fa-trash-alt"></i> Удалить
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let deletePostId = null;
+let deletePostTitle = '';
+
+// функция сохранения состояния открытых комментариев в localStorage
+function saveCommentsState(postId, isOpen) {
+    let state = localStorage.getItem('openCommentsState');
+    if (state) {
+        state = JSON.parse(state);
+    } else {
+        state = {};
+    }
+    state[postId] = isOpen;
+    localStorage.setItem('openCommentsState', JSON.stringify(state));
+}
+
+// функция загрузки состояния открытых комментариев из localStorage
+function loadCommentsState(postId) {
+    let state = localStorage.getItem('openCommentsState');
+    if (state) {
+        state = JSON.parse(state);
+        return state[postId] === true;
+    }
+    return false;
+}
+
+// функция защиты от XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// функции для удаления поста
+function openDeleteModal(postId, postTitle) {
+    deletePostId = postId;
+    deletePostTitle = postTitle;
+    document.getElementById('deletePostTitle').textContent = postTitle;
+    document.getElementById('deleteModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+    document.body.style.overflow = '';
+    deletePostId = null;
+}
+
+function submitDelete() {
+    if (deletePostId) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/teacher/post/${deletePostId}/delete/`;
+        form.submit();
+    }
+}
+
+// функция переключения видимости комментариев с сохранением состояния
+function toggleComments(postId) {
+    const body = document.getElementById(`comments-body-${postId}`);
+    const header = document.querySelector(`#comments-section-${postId} .comments-manage-header`);
+    
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        if (header) header.classList.add('open');
+        saveCommentsState(postId, true);
+    } else {
+        body.style.display = 'none';
+        if (header) header.classList.remove('open');
+        saveCommentsState(postId, false);
+    }
+}
+
+// функция восстановления состояния комментариев после загрузки
+function restoreCommentsState() {
+    document.querySelectorAll('.comments-manage-body').forEach(body => {
+        const postId = body.id.replace('comments-body-', '');
+        const isOpen = loadCommentsState(postId);
+        const header = document.querySelector(`#comments-section-${postId} .comments-manage-header`);
+        
+        if (isOpen) {
+            body.style.display = 'block';
+            if (header) header.classList.add('open');
+        } else {
+            body.style.display = 'none';
+            if (header) header.classList.remove('open');
+        }
+    });
+}
+
+// функция отображения формы ответа
+function showReplyForm(postId, commentId, authorName) {
+    document.querySelectorAll('.reply-form-container').forEach(form => {
+        if (form.style.display === 'block') {
+            form.style.display = 'none';
+            const indicator = form.querySelector('.reply-indicator');
+            if (indicator) indicator.style.display = 'none';
+            const textarea = form.querySelector('textarea');
+            if (textarea) textarea.placeholder = 'Написать ответ...';
+        }
+    });
+    
+    const form = document.getElementById(`reply-form-${postId}-${commentId}`);
+    if (form) {
+        form.style.display = 'block';
+        
+        const replyIndicator = document.getElementById(`reply-indicator-${postId}-${commentId}`);
+        if (replyIndicator) {
+            replyIndicator.innerHTML = `<i class="fas fa-reply"></i> Ответ для: <strong>${escapeHtml(authorName)}</strong>`;
+            replyIndicator.style.display = 'block';
+        }
+        
+        const textarea = document.getElementById(`reply-text-${postId}-${commentId}`);
+        if (textarea) {
+            textarea.focus();
+            textarea.placeholder = `Ответить ${authorName}...`;
+        }
+    }
+}
+
+// функция отмены ответа
+function cancelReply(postId, commentId) {
+    const form = document.getElementById(`reply-form-${postId}-${commentId}`);
+    if (form) {
+        form.style.display = 'none';
+        const replyIndicator = document.getElementById(`reply-indicator-${postId}-${commentId}`);
+        if (replyIndicator) {
+            replyIndicator.style.display = 'none';
+        }
+        const textarea = document.getElementById(`reply-text-${postId}-${commentId}`);
+        if (textarea) {
+            textarea.value = '';
+            textarea.placeholder = 'Написать ответ...';
+        }
+    }
+}
+
+// функция отправки ответа на комментарий
+function submitReply(postId, parentCommentId) {
+    const textarea = document.getElementById(`reply-text-${postId}-${parentCommentId}`);
+    const content = textarea?.value.trim();
+    
+    if (!content || content.length < 2) {
+        alert('Ответ слишком короткий');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('content', content);
+    formData.append('parent_id', parentCommentId);
+    
+    fetch(`/teacher/post/${postId}/comment/add/`, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            textarea.value = '';
+            cancelReply(postId, parentCommentId);
+            saveCommentsState(postId, true);
+            location.reload();
+        } else {
+            alert(data.error || 'Ошибка отправки ответа');
+        }
+    });
+}
+
+// функция отправки нового комментария
+function submitNewComment(postId) {
+    const textarea = document.getElementById(`new-comment-${postId}`);
+    const content = textarea?.value.trim();
+    
+    if (!content || content.length < 2) {
+        alert('Комментарий слишком короткий');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('content', content);
+    
+    fetch(`/teacher/post/${postId}/comment/add/`, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            textarea.value = '';
+            saveCommentsState(postId, true);
+            location.reload();
+        } else {
+            alert(data.error || 'Ошибка отправки комментария');
+        }
+    });
+}
+
+// функция удаления комментария
+function deleteComment(commentId, postId) {
+    if (!confirm('Удалить комментарий?')) return;
+    
+    fetch(`/teacher/comment/${commentId}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            saveCommentsState(postId, true);
+            location.reload();
+        } else {
+            alert(data.error || 'Ошибка удаления');
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    restoreCommentsState();
+});
+</script>
+{% endblock %}

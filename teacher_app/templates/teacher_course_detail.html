@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - {{ course.course_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/teacher.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="teacher-course-detail-page">
+    <div class="teacher-container">
+        <div class="teacher-page-header">
+            <div>
+                <h1 class="teacher-page-title">{{ course.course_name }}</h1>
+                <p class="teacher-page-subtitle">
+                    {% if can_edit %}
+                        Конструктор курса: добавление материалов
+                    {% else %}
+                        Преподавание курса: проверка работ слушателей
+                    {% endif %}
+                </p>
+            </div>
+            <div class="teacher-header-actions">
+                {% if can_edit %}
+                <a href="{% url 'teacher_app:course_edit' course.id %}" class="teacher-btn teacher-btn-outline">
+                    <i class="fas fa-edit"></i> Редактировать курс
+                </a>
+                {% endif %}
+                <a href="{% url 'teacher_app:listeners_list' course.id %}" class="teacher-btn teacher-btn-outline">
+                    <i class="fas fa-users"></i> Слушатели
+                </a>
+                <a href="{% url 'teacher_app:course_posts_manage' course.id %}" class="teacher-btn teacher-btn-outline">
+                    <i class="fas fa-bullhorn"></i> Управление объявлениями
+                </a>
+                <a href="{% url 'teacher_app:dashboard' %}" class="teacher-btn teacher-btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к дашборду
+                </a>
+            </div>
+        </div>
+        
+        <div class="teacher-stats-grid">
+            <div class="teacher-stat-card">
+                <div class="teacher-stat-icon"><i class="fas fa-users"></i></div>
+                <div class="teacher-stat-info">
+                    <div class="teacher-stat-value">{{ students_count }}</div>
+                    <div class="teacher-stat-label">Всего слушателей</div>
+                </div>
+            </div>
+            <div class="teacher-stat-card">
+                <div class="teacher-stat-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="teacher-stat-info">
+                    <div class="teacher-stat-value">{{ avg_progress|floatformat:1 }}%</div>
+                    <div class="teacher-stat-label">Средний прогресс</div>
+                </div>
+            </div>
+            <div class="teacher-stat-card teacher-stat-warning">
+                <div class="teacher-stat-icon"><i class="fas fa-tasks"></i></div>
+                <div class="teacher-stat-info">
+                    <div class="teacher-stat-value">{{ pending_count }}</div>
+                    <div class="teacher-stat-label">Работ на проверке</div>
+                </div>
+            </div>
+        </div>
+        
+        {% if can_edit %}
+        <div class="teacher-quick-actions">
+            <a href="{% url 'teacher_app:lecture_create' course.id %}" class="teacher-action-card">
+                <i class="fas fa-book"></i>
+                <span>Добавить лекцию</span>
+            </a>
+            <a href="{% url 'teacher_app:assignment_create' course.id %}" class="teacher-action-card">
+                <i class="fas fa-tasks"></i>
+                <span>Добавить задание</span>
+            </a>
+            <a href="{% url 'teacher_app:test_create' course.id %}" class="teacher-action-card">
+                <i class="fas fa-question-circle"></i>
+                <span>Добавить тест</span>
+            </a>
+        </div>
+        {% endif %}
+        
+        {% if can_edit and lectures %}
+        <div class="teacher-section">
+            <div class="teacher-section-header">
+                <h2><i class="fas fa-book"></i> Лекции курса</h2>
+                <a href="{% url 'teacher_app:lecture_create' course.id %}" class="teacher-btn teacher-btn-small teacher-btn-success">
+                    <i class="fas fa-plus"></i> Добавить лекцию
+                </a>
+            </div>
+            
+            <div class="teacher-items-list">
+                {% for lecture in lectures %}
+                <div class="teacher-item-card">
+                    <div class="teacher-item-order">{{ lecture.lecture_order }}</div>
+                    <div class="teacher-item-info">
+                        <h3>{{ lecture.lecture_name }}</h3>
+                        <p class="teacher-item-meta">
+                            <span><i class="fas fa-calendar"></i> Создана: {{ lecture.created_at|date:"d.m.Y" }}</span>
+                        </p>
+                    </div>
+                    <div class="teacher-item-actions">
+                        <a href="{% url 'teacher_app:lecture_edit' lecture.id %}" class="teacher-btn teacher-btn-small teacher-btn-outline" title="Редактировать">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'teacher_app:lecture_delete' lecture.id %}" class="teacher-btn teacher-btn-small teacher-btn-danger" title="Удалить" onclick="return confirmDelete(this, '{{ lecture.lecture_name }}')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% elif not can_edit and lectures %}
+        <div class="teacher-section">
+            <div class="teacher-section-header">
+                <h2><i class="fas fa-book"></i> Лекции курса</h2>
+            </div>
+            <div class="teacher-items-list">
+                {% for lecture in lectures %}
+                <div class="teacher-item-card teacher-item-readonly">
+                    <div class="teacher-item-order">{{ lecture.lecture_order }}</div>
+                    <div class="teacher-item-info">
+                        <h3>{{ lecture.lecture_name }}</h3>
+                        <p class="teacher-item-meta">
+                            <span><i class="fas fa-calendar"></i> {{ lecture.created_at|date:"d.m.Y" }}</span>
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+
+        {% if assignments %}
+        <div class="teacher-section">
+            <div class="teacher-section-header">
+                <h2><i class="fas fa-tasks"></i> Практические задания</h2>
+                {% if can_edit %}
+                <a href="{% url 'teacher_app:assignment_create' course.id %}" class="teacher-btn teacher-btn-small teacher-btn-success">
+                    <i class="fas fa-plus"></i> Добавить задание
+                </a>
+                {% endif %}
+            </div>
+            
+            <div class="teacher-items-list">
+                {% for assignment in assignments %}
+                <div class="teacher-item-card">
+                    <div class="teacher-item-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="teacher-item-info">
+                        <h3>{{ assignment.practical_assignment_name }}</h3>
+                        <p class="teacher-item-meta">
+                            <span><i class="fas fa-book"></i> Лекция: {{ assignment.lecture.lecture_name }}</span>
+                            {% if assignment.assignment_deadline %}
+                            <span><i class="fas fa-clock"></i> Срок: {{ assignment.assignment_deadline|date:"d.m.Y H:i" }}</span>
+                            {% endif %}
+                            {% if assignment.grading_type == 'points' and assignment.max_score %}
+                            <span><i class="fas fa-star"></i> Макс. балл: {{ assignment.max_score }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="teacher-item-actions">
+                        <a href="{% url 'teacher_app:assignment_edit' assignment.id %}" class="teacher-btn teacher-btn-small teacher-btn-outline" title="Редактировать">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        {% if can_edit %}
+                        <a href="{% url 'teacher_app:assignment_delete' assignment.id %}" class="teacher-btn teacher-btn-small teacher-btn-danger" title="Удалить" onclick="return confirmDelete(this, '{{ assignment.practical_assignment_name }}')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if tests %}
+        <div class="teacher-section">
+            <div class="teacher-section-header">
+                <h2><i class="fas fa-question-circle"></i> Тесты</h2>
+                {% if can_edit %}
+                <a href="{% url 'teacher_app:test_create' course.id %}" class="teacher-btn teacher-btn-small teacher-btn-success">
+                    <i class="fas fa-plus"></i> Добавить тест
+                </a>
+                {% endif %}
+            </div>
+            
+            <div class="teacher-items-list">
+                {% for test in tests %}
+                <div class="teacher-item-card">
+                    <div class="teacher-item-icon">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <div class="teacher-item-info">
+                        <h3>{{ test.test_name }}</h3>
+                        <p class="teacher-item-meta">
+                            <span><i class="fas fa-book"></i> Лекция: {{ test.lecture.lecture_name }}</span>
+                            {% if test.is_final %}
+                            <span class="teacher-badge teacher-badge-warning">Финальный</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if can_edit %}
+                    <div class="teacher-item-actions">
+                        <a href="{% url 'teacher_app:test_builder' test.id %}" class="teacher-btn teacher-btn-small teacher-btn-primary" title="Конструктор">
+                            <i class="fas fa-puzzle-piece"></i>
+                        </a>
+                        <a href="{% url 'teacher_app:test_edit' test.id %}" class="teacher-btn teacher-btn-small teacher-btn-outline" title="Редактировать">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'teacher_app:test_delete' test.id %}" class="teacher-btn teacher-btn-small teacher-btn-danger" title="Удалить" onclick="return confirmDelete(this, '{{ test.test_name }}')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if not can_edit %}
+            {% if pending_assignments %}
+            <div class="teacher-section">
+                <div class="teacher-section-header">
+                    <h2><i class="fas fa-clock"></i> Работы на проверке</h2>
+                    <span class="teacher-badge teacher-badge-warning">{{ pending_assignments|length }}</span>
+                </div>
+                
+                <div class="teacher-assignments-list">
+                    {% for user_assignment in pending_assignments %}
+                    <div class="teacher-assignment-card pending">
+                        <div class="teacher-assignment-header">
+                            <div class="teacher-assignment-student">
+                                <i class="fas fa-user-graduate"></i>
+                                <strong>{{ user_assignment.user.last_name }} {{ user_assignment.user.first_name }}</strong>
+                                {% if user_assignment.user.patronymic %}
+                                    {{ user_assignment.user.patronymic }}
+                                {% endif %}
+                            </div>
+                            <div class="teacher-assignment-status">
+                                <span class="status-badge status-pending">На проверке</span>
+                            </div>
+                        </div>
+                        
+                        <div class="teacher-assignment-body">
+                            <div class="teacher-assignment-title">
+                                <i class="fas fa-tasks"></i>
+                                <span>{{ user_assignment.practical_assignment.practical_assignment_name }}</span>
+                            </div>
+                            <div class="teacher-assignment-meta">
+                                <span><i class="fas fa-book"></i> Лекция: {{ user_assignment.practical_assignment.lecture.lecture_name }}</span>
+                                <span><i class="fas fa-calendar"></i> Сдано: {{ user_assignment.submitted_at|date:"d.m.Y H:i" }}</span>
+                                <span><i class="fas fa-hashtag"></i> Попытка: {{ user_assignment.attempt_number }}</span>
+                            </div>
+                            
+                            {% if user_assignment.comment %}
+                            <div class="teacher-assignment-comment">
+                                <i class="fas fa-comment"></i>
+                                <em>{{ user_assignment.comment|truncatechars:200 }}</em>
+                            </div>
+                            {% endif %}
+                            
+                            {% with files=user_assignment.assignmentsubmissionfile_set.all %}
+                                {% if files %}
+                                <div class="teacher-assignment-files">
+                                    <strong><i class="fas fa-paperclip"></i> Прикреплённые файлы:</strong>
+                                    <ul>
+                                        {% for file in files %}
+                                        <li>
+                                            <a href="{{ file.file.url }}" target="_blank">
+                                                <i class="fas fa-file"></i> {{ file.file_name }}
+                                            </a>
+                                            <span class="file-size">({{ file.file_size|filesizeformat }})</span>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        
+                        <div class="teacher-assignment-actions">
+                            <a href="{% url 'teacher_app:grade_assignment' user_assignment.id %}" class="teacher-btn teacher-btn-primary">
+                                <i class="fas fa-check-double"></i> Проверить работу
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="teacher-info-message">
+                <i class="fas fa-check-circle"></i>
+                <p>Нет работ на проверке</p>
+            </div>
+            {% endif %}
+
+            {% if reviewed_assignments %}
+            <div class="teacher-section">
+                <div class="teacher-section-header">
+                    <h2><i class="fas fa-check-circle"></i> Проверенные работы</h2>
+                </div>
+                
+                <div class="teacher-assignments-list">
+                    {% for user_assignment in reviewed_assignments %}
+                    <div class="teacher-assignment-card reviewed">
+                        <div class="teacher-assignment-header">
+                            <div class="teacher-assignment-student">
+                                <i class="fas fa-user-graduate"></i>
+                                <strong>{{ user_assignment.user.last_name }} {{ user_assignment.user.first_name }}</strong>
+                                {% if user_assignment.user.patronymic %}
+                                    {{ user_assignment.user.patronymic }}
+                                {% endif %}
+                            </div>
+                            <div class="teacher-assignment-status">
+                                {% if user_assignment.feedback.is_passed %}
+                                    <span class="status-badge status-passed">Зачтено</span>
+                                {% elif user_assignment.feedback.is_passed == False %}
+                                    <span class="status-badge status-failed">Не зачтено</span>
+                                {% else %}
+                                    <span class="status-badge status-graded">Проверено</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="teacher-assignment-body">
+                            <div class="teacher-assignment-title">
+                                <i class="fas fa-tasks"></i>
+                                <span>{{ user_assignment.practical_assignment.practical_assignment_name }}</span>
+                            </div>
+                            <div class="teacher-assignment-meta">
+                                <span><i class="fas fa-book"></i> Лекция: {{ user_assignment.practical_assignment.lecture.lecture_name }}</span>
+                                <span><i class="fas fa-calendar"></i> Сдано: {{ user_assignment.submitted_at|date:"d.m.Y H:i" }}</span>
+                            </div>
+                            
+                            {% if user_assignment.feedback %}
+                            <div class="teacher-feedback">
+                                <strong><i class="fas fa-comment-dots"></i> Оценка преподавателя:</strong>
+                                {% if user_assignment.practical_assignment.grading_type == 'points' and user_assignment.feedback.score %}
+                                    <span class="feedback-score">Балл: {{ user_assignment.feedback.score }}/{{ user_assignment.practical_assignment.max_score }}</span>
+                                {% endif %}
+                                {% if user_assignment.feedback.comment_feedback %}
+                                    <div class="feedback-comment">{{ user_assignment.feedback.comment_feedback }}</div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="teacher-assignment-actions">
+                            <a href="{% url 'teacher_app:grade_assignment' user_assignment.id %}" class="teacher-btn teacher-btn-outline">
+                                <i class="fas fa-edit"></i> Редактировать оценку
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if reviewed_assignments|length >= 50 %}
+                <div class="teacher-more-link">
+                    <a href="{% url 'teacher_app:all_reviewed_assignments' course.id %}">Показать все проверенные работы →</a>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% endif %}
+        
+        {% if can_edit and not lectures and not assignments and not tests %}
+        <div class="teacher-empty-state">
+            <i class="fas fa-info-circle"></i>
+            <h3>Курс пока не наполнен материалами</h3>
+            <p>Начните добавлять лекции, задания и тесты</p>
+            <a href="{% url 'teacher_app:lecture_create' course.id %}" class="teacher-btn teacher-btn-primary">
+                <i class="fas fa-plus"></i> Добавить первую лекцию
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/teacher.js' %}"></script>
+{% endblock %}

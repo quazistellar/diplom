@@ -1,3 +1,4 @@
+// данный класс представляет движение звезд на заднем плане сайта
 class StarsAnimation {
     constructor() {
         this.canvas = document.getElementById('stars-canvas');

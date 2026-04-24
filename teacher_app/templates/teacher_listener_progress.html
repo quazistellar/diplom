@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Прогресс слушателя{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/teacher.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="teacher-student-progress-page">
+    <div class="teacher-container">
+        <div class="teacher-page-header">
+            <div>
+                <h1 class="teacher-page-title">Прогресс слушателя</h1>
+                <p class="teacher-page-subtitle">{{ student.last_name }} {{ student.first_name }} {{ student.patronymic|default:"" }} — {{ course.course_name }}</p>
+            </div>
+            <div class="teacher-header-actions">
+                <a href="{% url 'teacher_app:listeners_list' course.id %}" class="teacher-btn teacher-btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к слушателям
+                </a>
+            </div>
+        </div>
+        
+        <div class="teacher-student-info-card">
+            <div class="student-avatar-large">
+                {{ student.last_name|first|upper }}{{ student.first_name|first|upper }}
+            </div>
+            <div class="student-details">
+                <h2>{{ student.last_name }} {{ student.first_name }} {{ student.patronymic|default:"" }}</h2>
+                <p class="student-email">{{ student.email }}</p>
+                <div class="student-progress-big">
+                    <div class="teacher-progress-bar">
+                        <div class="teacher-progress-fill" style="width: {{ progress|floatformat:0 }}%"></div>
+                    </div>
+                    <span class="progress-percent">{{ progress|floatformat:0 }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="teacher-card">
+            <div class="teacher-card-header">
+                <h2><i class="fas fa-tasks"></i> Практические задания</h2>
+            </div>
+            
+            {% if submissions %}
+            <div class="teacher-assignments-list">
+                {% for item in submissions %}
+                <div class="assignment-card">
+                    <div class="assignment-header">
+                        <div class="assignment-info">
+                            <h3>{{ item.assignment.practical_assignment_name }}</h3>
+                            <p class="lecture-info">Лекция {{ item.assignment.lecture.lecture_order }}: {{ item.assignment.lecture.lecture_name }}</p>
+                            {% if item.assignment.assignment_deadline %}
+                            <p class="deadline-info">
+                                Срок сдачи: 
+                                <span class="{% if item.assignment.assignment_deadline < current_time %}deadline-passed{% endif %}">
+                                    {{ item.assignment.assignment_deadline|date:"d.m.Y H:i" }}
+                                </span>
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="assignment-status">
+                            <span class="status-badge status-{{ item.status.status_name|slugify }}">
+                                {{ item.status.status_name }}
+                            </span>
+                            <span class="attempt-number">Попытка {{ item.status.attempt_number }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if item.submission.submission_date %}
+                    <div class="submission-details">
+                        <div class="submission-date">
+                            <i class="fas fa-calendar-alt"></i> Сдано: {{ item.submission.submission_date|date:"d.m.Y H:i" }}
+                        </div>
+                        
+                        {% with files=item.submission.assignmentsubmissionfile_set.all %}
+                            {% if files %}
+                            <div class="submission-files">
+                                <strong>Файлы:</strong>
+                                <div class="files-list">
+                                    {% for file in files %}
+                                    <a href="{{ file.file.url }}" class="file-link" target="_blank">
+                                        <i class="fas fa-file"></i>
+                                        {{ file.file_name }}
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endwith %}
+                        
+                        {% if item.submission.comment %}
+                        <div class="student-comment">
+                            <strong>Комментарий слушателя:</strong>
+                            <p>{{ item.submission.comment }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if item.status.feedback_comment or item.status.score is not None or item.status.is_passed is not None %}
+                    <div class="feedback-section">
+                        <div class="feedback-header">
+                            <h4>Обратная связь</h4>
+                            {% if item.assignment.grading_type == 'points' %}
+                                <div class="grade-display">
+                                    <strong>Оценка:</strong> 
+                                    <span class="grade-score">{{ item.status.score|default:"-" }}/{{ item.status.max_score|default:"-" }}</span>
+                                    {% if item.status.is_passed is True %}
+                                        <span class="grade-passed-badge">✓ Зачтено</span>
+                                    {% elif item.status.is_passed is False %}
+                                        <span class="grade-failed-badge">✗ Не зачтено</span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="grade-display">
+                                    {% if item.status.is_passed is True %}
+                                        <span class="grade-passed-badge">✓ Зачёт</span>
+                                    {% elif item.status.is_passed is False %}
+                                        <span class="grade-failed-badge">✗ Незачёт</span>
+                                    {% else %}
+                                        <span class="grade-unknown-badge">? Не оценено</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if item.status.feedback_comment %}
+                        <div class="feedback-comment">
+                            <strong>Комментарий преподавателя:</strong>
+                            <p>{{ item.status.feedback_comment }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="feedback-actions">
+                            <a href="{% url 'teacher_app:grade_assignment' item.submission.id %}" class="teacher-btn teacher-btn-small teacher-btn-primary">
+                                <i class="fas fa-edit"></i> Изменить оценку
+                            </a>
+                        </div>
+                    </div>
+                    {% elif item.submission.submission_date %}
+                    <div class="feedback-actions">
+                        <a href="{% url 'teacher_app:grade_assignment' item.submission.id %}" class="teacher-btn teacher-btn-primary">
+                            <i class="fas fa-check"></i> Оценить работу
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="teacher-empty-state">
+                <i class="fas fa-tasks"></i>
+                <p>Нет сданных заданий</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="teacher-card">
+            <div class="teacher-card-header">
+                <h2><i class="fas fa-question-circle"></i> Результаты тестов</h2>
+            </div>
+            
+            {% if test_results %}
+            <div class="teacher-tests-list">
+                {% for item in test_results %}
+                <div class="test-result-card">
+                    <div class="test-header">
+                        <h3>{{ item.test.test_name }}</h3>
+                        <div class="test-status-badge">
+                            {% if item.result.grading_form == 'points' %}
+                                {% if item.result.is_passed is True %}
+                                    <span class="test-status passed">✓ Пройден ({{ item.result.final_score }}/{{ item.result.passing_score }})</span>
+                                {% elif item.result.is_passed is False %}
+                                    <span class="test-status failed">✗ Не пройден ({{ item.result.final_score }}/{{ item.result.passing_score }})</span>
+                                {% else %}
+                                    <span class="test-status unknown">? Не проверен</span>
+                                {% endif %}
+                            {% else %}
+                                {% if item.result.is_passed is True %}
+                                    <span class="test-status passed">✓ Зачёт</span>
+                                {% elif item.result.is_passed is False %}
+                                    <span class="test-status failed">✗ Незачёт</span>
+                                {% else %}
+                                    <span class="test-status unknown">? Не проверен</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="test-details">
+                        <div class="test-meta">
+                            <span><i class="fas fa-book"></i> Лекция: {{ item.test.lecture.lecture_name }}</span>
+                            <span><i class="fas fa-repeat"></i> Попытка: {{ item.result.attempt_number }}</span>
+                            <span><i class="fas fa-calendar"></i> {{ item.result.completion_date|date:"d.m.Y H:i" }}</span>
+                        </div>
+                        
+                        {% if item.result.grading_form == 'points' %}
+                            <div class="test-score-detail">
+                                <div class="score-info">
+                                    <strong>Набрано баллов:</strong> {{ item.result.final_score|default:"0" }}
+                                </div>
+                                <div class="score-info">
+                                    <strong>Проходной балл:</strong> {{ item.result.passing_score|default:"Не указан" }}
+                                </div>
+                                {% if item.result.final_score and item.result.passing_score %}
+                                <div class="score-progress">
+                                    <div class="score-progress-bar">
+                                        <div class="score-progress-fill" style="width: {% widthratio item.result.final_score item.result.passing_score 100 %}%"></div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="teacher-empty-state">
+                <i class="fas fa-question-circle"></i>
+                <p>Нет результатов тестов</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/teacher.js' %}"></script>
+{% endblock %}

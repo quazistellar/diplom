@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Оцененные работы - {{ course.course_name }} - UNIREAX{% endblock %}
+
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="breadcrumbs" style="margin-bottom: 20px;">
+            <a href="{% url 'listener_app:dashboard' %}">Личный кабинет</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'listener_app:course_study' course.id %}">{{ course.course_name }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Оцененные работы</span>
+        </div>
+
+        <div class="lsn-header">
+            <h1 class="lsn-title">Оцененные практические работы</h1>
+            <p class="lsn-subtitle">{{ course.course_name }}</p>
+        </div>
+
+        {% if graded_assignments %}
+        <div class="graded-assignments-grid">
+            {% for item in graded_assignments %}
+            <div class="graded-card">
+                <div class="graded-header">
+                    <div>
+                        <div class="graded-title">{{ item.practical.practical_assignment_name }}</div>
+                        <div class="graded-lecture">Лекция {{ item.practical.lecture.lecture_order }}: {{ item.practical.lecture.lecture_name }}</div>
+                    </div>
+                    <div class="graded-score">
+                        {% if item.practical.grading_type == 'points' %}
+                            <span class="score-value">{{ item.feedback.score }}</span>
+                            <span class="score-max">/ {{ item.practical.max_score }}</span>
+                            {% if item.percentage %}
+                            <div class="score-percentage {% if item.percentage >= 50 %}percentage-passed{% else %}percentage-failed{% endif %}">
+                                ({{ item.percentage|floatformat:0 }}%)
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="grade-status {% if item.feedback.is_passed %}status-passed{% else %}status-failed{% endif %}">
+                                {{ item.feedback.is_passed|yesno:"Зачёт,Незачёт" }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="graded-body">
+                    <div class="graded-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">Тип оценки</span>
+                            <span class="meta-value">{{ item.practical.get_grading_type_display }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Дата сдачи</span>
+                            <span class="meta-value">{{ item.assignment.submission_date|date:"d.m.Y H:i" }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Попытка</span>
+                            <span class="meta-value">{{ item.assignment.attempt_number }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Статус</span>
+                            <span class="meta-value">{{ item.assignment.submission_status.assignment_status_name }}</span>
+                        </div>
+                    </div>
+
+                    <div class="result-info {% if item.feedback.is_passed or item.percentage >= 50 %}result-success{% else %}result-warning{% endif %}">
+                        <i class="fas {% if item.feedback.is_passed or item.percentage >= 50 %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
+                        {% if item.practical.grading_type == 'points' %}
+                            {% if item.percentage >= 50 %}
+                            Работа успешно сдана ({{ item.percentage|floatformat:0 }}% от макс. балла)
+                            {% else %}
+                            Работа не набрала минимальный порог ({{ item.percentage|floatformat:0 }}% от макс. балла)
+                            {% endif %}
+                        {% else %}
+                            {% if item.feedback.is_passed %}
+                            Работа успешно сдана
+                            {% else %}
+                            Работа не сдана
+                            {% endif %}
+                        {% endif %}
+                    </div>
+
+                    {% if item.feedback.comment_feedback %}
+                    <div class="feedback-section">
+                        <h4><i class="fas fa-comment"></i> Комментарий преподавателя</h4>
+                        <div class="feedback-content">
+                            {{ item.feedback.comment_feedback|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="graded-footer">
+                    <a href="{% url 'listener_app:course_study' course.id %}" class="lsn-btn lsn-btn-outline">
+                        <i class="fas fa-arrow-left"></i> К курсу
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-assignments">
+            <i class="fas fa-clipboard-check" style="font-size: 64px; opacity: 0.5; margin-bottom: 20px; display: block;"></i>
+            <h3>Оцененных работ пока нет</h3>
+            <p>После проверки ваших работ преподавателем они появятся здесь</p>
+            <a href="{% url 'listener_app:course_study' course.id %}" class="lsn-btn lsn-btn-primary mt-3">Перейти к практическим работам</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/listener.js' %}"></script>
+{% endblock %}

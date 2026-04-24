@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Записи на курсы - Администрирование{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="container">
+        <div class="admin-header">
+            <h1 class="admin-title">
+                <i class="{{ icon }}"></i>
+                {{ title }}
+            </h1>
+            <p>
+            <a href="{% url 'admin_app:user_course_create' %}" class="btn-admin btn-admin-primary">
+                <i class="fas fa-plus-circle"></i> Записать на курс
+            </a>
+              <a href="{% url 'admin_app:dashboard' %}" class="btn-admin btn-admin-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад
+            </a>
+        </div>
+
+        <div class="admin-filters">
+            <form method="get" class="admin-filters-form">
+                <div class="admin-filters-grid">
+                    <div class="admin-filter-group">
+                        <label><i class="fas fa-user"></i> Пользователь</label>
+                        <select name="user">
+                            <option value="">Все пользователи</option>
+                            {% for user in filter_form.user.field.queryset %}
+                            <option value="{{ user.id }}" {% if request.GET.user == user.id|stringformat:"i" %}selected{% endif %}>{{ user.get_full_name|default:user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="admin-filter-group">
+                        <label><i class="fas fa-book"></i> Курс</label>
+                        <select name="course">
+                            <option value="">Все курсы</option>
+                            {% for course in filter_form.course.field.queryset %}
+                            <option value="{{ course.id }}" {% if request.GET.course == course.id|stringformat:"i" %}selected{% endif %}>{{ course.course_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="admin-filter-group">
+                        <label><i class="fas fa-flag-checkered"></i> Статус</label>
+                        <select name="status_course">
+                            <option value="">Все</option>
+                            <option value="true" {% if request.GET.status_course == 'true' %}selected{% endif %}>Завершён</option>
+                            <option value="false" {% if request.GET.status_course == 'false' %}selected{% endif %}>Не завершён</option>
+                        </select>
+                    </div>
+                    <div class="admin-filter-group">
+                        <label><i class="fas fa-toggle-on"></i> Активность</label>
+                        <select name="is_active">
+                            <option value="">Все</option>
+                            <option value="true" {% if request.GET.is_active == 'true' %}selected{% endif %}>Активен</option>
+                            <option value="false" {% if request.GET.is_active == 'false' %}selected{% endif %}>Неактивен</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="admin-filters-actions">
+                    <button type="submit" class="btn-admin btn-admin-primary">
+                        <i class="fas fa-search"></i> Применить
+                    </button>
+                    <a href="{% url 'admin_app:user_course_list' %}" class="btn-admin btn-admin-secondary">
+                        <i class="fas fa-times"></i> Сбросить
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="admin-table-wrapper">
+            {% if user_courses %}
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Пользователь</th>
+                        <th>Курс</th>
+                        <th>Дата регистрации</th>
+                        <th>Статус</th>
+                        <th>Завершён</th>
+                        <th>Активен</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for uc in user_courses %}
+                    <tr>
+                        <td>{{ uc.id }}</td>
+                        <td><a href="{% url 'admin_app:user_detail' uc.user.id %}">{{ uc.user.get_full_name|default:uc.user.username }}</a></td>
+                        <td><a href="{% url 'admin_app:course_detail' uc.course.id %}">{{ uc.course.course_name }}</a></td>
+                        <td>{{ uc.registration_date|date:"d.m.Y" }}</td>
+                        <td>
+                            {% if uc.is_active %}
+                            <span class="badge-success">Активен</span>
+                            {% else %}
+                            <span class="badge-neutral">Неактивен</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if uc.status_course %}
+                            <span class="badge-success">Да</span>
+                            {% else %}
+                            <span class="badge-warning">Нет</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if uc.is_active %}
+                            <span class="badge-success">Да</span>
+                            {% else %}
+                            <span class="badge-neutral">Нет</span>
+                            {% endif %}
+                        </td>
+                        <td class="admin-table-actions">
+                            <a href="{% url 'admin_app:user_course_detail' uc.id %}" class="admin-table-btn admin-table-btn-view" title="Просмотр">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'admin_app:user_course_edit' uc.id %}" class="admin-table-btn admin-table-btn-edit" title="Редактировать">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'admin_app:user_course_delete' uc.id %}" class="admin-table-btn admin-table-btn-delete" title="Удалить" onclick="return confirmDelete({{ uc.id }})">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="admin-empty">
+                <i class="fas fa-user-graduate"></i>
+                <h3>Записи не найдены</h3>
+                <p>Нет записей слушателей на курсы</p>
+                <a href="{% url 'admin_app:user_course_create' %}" class="btn-admin btn-admin-primary">
+                    <i class="fas fa-plus-circle"></i> Записать на курс
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if is_paginated %}
+        <div class="admin-pagination">
+            {% if page_obj.has_previous %}
+            <a href="?page=1{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.status_course %}&status_course={{ request.GET.status_course }}{% endif %}{% if request.GET.is_active %}&is_active={{ request.GET.is_active }}{% endif %}" class="admin-page-link">
+                <i class="fas fa-angle-double-left"></i>
+            </a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.status_course %}&status_course={{ request.GET.status_course }}{% endif %}{% if request.GET.is_active %}&is_active={{ request.GET.is_active }}{% endif %}" class="admin-page-link">
+                <i class="fas fa-angle-left"></i>
+            </a>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="admin-page-link active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.status_course %}&status_course={{ request.GET.status_course }}{% endif %}{% if request.GET.is_active %}&is_active={{ request.GET.is_active }}{% endif %}" class="admin-page-link">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.status_course %}&status_course={{ request.GET.status_course }}{% endif %}{% if request.GET.is_active %}&is_active={{ request.GET.is_active }}{% endif %}" class="admin-page-link">
+                <i class="fas fa-angle-right"></i>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.status_course %}&status_course={{ request.GET.status_course }}{% endif %}{% if request.GET.is_active %}&is_active={{ request.GET.is_active }}{% endif %}" class="admin-page-link">
+                <i class="fas fa-angle-double-right"></i>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

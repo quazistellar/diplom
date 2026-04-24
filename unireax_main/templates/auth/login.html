@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Вход в систему{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <h1 class="auth-title">Добро пожаловать!</h1>
+                <p class="auth-subtitle">Войдите в свой аккаунт UNIREAX</p>
+            </div>
+
+            {% if error and not blocked %}
+            <div class="auth-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>
+                    {{ error_message|default:"Неверное имя пользователя или пароль" }}
+                    {% if remaining_attempts %}
+                        . Осталось попыток: {{ remaining_attempts }} из 5
+                    {% endif %}
+                </span>
+            </div>
+            {% endif %}
+
+            {% if blocked %}
+            <div class="auth-blocked-message">
+                <i class="fas fa-lock"></i>
+                <h3>Доступ временно ограничен</h3>
+                <p>{{ error_message }}</p>
+                <div class="auth-timer" id="blockTimer" data-minutes="{{ minutes_left }}" data-block-until="{{ block_until_timestamp }}">
+                    <i class="fas fa-clock"></i>
+                    <span id="timerDisplay">{{ minutes_left }}:00</span>
+                </div>
+            </div>
+            {% else %}
+
+            <form method="post" class="auth-form" action="{% url 'login_page' %}">
+                {% csrf_token %}
+                
+                <div class="auth-form-group">
+                    <div class="auth-input-wrapper">
+                        <i class="fas fa-user auth-input-icon"></i>
+                        <input type="text" 
+                               name="username" 
+                               id="username"
+                               class="auth-input"
+                               placeholder="Введите имя пользователя"
+                               value="{{ username|default:'' }}"
+                               required
+                               autofocus>
+                    </div>
+                </div>
+
+                <div class="auth-form-group">
+                    <div class="auth-input-wrapper">
+                        <i class="fas fa-lock auth-input-icon"></i>
+                        <input type="password" 
+                               name="password" 
+                               id="password"
+                               class="auth-input"
+                               placeholder="Введите пароль"
+                               required>
+                        <button type="button" class="password-toggle-btn" id="togglePassword">
+                            <i class="fas fa-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="auth-options">
+                    <label class="auth-remember">
+                        <input type="checkbox" name="remember" checked>
+                        <span>Запомнить меня</span>
+                    </label>
+                    <a href="{% url 'password_reset_req' %}" class="auth-forgot-link">
+                        Забыли пароль?
+                    </a>
+                </div>
+
+                <button type="submit" class="auth-btn">
+                    <span>Войти</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="auth-divider">
+                <span>ИЛИ</span>
+            </div>
+
+            <div class="auth-register-link">
+                <span class="auth-register-text">Нет аккаунта?</span>
+                <a href="{% url 'register_listener' %}" class="auth-register-link-btn">
+                    Зарегистрироваться <i class="fas fa-user-plus"></i>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/login.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ test.test_name }} - UNIREAX{% endblock %}
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="test-wrapper">
+            <div class="timer-wrapper">
+                <div class="timer-container" id="timerContainer">
+                    <div class="timer-icon">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="timer-display" id="timerDisplay">00:00</div>
+                </div>
+            </div>
+
+            <div class="test-header">
+                <h1 class="test-title">{{ test.test_name }}</h1>
+                <p class="test-description">{{ test.test_description|default:"Пройдите тест, чтобы проверить свои знания" }}</p>
+                <div class="test-meta">
+                    <span><i class="fas fa-question-circle"></i> {{ questions|length }} вопросов</span>
+                    <span><i class="fas fa-chart-simple"></i> {{ test.get_grading_form_display }}</span>
+                    <span><i class="fas fa-repeat"></i> Попытка {{ attempt_number }}{% if test.max_attempts %} из {{ test.max_attempts }}{% endif %}</span>
+                    {% if test.passing_score %}
+                    <span><i class="fas fa-flag-checkered"></i> Проходной балл: {{ test.passing_score }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="test-content">
+                <div class="test-main">
+                    <form id="testForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="attempt_number" value="{{ attempt_number }}">
+                        
+                        <div class="questions-list" data-total-questions="{{ questions|length }}">
+                            {% for question in questions %}
+                            <div class="question-card" id="question-{{ forloop.counter0 }}" data-question-id="{{ question.id }}">
+                                <div class="question-header">
+                                    <span class="question-number">Вопрос {{ forloop.counter }}</span>
+                                    <span class="question-score">{{ question.question_score }} балл{{ question.question_score|pluralize:"а,ов" }}</span>
+                                </div>
+                                <div class="question-text">
+                                    {{ question.question_text|linebreaks }}
+                                </div>
+                                
+                                <div class="answers-container">
+                                    {% with type_name=question.answer_type.answer_type_name %}
+                                    
+                                    {% if type_name == 'один ответ' %}
+                                        {% for option in question.choiceoption_set.all %}
+                                        <label class="radio-option">
+                                            <input type="radio" name="question_{{ question.id }}" value="{{ option.id }}">
+                                            <span class="option-text">{{ option.option_text }}</span>
+                                        </label>
+                                        {% endfor %}
+                                    
+                                    {% elif type_name == 'несколько ответов' %}
+                                        {% for option in question.choiceoption_set.all %}
+                                        <label class="checkbox-option">
+                                            <input type="checkbox" name="question_{{ question.id }}" value="{{ option.id }}">
+                                            <span class="option-text">{{ option.option_text }}</span>
+                                        </label>
+                                        {% endfor %}
+                                    
+                                    {% elif type_name == 'текст' %}
+                                        <div class="text-answer">
+                                            <textarea name="question_{{ question.id }}" rows="5" placeholder="Введите ваш ответ..."></textarea>
+                                        </div>
+                                    
+                                    {% elif type_name == 'сопоставление' %}
+                                        <div class="matching-answer">
+                                            <div class="matching-grid">
+                                                {% for pair in question.matchingpair_set.all %}
+                                                <div class="matching-row">
+                                                    <div class="matching-left">
+                                                        {{ pair.left_text }}
+                                                    </div>
+                                                    <div class="matching-right">
+                                                        <select name="question_{{ question.id }}_{{ pair.id }}" class="matching-select">
+                                                            <option value="">— Выберите соответствие —</option>
+                                                            {% for right_text in question.get_shuffled_right_texts %}
+                                                            <option value="{{ right_text }}">{{ right_text }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    
+                                    {% else %}
+                                        {% if question.choiceoption_set.all %}
+                                            {% for option in question.choiceoption_set.all %}
+                                            <label class="radio-option">
+                                                <input type="radio" name="question_{{ question.id }}" value="{{ option.id }}">
+                                                <span class="option-text">{{ option.option_text }}</span>
+                                            </label>
+                                            {% endfor %}
+                                        {% else %}
+                                            <div class="text-answer">
+                                                <textarea name="question_{{ question.id }}" rows="5" placeholder="Введите ваш ответ..."></textarea>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                    {% endwith %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="test-actions">
+                            <button type="button" class="lsn-btn lsn-btn-outline" id="prevQuestion" style="display: none;">
+                                <i class="fas fa-arrow-left"></i> Назад
+                            </button>
+                            <button type="button" class="lsn-btn lsn-btn-primary" id="nextQuestion">
+                                Далее <i class="fas fa-arrow-right"></i>
+                            </button>
+                            <button type="button" class="lsn-btn lsn-btn-primary" id="submitTest" style="display: none;">
+                                <i class="fas fa-check"></i> Завершить тест
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="test-sidebar">
+                    <div class="test-progress-sidebar">
+                        <div class="progress-stats">
+                            <div class="progress-percent" id="progressPercent">0%</div>
+                            <div class="progress-text">выполнено</div>
+                        </div>
+                        <div class="lsn-progress-bar">
+                            <div class="lsn-progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-text" style="margin-top: 8px;">
+                            <span id="answeredCount">0</span> из {{ questions|length }} вопросов
+                        </div>
+                        
+                        <h4 style="margin: 25px 0 15px 0; font-size: 16px;">Навигация</h4>
+                        <div class="questions-nav" id="questionsNav">
+                            {% for question in questions %}
+                            <button class="nav-question" data-question-index="{{ forloop.counter0 }}">{{ forloop.counter }}</button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="confirmModal" class="modal-overlay" style="display: none;">
+    <div class="modal-container">
+        <div class="modal-icon">
+            <i class="fas fa-question-circle" style="color: #f1c40f;"></i>
+        </div>
+        <h3 class="modal-title">Подтверждение отправки</h3>
+        <p class="modal-text">Вы уверены, что хотите завершить тест? После отправки изменить ответы будет невозможно.</p>
+        <div class="modal-buttons">
+            <button class="lsn-btn lsn-btn-outline" id="cancelSubmit">Отмена</button>
+            <button class="lsn-btn lsn-btn-primary" id="confirmSubmit">Завершить</button>
+        </div>
+    </div>
+</div>
+
+<div id="resultModal" class="modal-overlay" style="display: none;">
+    <div class="modal-container" style="max-width: 500px;">
+        <div id="resultContent"></div>
+        <div class="modal-buttons" style="margin-top: 25px;">
+            <button class="lsn-btn lsn-btn-primary" id="closeResultModal">Закрыть</button>
+            <a href="{% url 'listener_app:course_study' test.lecture.course.id %}" class="lsn-btn lsn-btn-outline" id="backToCourseBtn">Вернуться к курсу</a>
+        </div>
+    </div>
+</div>
+
+<meta name="test-id" content="{{ test.id }}">
+<meta name="test-start-data" content='{"totalQuestions": {{ questions|length }}, "attemptNumber": {{ attempt_number }}}'>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/test_start.js' %}"></script>
+{% endblock %}

@@ -11,8 +11,12 @@ from django.db import connection
 from datetime import timedelta
 import random, os, string
 from django.core.files.storage import default_storage
-from .utils.additional_function import calculate_course_progress
+
+from .utils.email_utils import send_teacher_application_result_email
+from .utils.additional_function import calculate_course_completion as calculate_course_progress
 from django.db.models import Q, F, Func
+from django.utils import timezone
+from django.conf import settings
 
 ALLOWED_EXT = [
     'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx',
@@ -202,7 +206,24 @@ class User(AbstractUser):
     is_light_theme = models.BooleanField(default=True, verbose_name='Тема интерфейса',
         choices=[(True, 'Светлая'), (False, 'Тёмная')],
         help_text='Выберите цветовую тему интерфейса'
-    )    
+    )
+    
+    def __init__(self, *args, **kwargs):
+        """Инициализация с кэшированием исходных значений"""
+        super().__init__(*args, **kwargs)
+        self._cached_role_id = self.role_id
+        self._cached_certificate_file = self.certificate_file
+        self._cached_position = self.position
+        self._cached_educational_institution = self.educational_institution
+        self._cached_first_name = self.first_name
+        self._cached_last_name = self.last_name
+        self._cached_email = self.email
+        self._cached_username = self.username
+        self._cached_patronymic = self.patronymic
+        self._cached_is_verified = self.is_verified
+        self._cached_is_light_theme = self.is_light_theme
+        self._cached_is_active = self.is_active
+        self._cached_is_staff = self.is_staff
     
     def get_theme(self, request=None, default='light'):
         """функция получения темы приложения"""
@@ -234,71 +255,145 @@ class User(AbstractUser):
         return role_name in ['преподаватель', 'методист']
     
     @property
+    def is_teacher_or_methodist_or_admin(self):
+        if not self.role:
+            return False
+        role_name = self.role.role_name.lower()
+        return role_name in ['преподаватель', 'методист', 'администратор']
+    
+    @property
     def is_student_or_admin(self):
         if not self.role:
             return False
         role_name = self.role.role_name.lower()
         return role_name in ['слушатель курсов', 'администратор']
     
+    def _has_role_changed(self):
+        """Проверяет, изменилась ли роль"""
+        return self._cached_role_id != self.role_id
+    
+    def _has_certificate_changed(self):
+        """Проверяет, изменился ли файл сертификата"""
+        return self._cached_certificate_file != self.certificate_file
+    
     def clean(self):
+        """Легкая валидация - только критическое"""
         super().clean()
         errors = {}
         
-        if self.certificate_file:
+        if self.first_name:
+            self.first_name = ' '.join(self.first_name.strip().split())
+            if len(self.first_name) < 2:
+                errors['first_name'] = 'Имя должно содержать минимум 2 символа'
+        else:
+            errors['first_name'] = 'Имя обязательно'
+        
+        if self.last_name:
+            self.last_name = ' '.join(self.last_name.strip().split())
+            if len(self.last_name) < 1:
+                errors['last_name'] = 'Фамилия должна содержать минимум 1 символ'
+        else:
+            errors['last_name'] = 'Фамилия обязательна'
+        
+        if self.username:
+            self.username = ' '.join(self.username.strip().split())
+        if self.email:
+            self.email = self.email.strip().lower()
+        
+        if self.patronymic and self.patronymic.strip():
+            self.patronymic = ' '.join(self.patronymic.strip().split())
+            if len(self.patronymic) < 2:
+                errors['patronymic'] = 'Отчество должно содержать минимум 2 символа'
+        else:
+            self.patronymic = None
+        
+        if self._has_certificate_changed() and self.certificate_file:
             try:
                 if self.certificate_file.size > 10 * 1024 * 1024:
-                    errors['certificate_file'] = 'Файл слишком большой! Максимальный размер: 10 МБ'
+                    errors['certificate_file'] = 'Файл слишком большой! Максимум 10 МБ'
             except (ValueError, AttributeError):
                 pass
         
-        if self.role:
+        if self._has_role_changed() and self.role:
             role_name = self.role.role_name.lower()
             
             if role_name in ['методист', 'преподаватель']:
                 if not self.position or not self.position.strip():
                     errors['position'] = 'Поле "Должность" обязательно для методистов и преподавателей'
-                
                 if not self.educational_institution or not self.educational_institution.strip():
                     errors['educational_institution'] = 'Поле "Учебное заведение" обязательно для методистов и преподавателей'
-                
                 if not self.certificate_file:
-                    errors['certificate_file'] = 'Справка с места работы/документ об образовании обязателен для методистов и преподавателей'
+                    errors['certificate_file'] = 'Справка обязательна для методистов и преподавателей'
             
             elif role_name in ['слушатель курсов', 'администратор']:
                 self.is_verified = True
         
-        if self.patronymic and self.patronymic.strip():
-            if len(self.patronymic.strip()) < 2:
-                errors['patronymic'] = 'Отчество должно содержать минимум 2 символа'
-            self._normalize_text_field('patronymic')
-        else:
-            self.patronymic = None
-        
-        if self.email:
-            self.email = self.email.strip().lower()
-        
         if errors:
             raise ValidationError(errors)
     
-    def _normalize_text_field(self, field_name):
-        """Нормализует текстовое поле"""
-        value = getattr(self, field_name)
-        if value:
-            setattr(self, field_name, ' '.join(value.strip().split()))
-    
     def save(self, *args, **kwargs):
-        if self.role:
-            role_name = self.role.role_name.lower()
-            if role_name in ['слушатель курсов', 'администратор']:
-                self.is_verified = True
+        """Оптимизированное сохранение"""
+        if self.role and self.role.role_name.lower() in ['слушатель курсов', 'администратор']:
+            self.is_verified = True
         
-        self.full_clean()
+        update_fields = kwargs.get('update_fields')
+        
+        if not self._state.adding and update_fields is None:
+            changed = []
+            
+            if self._cached_first_name != self.first_name:
+                changed.append('first_name')
+            if self._cached_last_name != self.last_name:
+                changed.append('last_name')
+            if self._cached_email != self.email:
+                changed.append('email')
+            if self._cached_username != self.username:
+                changed.append('username')
+            if self._cached_patronymic != self.patronymic:
+                changed.append('patronymic')
+            if self._cached_is_verified != self.is_verified:
+                changed.append('is_verified')
+            if self._cached_role_id != self.role_id:
+                changed.append('role')
+            if self._cached_position != self.position:
+                changed.append('position')
+            if self._cached_educational_institution != self.educational_institution:
+                changed.append('educational_institution')
+            if self._cached_certificate_file != self.certificate_file:
+                changed.append('certificate_file')
+            if self._cached_is_light_theme != self.is_light_theme:
+                changed.append('is_light_theme')
+            if self._cached_is_active != self.is_active:
+                changed.append('is_active')
+            if self._cached_is_staff != self.is_staff:
+                changed.append('is_staff')
+            
+            if changed:
+                kwargs['update_fields'] = changed
+        
+        self.clean()
+        
         super().save(*args, **kwargs)
+        
+        self._cached_role_id = self.role_id
+        self._cached_certificate_file = self.certificate_file
+        self._cached_position = self.position
+        self._cached_educational_institution = self.educational_institution
+        self._cached_first_name = self.first_name
+        self._cached_last_name = self.last_name
+        self._cached_email = self.email
+        self._cached_username = self.username
+        self._cached_patronymic = self.patronymic
+        self._cached_is_verified = self.is_verified
+        self._cached_is_light_theme = self.is_light_theme
+        self._cached_is_active = self.is_active
+        self._cached_is_staff = self.is_staff
     
     class Meta:
         db_table = 'user'
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+
         constraints = [
             models.CheckConstraint(
                 condition=Q(email__regex=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'),
@@ -543,6 +638,14 @@ class Course(models.Model):
     )
     
     is_active = models.BooleanField('Активность курса', default=True)
+
+    is_find_teacher = models.BooleanField(
+    'Ведётся ли поиск преподавателей', 
+    null=True, 
+    blank=True,
+    help_text='Отображать курс в каталоге для преподавателей как вакансию'
+    )
+
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
     
     def __str__(self):
@@ -589,24 +692,140 @@ class Course(models.Model):
     
     @property
     def rating(self):
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT calculate_course_rating(%s)", [self.id])
-            return cursor.fetchone()[0] or 0
+        """Свойство для получения рейтинга курса"""
+        from .utils.additional_function import calculate_course_rating
+        return calculate_course_rating(self.id)
     
     def get_completion(self, user_id):
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT calculate_course_completion(%s, %s)", [user_id, self.id])
-            return cursor.fetchone()[0] or 0
+        """Получает процент завершения курса для пользователя"""
+        from .utils.additional_function import calculate_course_completion
+        return calculate_course_completion(user_id, self.id)
     
     def total_points(self):
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT calculate_total_course_points(%s)", [self.id])
-            return cursor.fetchone()[0] or 0
+        """Получает общее количество баллов в курсе"""
+        from .utils.additional_function import calculate_total_course_points
+        return calculate_total_course_points(self.id)
+    
+    def get_statistics(self):
+        """Получает полную статистику по курсу"""
+        from .utils.additional_function import get_course_statistics
+        return get_course_statistics(self.id)
+    
+    def get_user_progress(self, user_id):
+        """Получает прогресс конкретного пользователя по курсу"""
+        from .utils.additional_function import get_user_course_progress
+        return get_user_course_progress(user_id, self.id)
+    
+    def get_certificate_eligibility(self, user_id):
+        """Проверяет право на сертификат для конкретного пользователя"""
+        from .utils.additional_function import calculate_certificate_eligibility
+        return calculate_certificate_eligibility(user_id, self.id)
+    
+    def is_user_enrolled(self, user_id):
+        """Проверяет, зачислен ли пользователь на курс"""
+        return UserCourse.objects.filter(
+            user_id=user_id,
+            course_id=self.id,
+            is_active=True
+        ).exists()
+    
+    def enrollment_count(self):
+        """Возвращает количество активных зачислений"""
+        return UserCourse.objects.filter(
+            course_id=self.id,
+            is_active=True
+        ).count()
+    
+    def active_enrollments(self):
+        """Возвращает активные зачисления на курс"""
+        return UserCourse.objects.filter(
+            course_id=self.id,
+            is_active=True
+        )
+    
+    def completed_enrollments(self):
+        """Возвращает завершенные зачисления на курс"""
+        return UserCourse.objects.filter(
+            course_id=self.id,
+            status_course=True
+        )
+    
+    def active_teachers_count(self):
+        """Возвращает количество активных преподавателей"""
+        return self.courseteacher_set.filter(is_active=True).count()
+    
+    def active_teachers(self):
+        """Возвращает активных преподавателей курса"""
+        return self.courseteacher_set.filter(is_active=True).select_related('teacher')
+    
+    def reviews_count(self, approved_only=True):
+        """Возвращает количество отзывов о курсе"""
+        if approved_only:
+            return Review.objects.filter(course=self, is_approved=True).count()
+        return Review.objects.filter(course=self).count()
+    
+    def materials_count(self):
+        """Возвращает количество материалов курса"""
+        from django.db.models import Count
+        return {
+            'lectures': self.lecture_set.filter(is_active=True).count(),
+            'assignments': PracticalAssignment.objects.filter(
+                lecture__course=self, 
+                is_active=True
+            ).count(),
+            'tests': Test.objects.filter(
+                lecture__course=self,
+                is_active=True
+            ).count()
+        }
+    
+    def get_average_progress(self):
+        """Возвращает средний прогресс всех активных пользователей курса"""
+        from .utils.additional_function import calculate_course_completion
+        active_enrollments = self.active_enrollments()
+        if not active_enrollments.exists():
+            return 0.0
+        
+        total_progress = 0
+        for enrollment in active_enrollments:
+            progress = calculate_course_completion(enrollment.user_id, self.id)
+            total_progress += progress
+        
+        return round(total_progress / active_enrollments.count(), 2)
+    
+    def can_enroll(self, user_id=None):
+        """Проверяет, можно ли записаться на курс"""
+        if not self.is_active:
+            return False, "Курс неактивен"
+               
+        if self.course_max_places is not None:
+            current_enrollments = self.enrollment_count()
+            if current_enrollments >= self.course_max_places:
+                return False, "На курсе нет свободных мест"
+        
+        if user_id:
+            if self.is_user_enrolled(user_id):
+                return False, "Вы уже записаны на этот курс"
+        
+        return True, "Можно записаться"
+    
+    @classmethod
+    def get_popular_courses(cls, limit=10):
+        """Статический метод для получения популярных курсов"""
+        from .utils.additional_function import get_popular_courses
+        return get_popular_courses(limit)
+    
+    @classmethod
+    def get_courses_with_ratings(cls):
+        """Возвращает все курсы с аннотированными рейтингами"""
+        from .utils.additional_function import get_courses_with_ratings
+        return get_courses_with_ratings()
     
     class Meta:
         db_table = 'course'
         verbose_name = 'Курс'
         verbose_name_plural = 'Курсы'
+        ordering = ['-created_at']
         constraints = [
             models.CheckConstraint(
                 condition=Q(course_price__isnull=True) | 
@@ -666,13 +885,6 @@ class CourseTeacher(models.Model):
         verbose_name = 'Персонал курса'
         verbose_name_plural = 'Персоналы курсов'
         unique_together = ('course', 'teacher')
-        constraints = [
-            models.CheckConstraint(
-                condition=Q(start_date__isnull=True) | 
-                          Q(start_date__gte=timezone.now().date()),
-                name='course_teacher_start_date_future_check'
-            ),
-        ]
 
 # 8. лекции
 class Lecture(models.Model):
@@ -686,7 +898,7 @@ class Lecture(models.Model):
     
     lecture_content = models.TextField('Содержание лекции',
         validators=[
-            MinLengthValidator(50, message='Содержание должно содержать минимум 50 символов'),
+            MinLengthValidator(10, message='Содержание должно содержать минимум 10 символов'),
             MaxLengthValidator(50000, message='Содержание не должно превышать 50000 символов')
         ],
         help_text='Текст лекции (50-50000 символов)'
@@ -735,6 +947,11 @@ class Lecture(models.Model):
                 'lecture_content': 'Содержание лекции должно содержать минимум 50 символов'
             })
         
+        if self.lecture_order is None:
+            raise ValidationError({
+                'lecture_order': 'Порядковый номер лекции обязателен'
+            })
+        
         if self.lecture_order <= 0:
             raise ValidationError({
                 'lecture_order': 'Порядок лекции должен быть положительным числом'
@@ -744,10 +961,11 @@ class Lecture(models.Model):
             raise ValidationError({
                 'lecture_document_path': 'Файл слишком большой. Максимальный размер: 50 МБ'
             })
-    
+        
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+        
     
     class Meta:
         db_table = 'lecture'
@@ -824,6 +1042,13 @@ class PracticalAssignment(models.Model):
         help_text='Максимально возможный балл за задание'
     )
     
+    passing_score = models.IntegerField('Проходной балл', null=True, blank=True,
+        validators=[
+            MinValueValidator(0, message='Проходной балл не может быть отрицательным'),
+        ],
+        help_text='Минимальный балл для зачета задания (только для балльной системы)'
+    )
+    
     is_active = models.BooleanField('Активность практического задания', default=True)
     
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
@@ -853,16 +1078,34 @@ class PracticalAssignment(models.Model):
             })
         
         if self.grading_type == 'points':
+
             if self.max_score is None or self.max_score <= 0:
                 raise ValidationError({
                     'max_score': 'Для типа оценки "По баллам" необходимо указать положительный максимальный балл!'
                 })
+            
+            if self.passing_score is not None:
+                if self.passing_score < 0:
+                    raise ValidationError({
+                        'passing_score': 'Проходной балл не может быть отрицательным!'
+                    })
+                if self.passing_score > self.max_score:
+                    raise ValidationError({
+                        'passing_score': f'Проходной балл ({self.passing_score}) не может превышать максимальный балл ({self.max_score})!'
+                    })
         
-        if self.grading_type == 'pass_fail' and self.max_score is not None:
-            raise ValidationError({
-                'max_score': 'Для типа оценки "Зачёт/незачёт" не указывается максимальный балл!'
-            })
-        
+        elif self.grading_type == 'pass_fail':
+
+            if self.max_score is not None:
+                raise ValidationError({
+                    'max_score': 'Для типа оценки "Зачёт/незачёт" не указывается максимальный балл!'
+                })
+            
+            if self.passing_score is not None:
+                raise ValidationError({
+                    'passing_score': 'Для типа оценки "Зачёт/незачёт" не указывается проходной балл!'
+                })
+
         if self.assignment_deadline:
             if self.pk:
                 try:
@@ -887,6 +1130,24 @@ class PracticalAssignment(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
     
+    @property
+    def is_overdue(self):
+        """Проверяет, просрочено ли задание"""
+        if not self.assignment_deadline:
+            return False
+        return timezone.now() > self.assignment_deadline
+    
+    @property
+    def can_submit(self):
+        """Можно ли отправить задание"""
+        if not self.is_active:
+            return False
+        
+        if self.is_overdue and not self.is_can_pin_after_deadline:
+            return False
+        
+        return True
+    
     class Meta:
         db_table = 'practical_assignment'
         verbose_name = 'Практическое задание'
@@ -900,6 +1161,10 @@ class PracticalAssignment(models.Model):
                 condition=~Q(grading_type='points') | 
                           Q(max_score__isnull=False) & Q(max_score__gt=0),
                 name='max_score_required_for_points_check'
+            ),
+            models.CheckConstraint(
+                condition=Q(passing_score__isnull=True) | Q(passing_score__gte=0),
+                name='passing_score_non_negative_check'
             ),
         ]
 
@@ -985,54 +1250,98 @@ class UserPracticalAssignment(models.Model):
 
 # 11. пользователи_курсы
 class UserCourse(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь')
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        verbose_name='Пользователь'
+    )
     
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name='Курс')
+    course = models.ForeignKey(
+        'Course', 
+        on_delete=models.CASCADE, 
+        verbose_name='Курс'
+    )
     
-    registration_date = models.DateField('Дата регистрации', default=timezone.now,
+    registration_date = models.DateField(
+        'Дата регистрации', 
+        default=timezone.localdate, 
         help_text='Дата записи пользователя на курс'
     )
     
-    status_course = models.BooleanField('Курс завершён', default=False,
+    status_course = models.BooleanField(
+        'Курс завершён', 
+        default=False,
         help_text='Завершил ли пользователь курс'
     )
     
-    payment_date = models.DateTimeField('Дата оплаты', null=True, blank=True,
+    payment_date = models.DateTimeField(
+        'Дата оплаты', 
+        null=True, 
+        blank=True,
         help_text='Дата и время оплаты курса (если требуется)'
     )
     
-    completion_date = models.DateField('Дата завершения', null=True, blank=True,
+    completion_date = models.DateField(
+        'Дата завершения', 
+        null=True, 
+        blank=True,
         help_text='Дата фактического завершения курса'
     )
     
-    course_price = models.DecimalField('Цена курса на момент покупки', max_digits=10, decimal_places=2, null=True, blank=True,
+    course_price = models.DecimalField(
+        'Цена курса на момент покупки', 
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
         validators=[
             MinValueValidator(0, message='Цена не может быть отрицательной')
         ],
         help_text='Фактическая цена, по которой был приобретён курс'
     )
     
-    is_active = models.BooleanField('Активность слушателя на курсе', default=True,
+    is_active = models.BooleanField(
+        'Активность слушателя на курсе', 
+        default=True,
         help_text='Активно ли участие пользователя в курсе'
     )
     
-    enrolled_at = models.DateTimeField('Дата зачисления', auto_now_add=True)
+    enrolled_at = models.DateTimeField(
+        'Дата зачисления', 
+        auto_now_add=True
+    )
+
+    payment_id = models.CharField(
+                'ID платежа в ЮKassa',
+                max_length=255,
+                null=True,
+                blank=True,
+                help_text='Уникальный ID платежа от платежной системы'
+    )
     
     def __str__(self):
         return f'{self.user} - {self.course}'
     
     def clean(self):
+        """Валидация модели"""
         super().clean()
         
-        if self.registration_date and self.registration_date > timezone.now().date():
+        current_date = timezone.localdate() 
+        
+        if self.registration_date and self.registration_date > current_date:
             raise ValidationError({
                 'registration_date': 'Дата регистрации не может быть в будущем'
             })
         
-        if self.completion_date and self.completion_date < self.registration_date:
-            raise ValidationError({
-                'completion_date': 'Дата завершения не может быть раньше даты регистрации'
-            })
+        if self.completion_date:
+            if self.completion_date < self.registration_date:
+                raise ValidationError({
+                    'completion_date': 'Дата завершения не может быть раньше даты регистрации'
+                })
+            if self.completion_date > current_date:
+                raise ValidationError({
+                    'completion_date': 'Дата завершения не может быть в будущем'
+                })
         
         if self.payment_date and self.payment_date > timezone.now():
             raise ValidationError({
@@ -1048,31 +1357,70 @@ class UserCourse(models.Model):
             raise ValidationError({
                 'completion_date': 'При завершении курса должна быть указана дата завершения'
             })
+        
+        if self.completion_date and not self.status_course:
+            self.status_course = True
     
     def save(self, *args, **kwargs):
+        """Переопределенный метод сохранения"""
+        if not self.pk and not self.registration_date:
+            self.registration_date = timezone.localdate()
+        
         self.full_clean()
         super().save(*args, **kwargs)
+    
+    @property
+    def is_completed(self):
+        """Свойство для проверки завершения курса"""
+        return self.status_course
+    
+    @property
+    def duration_days(self):
+        """Свойство для расчета длительности курса в днях"""
+        if not self.completion_date or not self.registration_date:
+            return None
+        
+        duration = (self.completion_date - self.registration_date).days
+        return max(0, duration)
+    
+    @property
+    def is_overdue(self):
+        """Свойство для проверки, просрочен ли курс"""
+        if self.status_course:
+            return False
+        
+        if hasattr(self.course, 'deadline_days'):
+            if self.course.deadline_days:
+                deadline_date = self.registration_date + timezone.timedelta(days=self.course.deadline_days)
+                return timezone.localdate() > deadline_date
+        
+        return False
     
     class Meta:
         db_table = 'user_course'
         verbose_name = 'Пользователь на курсе'
         verbose_name_plural = 'Пользователи на курсах'
         unique_together = ('user', 'course')
+        
         constraints = [
             models.CheckConstraint(
-                condition=Q(registration_date__lte=timezone.now().date()),
-                name='user_course_registration_date_past_check'
-            ),
-            models.CheckConstraint(
-                condition=~Q(status_course=True) | 
-                          Q(completion_date__isnull=False),
+                condition=~Q(status_course=True) | Q(completion_date__isnull=False),
                 name='user_course_completion_date_required_check'
             ),
             models.CheckConstraint(
-                condition=Q(course_price__isnull=True) | 
-                          Q(course_price__gte=0),
+                condition=Q(course_price__isnull=True) | Q(course_price__gte=0),
                 name='user_course_price_non_negative_check'
             ),
+            models.CheckConstraint(
+                condition=Q(completion_date__isnull=True) | 
+                          Q(completion_date__gte=models.F('registration_date')),
+                name='user_course_completion_date_check'
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['user', 'status_course']),
+            models.Index(fields=['registration_date']),
+            models.Index(fields=['completion_date']),
         ]
 
 # 12. обратная связь по практическим работам
@@ -1140,9 +1488,9 @@ class Feedback(models.Model):
                 'comment_feedback': 'Комментарий не должен превышать 5000 символов'
             })
         
-        if self.given_by and not self.given_by.is_teacher_or_methodist:
+        if self.given_by and not self.given_by.is_teacher_or_methodist_or_admin:
             raise ValidationError({
-                'given_by': 'Обратную связь может оставлять только преподаватель или методист'
+                'given_by': 'Обратную связь может оставлять только преподаватель, методист или администратор'
             })
     
     def save(self, *args, **kwargs):
@@ -1357,6 +1705,38 @@ class Test(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+    def get_best_result_for_user(self, user):
+        """Возвращает лучший результат пользователя по тесту"""
+        results = TestResult.objects.filter(user=user, test=self)
+        
+        if not results.exists():
+            return None
+        
+        if self.grading_form == 'points':
+            best = None
+            max_score = -1
+            for result in results:
+                if result.final_score is not None and result.final_score > max_score:
+                    max_score = result.final_score
+                    best = result
+            return best
+        else:
+            passed = results.filter(is_passed=True).first()
+            return passed if passed else results.first()
+    
+    def is_passed_by_user(self, user):
+        """Проверяет, сдан ли тест пользователем (по лучшей попытке)"""
+        best_result = self.get_best_result_for_user(user)
+        
+        if not best_result:
+            return False
+        
+        if self.grading_form == 'points':
+            passing_score = self.passing_score or 0
+            return best_result.final_score >= passing_score
+        else:
+            return best_result.is_passed or False
     
     class Meta:
         db_table = 'test'
@@ -1428,6 +1808,11 @@ class Question(models.Model):
                 'question_score': 'Балл за вопрос не может быть отрицательным'
             })
         
+        if self.question_order is None:
+            raise ValidationError({
+                'question_order': 'Порядковый номер вопроса обязателен'
+            })
+        
         if self.question_order <= 0:
             raise ValidationError({
                 'question_order': 'Порядок вопроса должен быть положительным'
@@ -1437,6 +1822,23 @@ class Question(models.Model):
             raise ValidationError({
                 'correct_text': 'Текст ответа не должен превышать 2000 символов'
             })
+        
+        if self.pk:
+            if Question.objects.filter(test=self.test, question_order=self.question_order).exclude(pk=self.pk).exists():
+                raise ValidationError({
+                    'question_order': f'Вопрос с порядковым номером {self.question_order} уже существует в этом тесте'
+                })
+        else:
+            if self.test_id and Question.objects.filter(test_id=self.test_id, question_order=self.question_order).exists():
+                raise ValidationError({
+                    'question_order': f'Вопрос с порядковым номером {self.question_order} уже существует в этом тесте'
+                })
+        
+    def get_shuffled_right_texts(self):
+        """Возвращает перемешанные правые тексты для сопоставления"""
+        right_texts = list(self.matchingpair_set.values_list('right_text', flat=True))
+        random.shuffle(right_texts)
+        return right_texts
     
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -2111,7 +2513,9 @@ class TeacherAssignmentFile(models.Model):
 
 # 26. коды восстановления
 class PasswordResetCode(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, 
+                             verbose_name='Пользователь',
+                             related_name='password_reset_codes')
 
     code = models.CharField('Код подтверждения', max_length=6,
         validators=[
@@ -2125,32 +2529,104 @@ class PasswordResetCode(models.Model):
         help_text='6-значный код с почты для восстановления пароля'
     )
     
-    created_at = models.DateTimeField('Время создания', auto_now_add=True) 
+    created_at = models.DateTimeField('Время создания', auto_now_add=True)
+    expires_at = models.DateTimeField('Действителен до', blank=True, null=True) 
     is_used = models.BooleanField('Использован', default=False)
     
     def __str__(self):
-        return f"{self.user.email} - {self.code}"
+        status = "использован" if self.is_used else "активен" if self.is_valid() else "просрочен"
+        return f"{self.user.email} - {self.code} ({status})"
     
     def clean(self):
         super().clean()
         
-        if len(self.code) != 6: raise ValidationError({'code': 'Код должен содержать ровно 6 цифр'})
-        if not self.code.isdigit(): raise ValidationError({'code': 'Код должен содержать только цифры'})
+        if len(self.code) != 6:
+            raise ValidationError({'code': 'Код должен содержать ровно 6 цифр'})
+        if not self.code.isdigit():
+            raise ValidationError({'code': 'Код должен содержать только цифры'})
     
     def save(self, *args, **kwargs):
+        if not self.pk and not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=15)
+        
         self.full_clean()
         super().save(*args, **kwargs)
     
     def is_valid(self):
-        return not self.is_used and (timezone.now() - self.created_at) < timedelta(minutes=15)
+        """Проверяет валидность кода"""
+        now = timezone.now()
+        
+        if self.is_used:
+            return False
+        
+        if self.expires_at and now > self.expires_at:
+            return False
+        
+        if (now - self.created_at) > timedelta(minutes=15):
+            return False
+            
+        return True
+    
+    def is_expired(self):
+        """Проверяет истек ли срок действия кода"""
+        now = timezone.now()
+        
+        if self.expires_at:
+            return now > self.expires_at
+        
+        return (now - self.created_at) > timedelta(minutes=15)
+    
+    def time_remaining(self):
+        """Возвращает оставшееся время в минутах"""
+        if not self.expires_at:
+            expires = self.created_at + timedelta(minutes=15)
+        else:
+            expires = self.expires_at
+        
+        remaining = expires - timezone.now()
+        return max(0, int(remaining.total_seconds() / 60))
     
     def mark_code_used(self):
+        """Помечает код как использованный"""
         self.is_used = True
-        self.save()
+        self.save(update_fields=['is_used'])
     
     @classmethod
     def generate_code(cls):
+        """Генерирует 6-значный код"""
         return ''.join(random.choices(string.digits, k=6))
+    
+    @classmethod
+    def create_reset_code(cls, user):
+        """Создает новый код восстановления для пользователя"""
+        cls.objects.filter(
+            user=user,
+            is_used=False
+        ).delete()
+        
+        code = cls.generate_code()
+        return cls.objects.create(
+            user=user,
+            code=code
+        )
+    
+    @classmethod
+    def validate_code(cls, user, code):
+        """Проверяет код восстановления"""
+        try:
+            reset_code = cls.objects.get(
+                user=user,
+                code=code,
+                is_used=False
+            )
+            
+            if not reset_code.is_valid():
+                return None, "Срок действия кода истек"
+                
+            return reset_code, None
+            
+        except cls.DoesNotExist:
+            return None, "Неверный или уже использованный код"
     
     class Meta:
         db_table = 'password_reset_code'
@@ -2163,83 +2639,331 @@ class PasswordResetCode(models.Model):
             ),
         ]
 
-# представления 
-class ViewCoursePracticalAssignments(models.Model):
-    course_id = models.BigIntegerField('ID курса')
-    course_name = models.CharField('Название курса', max_length=255)
-    lecture_id = models.BigIntegerField('ID лекции')  
-    lecture_name = models.CharField('Название лекции', max_length=255)
-    lecture_order = models.IntegerField('Порядок лекции')
-    practical_assignment_id = models.BigIntegerField('ID задания', primary_key=True)  
-    practical_assignment_name = models.CharField('Название задания', max_length=255)
-    practical_assignment_description = models.TextField('Описание задания')
-    assignment_document_path = models.CharField('Путь к документу', max_length=255, null=True, blank=True)
-    assignment_criteria = models.TextField('Критерии оценки', null=True, blank=True)
-    assignment_deadline = models.DateTimeField('Срок сдачи')
-    grading_type = models.CharField('Тип оценки', max_length=20)
-    max_score = models.IntegerField('Максимальный балл', null=True, blank=True)
-    is_active = models.BooleanField('Активно')
 
+# 27. избранные курсы пользователей
+class FavoriteCourse(models.Model):
+    """Модель для хранения избранных курсов пользователя"""
+    
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        verbose_name='Пользователь',
+        related_name='favorite_courses'
+    )
+    
+    course = models.ForeignKey(
+        Course, 
+        on_delete=models.CASCADE, 
+        verbose_name='Курс',
+        related_name='favorited_by'
+    )
+    
+    added_at = models.DateTimeField(
+        'Дата добавления', 
+        auto_now_add=True
+    )
+    
     class Meta:
-        managed = False
-        db_table = 'view_course_practical_assignments'
-        verbose_name = 'Практическая работа курса'
-        verbose_name_plural = 'Практические работы курсов'
+        db_table = 'favorite_course'
+        verbose_name = 'Избранный курс'
+        verbose_name_plural = 'Избранные курсы'
+        unique_together = ('user', 'course')  
+        ordering = ['-added_at']
+        indexes = [
+            models.Index(fields=['user', 'added_at']),
+            models.Index(fields=['course']),
+        ]
+    
+    def __str__(self):
+        return f'{self.user.get_full_name()} - {self.course.course_name}'
+    
+    def clean(self):
+        super().clean()
+        
+        if not self.user:
+            raise ValidationError({'user': 'Пользователь обязателен'})
+        
+        if not self.course:
+            raise ValidationError({'course': 'Курс обязателен'})
+        
+        if not self.course.is_active:
+            raise ValidationError({'course': 'Нельзя добавить неактивный курс в избранное'})
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
-class ViewCourseLectures(models.Model):
-    course_id = models.BigIntegerField('ID курса') 
-    course_name = models.CharField('Название курса', max_length=255)
-    lecture_id = models.BigIntegerField('ID лекции', primary_key=True) 
-    lecture_name = models.CharField('Название лекции', max_length=255)
-    lecture_content = models.TextField('Содержание лекции')
-    lecture_document_path = models.CharField('Путь к документу', max_length=255, null=True, blank=True)
-    lecture_order = models.IntegerField('Порядок лекции')
-    is_active = models.BooleanField('Активно')
 
+# 28. попытки входа
+class LoginAttempt(models.Model):
+    """Модель для отслеживания попыток входа в систему"""
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь', null=True, blank=True, related_name='login_attempts')
+    
+    username = models.CharField('Имя пользователя', max_length=150, db_index=True)
+    
+    ip_address = models.GenericIPAddressField('IP адрес', db_index=True)
+    
+    attempt_time = models.DateTimeField('Время попытки', default=timezone.now)
+    
+    success = models.BooleanField('Успешный вход', default=False)
+    
     class Meta:
-        managed = False
-        db_table = 'view_course_lectures'
-        verbose_name = 'Лекция курса'
-        verbose_name_plural = 'Лекции курсов'
+        db_table = 'login_attempts'
+        verbose_name = 'Попытка входа'
+        verbose_name_plural = 'Попытки входа'
+        indexes = [
+            models.Index(fields=['ip_address', 'attempt_time']),
+            models.Index(fields=['user', 'attempt_time']),
+            models.Index(fields=['username', 'attempt_time']),
+        ]
+        ordering = ['-attempt_time']
+    
+    def __str__(self):
+        user_display = self.user.email if self.user else self.username
+        status = 'Успешно' if self.success else 'Неудача'
+        return f'{user_display} - {self.ip_address} - {status}'
+    
+    def clean(self):
+        super().clean()
+        
+        if not self.username:
+            raise ValidationError({'username': 'Имя пользователя обязательно'})
+        
+        if not self.ip_address:
+            raise ValidationError({'ip_address': 'IP адрес обязателен'})
+        
+        if self.attempt_time and self.attempt_time > timezone.now():
+            raise ValidationError({'attempt_time': 'Время попытки не может быть в будущем'})
+    
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            self.full_clean()
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_recent_failures(cls, ip_address=None, username=None, minutes=15):
+        """Получить количество неудачных попыток за последние N минут"""
+        time_threshold = timezone.now() - timedelta(minutes=minutes)
+        
+        query = Q(success=False, attempt_time__gte=time_threshold)
+        
+        if ip_address:
+            query &= Q(ip_address=ip_address)
+        if username:
+            query &= Q(username__iexact=username)
+        
+        return cls.objects.filter(query).count()
+    
+    @classmethod
+    def is_blocked(cls, ip_address=None, username=None, max_attempts=5, minutes=15):
+        """Проверить, заблокирован ли IP или пользователь"""
+        failures = cls.get_recent_failures(ip_address, username, minutes)
+        return failures >= max_attempts
+    
+    @classmethod
+    def cleanup_old_attempts(cls, hours=24):
+        """Очистка старых записей"""
+        threshold = timezone.now() - timedelta(hours=hours)
+        return cls.objects.filter(attempt_time__lt=threshold).delete()
 
-class ViewCourseTests(models.Model):
-    course_id = models.BigIntegerField('ID курса')  
-    course_name = models.CharField('Название курса', max_length=255)
-    lecture_id = models.BigIntegerField('ID лекции') 
-    lecture_name = models.CharField('Название лекции', max_length=255)
-    lecture_order = models.IntegerField('Порядок лекции')
-    test_id = models.BigIntegerField('ID теста', primary_key=True)  
-    test_name = models.CharField('Название теста', max_length=255)
-    test_description = models.TextField('Описание теста', null=True, blank=True)
-    is_final = models.BooleanField('Финальный тест')
-    max_attempts = models.IntegerField('Максимум попыток', null=True, blank=True)
-    grading_form = models.CharField('Форма оценки', max_length=20)
-    passing_score = models.IntegerField('Проходной балл', null=True, blank=True)
-    is_active = models.BooleanField('Активно')
 
+# 29. заявки преподавателей на курсы
+class TeacherApplication(models.Model):
+    """Модель для хранения заявок преподавателей на преподавание курса"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'На рассмотрении'),
+        ('approved', 'Одобрена'),
+        ('rejected', 'Отклонена'),
+    ]
+    
+    teacher = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        verbose_name='Преподаватель',
+        related_name='teacher_applications',
+        limit_choices_to={'role__role_name': 'преподаватель'}
+    )
+    
+    course = models.ForeignKey(
+        Course, 
+        on_delete=models.CASCADE, 
+        verbose_name='Курс',
+        related_name='teacher_applications'
+    )
+    
+    status = models.CharField(
+        'Статус', 
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default='pending'
+    )
+    
+    comment = models.TextField(
+        'Комментарий', 
+        blank=True, 
+        null=True,
+        help_text='Комментарий методиста при отклонении заявки'
+    )
+    
+    created_at = models.DateTimeField('Дата подачи', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+    
+    def __str__(self):
+        return f'{self.teacher.get_full_name()} - {self.course.course_name} ({self.get_status_display()})'
+    
+    def _get_methodist_email(self):
+        """Получить email методиста, ответственного за курс"""
+        from django.conf import settings
+        
+        if self.course.created_by and self.course.created_by.role and self.course.created_by.role.role_name.lower() == 'методист':
+            return self.course.created_by.email
+        
+        methodist_teacher = CourseTeacher.objects.filter(
+            course=self.course,
+            teacher__role__role_name='методист',
+            is_active=True
+        ).first()
+        
+        if methodist_teacher:
+            return methodist_teacher.teacher.email
+        
+        return getattr(settings, 'DEFAULT_FROM_EMAIL', 'unireax@mail.ru')
+    
+    def approve(self, request=None):
+        """Одобрить заявку и добавить преподавателя на курс"""
+        if self.status == 'pending':
+            self.status = 'approved'
+            self.save()
+            
+            CourseTeacher.objects.get_or_create(
+                course=self.course,
+                teacher=self.teacher,
+                defaults={'is_active': True}
+            )
+            
+            methodist_email = self._get_methodist_email()
+            
+            from .utils.email_utils import send_teacher_application_result_email
+            send_teacher_application_result_email(
+                teacher_email=self.teacher.email,
+                teacher_name=self.teacher.get_full_name() or self.teacher.username,
+                course_name=self.course.course_name,
+                status='approved',
+                methodist_email=methodist_email,
+                request=request,
+                course_id=self.course.id
+            )
+    
+    def reject(self, comment=None, request=None):
+        """Отклонить заявку"""
+        if self.status == 'pending':
+            self.status = 'rejected'
+            if comment:
+                self.comment = comment
+            self.save()
+            
+            methodist_email = self._get_methodist_email()
+            
+            from .utils.email_utils import send_teacher_application_result_email
+            send_teacher_application_result_email(
+                teacher_email=self.teacher.email,
+                teacher_name=self.teacher.get_full_name() or self.teacher.username,
+                course_name=self.course.course_name,
+                status='rejected',
+                methodist_email=methodist_email,
+                comment=comment,
+                request=request,
+                course_id=self.course.id
+            )
+    
     class Meta:
-        managed = False
-        db_table = 'view_course_tests'
-        verbose_name = 'Тест курса'
-        verbose_name_plural = 'Тесты курсов'
+        db_table = 'teacher_application'
+        verbose_name = 'Заявка преподавателя'
+        verbose_name_plural = 'Заявки преподавателей'
+        unique_together = ('teacher', 'course')
+        ordering = ['-created_at']
 
-class ViewAssignmentSubmissions(models.Model):
-    submission_id = models.BigIntegerField('ID набора прикрепленных файлов', primary_key=True)
-    user_id = models.BigIntegerField('ID пользователя')
-    user_name = models.CharField('Имя пользователя', max_length=255)
-    practical_assignment_id = models.BigIntegerField('ID задания')
-    practical_assignment_name = models.CharField('Название задания', max_length=255)
-    lecture_name = models.CharField('Название лекции', max_length=255)
-    course_name = models.CharField('Название курса', max_length=255)
-    submission_date = models.DateTimeField('Дата сдачи', null=True, blank=True)
-    attempt_number = models.IntegerField('Номер попытки')
-    status = models.CharField('Статус', max_length=255)
-    comment = models.TextField('Комментарий', null=True, blank=True)
-    file_count = models.IntegerField('Количество файлов')
-    total_size = models.BigIntegerField('Общий размер')
 
+
+# 29. посты/объявления в курсах
+class CoursePost(models.Model):
+    """Модель для постов/объявлений в курсе"""
+    
+    POST_TYPES = [
+        ('announcement', 'Объявление'),
+        ('question', 'Вопрос'),
+        ('reminder', 'Напоминание'),
+    ]
+    
+    course = models.ForeignKey(
+        Course, 
+        on_delete=models.CASCADE, 
+        verbose_name='Курс',
+        related_name='posts'
+    )
+    
+    author = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        verbose_name='Автор',
+        related_name='course_posts'
+    )
+    
+    title = models.CharField('Заголовок', max_length=200)
+    content = models.TextField('Содержание')
+    post_type = models.CharField('Тип', max_length=20, choices=POST_TYPES, default='announcement')
+    is_pinned = models.BooleanField('Закреплён', default=False)
+    is_active = models.BooleanField('Активен', default=True)
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+    
+    def __str__(self):
+        return f'{self.title} - {self.course.course_name}'
+    
     class Meta:
-        managed = False
-        db_table = 'view_assignment_submissions'
-        verbose_name = 'Сданная практическая работа'
-        verbose_name_plural = 'Сданные практические работы'
+        db_table = 'course_post'
+        verbose_name = 'Пост курса'
+        verbose_name_plural = 'Посты курсов'
+        ordering = ['-is_pinned', '-created_at']
+
+
+# 30. комментарии к постам (с возможностью ответов)
+class CoursePostComment(models.Model):
+    """Модель для комментариев к постам"""
+    
+    post = models.ForeignKey(
+        CoursePost, 
+        on_delete=models.CASCADE, 
+        verbose_name='Пост',
+        related_name='comments'
+    )
+    
+    author = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        verbose_name='Автор',
+        related_name='post_comments'
+    )
+    
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        verbose_name='Родительский комментарий',
+        null=True,
+        blank=True,
+        related_name='replies'
+    )
+    
+    content = models.TextField('Комментарий')
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    
+    def __str__(self):
+        return f'Комментарий от {self.author.get_full_name()}'
+    
+    class Meta:
+        db_table = 'course_post_comment'
+        verbose_name = 'Комментарий к посту'
+        verbose_name_plural = 'Комментарии к постам'
+        ordering = ['created_at']

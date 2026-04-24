@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Профиль преподавателя{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="profile-container">
+        <div class="profile-layout">
+            <div class="profile-sidebar">
+                <div class="profile-avatar-large">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" alt="Avatar">
+                    {% else %}
+                        <i class="fas fa-user-circle"></i>
+                    {% endif %}
+                </div>
+                <div class="profile-name-sidebar">
+                    <h3>{{ user.get_full_name|default:user.username }}</h3>
+                    <span class="profile-role-badge">Преподаватель</span>
+                </div>
+                
+                <nav class="profile-nav">
+                    <button type="button" class="profile-nav-btn active" data-tab="profile" onclick="switchTab('profile', this)">
+                        <i class="fas fa-user"></i>
+                        <span>Мой профиль</span>
+                    </button>
+                    <button type="button" class="profile-nav-btn" data-tab="password" onclick="switchTab('password', this)">
+                        <i class="fas fa-key"></i>
+                        <span>Смена пароля</span>
+                    </button>
+                    <a href="{% url 'teacher_app:dashboard' %}" class="profile-nav-btn">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Дашборд</span>
+                    </a>
+                    <a href="{% url 'teacher_app:statistics' %}" class="profile-nav-btn">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Статистика</span>
+                    </a>
+                </nav>
+                
+                <div class="profile-sidebar-footer">
+                    <a href="{% url 'main_page' %}" class="profile-sidebar-btn">
+                        <i class="fas fa-home"></i> На главную
+                    </a>
+                    <a href="{% url 'logout_move' %}" class="profile-sidebar-btn logout">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </a>
+                </div>
+            </div>
+            
+            <div class="profile-content">
+                
+                <div class="profile-tab active" id="tab-profile">
+                    <div class="profile-card">
+                        <div class="profile-card-header">
+                            <h2><i class="fas fa-user-circle"></i> Редактирование профиля</h2>
+                            <p>Измените свои личные данные</p>
+                        </div>
+                        
+                        <form method="post" class="profile-edit-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="1">
+                            
+                            <div class="profile-edit-grid">
+                                <div class="profile-form-group">
+                                    <label for="{{ form.username.id_for_label }}">
+                                        <i class="fas fa-user"></i> {{ form.username.label }}
+                                    </label>
+                                    {{ form.username }}
+                                    {% if form.username.errors %}
+                                    <div class="profile-form-error">
+                                        {% for error in form.username.errors %}
+                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <small class="form-text">Уникальное имя пользователя для входа</small>
+                                </div>
+                                
+                                <div class="profile-form-group">
+                                    <label for="{{ form.email.id_for_label }}">
+                                        <i class="fas fa-envelope"></i> {{ form.email.label }}
+                                    </label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                    <div class="profile-form-error">
+                                        {% for error in form.email.errors %}
+                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <small class="form-text">Используется для связи и восстановления пароля</small>
+                                </div>
+                                
+                                <div class="profile-form-group">
+                                    <label for="{{ form.last_name.id_for_label }}">
+                                        <i class="fas fa-user-tag"></i> {{ form.last_name.label }}
+                                    </label>
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}
+                                    <div class="profile-form-error">
+                                        {% for error in form.last_name.errors %}
+                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="profile-form-group">
+                                    <label for="{{ form.first_name.id_for_label }}">
+                                        <i class="fas fa-user"></i> {{ form.first_name.label }}
+                                    </label>
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}
+                                    <div class="profile-form-error">
+                                        {% for error in form.first_name.errors %}
+                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="profile-form-group">
+                                    <label for="{{ form.patronymic.id_for_label }}">
+                                        <i class="fas fa-user-circle"></i> {{ form.patronymic.label }}
+                                    </label>
+                                    {{ form.patronymic }}
+                                    {% if form.patronymic.errors %}
+                                    <div class="profile-form-error">
+                                        {% for error in form.patronymic.errors %}
+                                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="profile-form-actions">
+                                <button type="submit" class="profile-btn profile-btn-primary">
+                                    <i class="fas fa-save"></i> Сохранить изменения
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="profile-card" style="margin-top: 20px;">
+                        <div class="profile-card-header" style="border-bottom-color: #e74c3c;">
+                            <h2 style="color: #e74c3c;"><i class="fas fa-exclamation-triangle"></i> Опасная зона</h2>
+                            <p>Действия, которые нельзя отменить</p>
+                        </div>
+                        <button type="button" class="profile-btn profile-btn-danger" onclick="openDeleteModal()">
+                            <i class="fas fa-trash-alt"></i> Удалить аккаунт
+                        </button>
+                        <small class="form-text" style="display: block; margin-top: 10px; color: #e74c3c;">
+                            <i class="fas fa-info-circle"></i> Внимание! Удаление аккаунта необратимо. Все ваши данные будут анонимизированы, курсы и материалы деактивированы.
+                        </small>
+                    </div>
+                </div>
+                
+                <div class="profile-tab" id="tab-password">
+                    <div class="profile-card">
+                        <div class="profile-card-header">
+                            <h2><i class="fas fa-key"></i> Смена пароля</h2>
+                            <p>Измените свой пароль для входа в систему</p>
+                        </div>
+                        
+                        <form method="post" class="profile-password-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="change_password" value="1">
+                            
+                            <div class="profile-form-group">
+                                <label for="{{ password_form.old_password.id_for_label }}">
+                                    <i class="fas fa-lock"></i> {{ password_form.old_password.label }}
+                                </label>
+                                {{ password_form.old_password }}
+                                {% if password_form.old_password.errors %}
+                                <div class="profile-form-error">
+                                    {% for error in password_form.old_password.errors %}
+                                        <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="profile-form-group">
+                                <label for="{{ password_form.new_password1.id_for_label }}">
+                                    <i class="fas fa-key"></i> {{ password_form.new_password1.label }}
+                                </label>
+                                {{ password_form.new_password1 }}
+                                {% if password_form.new_password1.errors %}
+                                <div class="profile-form-error">
+                                    {% for error in password_form.new_password1.errors %}
+                                        <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <small class="form-text">Пароль должен содержать не менее 8 символов</small>
+                            </div>
+                            
+                            <div class="profile-form-group">
+                                <label for="{{ password_form.new_password2.id_for_label }}">
+                                    <i class="fas fa-check-circle"></i> {{ password_form.new_password2.label }}
+                                </label>
+                                {{ password_form.new_password2 }}
+                                {% if password_form.new_password2.errors %}
+                                <div class="profile-form-error">
+                                    {% for error in password_form.new_password2.errors %}
+                                        <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <button type="submit" class="profile-btn profile-btn-primary">
+                                <i class="fas fa-save"></i> Сменить пароль
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="deleteAccountModal" class="deleted-modal" style="display: none;">
+    <div class="deleted-modal-overlay"></div>
+    <div class="deleted-modal-container">
+        <div class="deleted-modal-header">
+            <div class="deleted-modal-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="deleted-modal-title">Удаление аккаунта</h3>
+            <button class="deleted-modal-close" onclick="closeDeleteModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="deleted-modal-body">
+            <div class="deleted-modal-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Внимание! Это действие необратимо!</span>
+            </div>
+            
+            <p class="deleted-modal-text">
+                Вы действительно хотите удалить свой аккаунт <strong>{{ user.username }}</strong>?
+            </p>
+            
+            <div class="deleted-modal-info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>Что произойдет после удаления?</strong>
+                    <ul>
+                        <li>Ваш аккаунт будет деактивирован</li>
+                        <li>Все ваши персональные данные будут анонимизированы</li>
+                        <li>Ваши курсы станут неактивными</li>
+                        <li>Ваши лекции, практические задания и тесты деактивируются</li>
+                        <li>Слушатели на ваших курсах потеряют доступ</li>
+                        <li>Вы больше не сможете войти в систему</li>
+                        <li>Восстановление аккаунта возможно только через администратора</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <form method="post" action="{% url 'teacher_app:deactivate_account' %}" id="deleteAccountForm">
+                {% csrf_token %}
+                <div class="teacher-form-group" style="margin-top: 20px;">
+                    <label for="delete_password" style="font-weight: 600;">
+                        <i class="fas fa-lock"></i> Введите пароль для подтверждения:
+                    </label>
+                    <input type="password" name="password" id="delete_password" class="form-control" 
+                           placeholder="Ваш пароль" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 8px;">
+                </div>
+            </form>
+        </div>
+        
+        <div class="deleted-modal-footer">
+            <button type="button" class="deleted-modal-btn deleted-modal-btn-cancel" onclick="closeDeleteModal()">
+                <i class="fas fa-times"></i> Отмена
+            </button>
+            <button type="button" class="deleted-modal-btn deleted-modal-btn-danger" onclick="submitDeleteAccount()">
+                <i class="fas fa-trash-alt"></i> Да, удалить аккаунт
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchTab(tabId, element) {
+    document.querySelectorAll('.profile-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.getElementById('tab-' + tabId).classList.add('active');
+    
+    document.querySelectorAll('.profile-nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    element.classList.add('active');
+}
+
+function openDeleteModal() {
+    const modal = document.getElementById('deleteAccountModal');
+    modal.style.display = 'block';
+    
+    window.onclick = function(event) {
+        if (event.target === modal || event.target.classList.contains('deleted-modal-overlay')) {
+            closeDeleteModal();
+        }
+    }
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteAccountModal');
+    modal.style.display = 'none';
+    document.getElementById('delete_password').value = '';
+}
+
+function submitDeleteAccount() {
+    const password = document.getElementById('delete_password').value;
+    if (!password) {
+        alert('Пожалуйста, введите пароль для подтверждения');
+        return;
+    }
+    
+    if (confirm('Вы уверены, что хотите удалить аккаунт? Это действие нельзя отменить!')) {
+        const form = document.getElementById('deleteAccountForm');
+        form.submit();
+    }
+}
+</script>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/teacher.js' %}"></script>
+{% endblock %}

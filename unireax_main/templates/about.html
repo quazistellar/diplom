@@ -1,0 +1,150 @@
+<!-- в данном файле находится html-верстка для страницы "О нас" -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title_name %}UNIREAX - О нас{% endblock %}
+
+
+{% block content %}
+<div class="about-page">
+    <div class="container py-5">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <div class="about-text text-center text-lg-start">
+                    <h1 class="about-title mb-4">Кто мы и что это за ресурс?</h1>
+                    <p class="lead mb-4" style="text-align: justify;">
+                        Unireax — это современная образовательная платформа, созданная для тех, кто хочет развиваться, учиться новому и достигать целей в любой удобной обстановке и в любое удобное время. Мы объединяем профессионалов, любителей, новичков, технологии, вдохновение и космос, чтобы каждый мог найти свой путь к знаниям в этой бесконечной Вселенной.
+                    </p>
+                    <ul class="about-advantages">
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <span><strong>Разнообразие программ</strong> — от коротких курсов по софт-скиллам до изучения нейросетей.</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <span><strong>Наша команда</strong> — преподаватели и методисты из высших и среднеспециальных учебных заведений.</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <span><strong>Онлайн-формат</strong> — обучение без отрыва от работы.</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <span><strong>Сотрудничество с РЭУ им. Г.В. Плеханова</strong> — постоянная поддержка и создание новых учебных программ от экспертов.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="about-image-wrapper">
+                    <img src="{% static 'images/reu.jpg' %}" alt="Unireax Team" class="about-image img-fluid">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="faq-section">
+        <div class="container">
+            <h2 class="faq-title">Ответы на частые вопросы</h2>
+            <hr class="faq-divider">
+
+            <div class="course-materials-accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <span class="lecture-order">1</span>
+                            <span class="lecture-name">Как начать обучение?</span>
+                        </div>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="materials-subsection">
+                            <p class="material-name">Зарегистрируйтесь как слушатель курса, выберите курс, запишитесь на него (или приобретите, если он платный) и начните обучение в удобное время. Доступ к материалам — 24/7.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <span class="lecture-order">2</span>
+                            <span class="lecture-name">Есть ли сертификаты после прохождения курсов?</span>
+                        </div>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="materials-subsection">
+                            <p class="material-name">Unireax предоставляет курсы как с сертификатами, так и без них. В описании курса будет указано наличие сертификата за его прохождение. Об этом также свидетельствует иконка в виде развернутого свитка на карточке курса из каталога. В таких курсах после прохождения вы получите сертификат на имя, фамилию и отчество, которые указывали при регистрации на нашей платформе.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <span class="lecture-order">3</span>
+                            <span class="lecture-name">Можно учиться с телефона?</span>
+                        </div>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="materials-subsection">
+                            <p class="material-name">Конечно! Сайт адаптирован под мобильные устройства и планшеты. Для слушателей есть мобильное приложение, которое можно скачать, отсканировав QR-код в самом низу сайта камерой смартфона. Учитесь где Вам угодно.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <span class="lecture-order">4</span>
+                            <span class="lecture-name">Я изменил имя/фамилию/отчество. Как получать сертификаты по новым данным?</span>
+                        </div>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="materials-subsection">
+                            <p class="material-name">Перейдите в личный кабинет, выберите вкладку "Профиль", введите свои новые данные и нажмите кнопку "Обновить профиль" - ваши данные мгновенно поменяются в базе.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <span class="lecture-order">5</span>
+                            <span class="lecture-name">Я забыл пароль от аккаунта. Что делать?</span>
+                        </div>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="materials-subsection">
+                            <p class="material-name">Перейдите на форму авторизации, нажмите "Забыли пароль?". Введите свою почту - на нее придет код восстановления. Введите код в форму и придумайте новый пароль. Если ничего не помогло - обратитесь к администраторам: <a href="mailto:unireax@mail.ru">unireax@mail.ru</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAccordion(header) {
+    const currentItem = header.closest('.accordion-item');
+    const isActive = currentItem.classList.contains('active');
+    document.querySelectorAll('.accordion-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    if (!isActive) {
+        currentItem.classList.add('active');
+    }
+}
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstAccordion = document.querySelector('.accordion-item');
+        if (firstAccordion) {
+            firstAccordion.classList.add('active');
+        }
+    });
+</script>
+{% endblock %}

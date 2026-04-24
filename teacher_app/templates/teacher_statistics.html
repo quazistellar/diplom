@@ -1,0 +1,341 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Статистика преподавателя{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/teacher.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="teacher-statistics-page">
+    <div class="teacher-container">
+        <div class="teacher-page-header">
+            <div>
+                <h1 class="teacher-page-title">Статистика преподавателя</h1>
+                <p class="teacher-page-subtitle">Аналитика успеваемости слушателей</p>
+            </div>
+            <div class="teacher-header-actions">
+                <a href="{% url 'teacher_app:profile' %}" class="teacher-btn teacher-btn-outline">
+                    <i class="fas fa-user"></i> Мой профиль
+                </a>
+                <a href="{% url 'teacher_app:dashboard' %}" class="teacher-btn teacher-btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к дашборду
+                </a>
+            </div>
+        </div>
+        
+        <div class="teacher-filter-card">
+            <h3 class="teacher-filter-title">
+                <i class="fas fa-calendar-alt"></i> Фильтр по датам
+            </h3>
+            <form method="get" class="teacher-filter-form">
+                <div class="teacher-filter-grid">
+                    <div class="teacher-form-field">
+                        <label class="teacher-form-label">Начальная дата</label>
+                        <input type="date" name="start_date" class="teacher-form-input" value="{{ start_date }}">
+                    </div>
+                    <div class="teacher-form-field">
+                        <label class="teacher-form-label">Конечная дата</label>
+                        <input type="date" name="end_date" class="teacher-form-input" value="{{ end_date }}">
+                    </div>
+                    <div class="teacher-filter-actions">
+                        <button type="submit" class="teacher-btn teacher-btn-primary">
+                            <i class="fas fa-search"></i> Применить
+                        </button>
+                        <a href="{% url 'teacher_app:statistics' %}" class="teacher-btn teacher-btn-outline">
+                            <i class="fas fa-refresh"></i> Сбросить
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="teacher-period-info">
+            <i class="fas fa-info-circle"></i>
+            Отображена статистика за период: <strong>{{ start_date }}</strong> - <strong>{{ end_date }}</strong>
+        </div>
+        
+        <div class="teacher-charts-section">
+            <div class="teacher-chart-grid">
+                <div class="teacher-chart-card">
+                    <div class="teacher-chart-header">
+                        <h3 class="teacher-chart-title">
+                            <i class="fas fa-users"></i> Количество слушателей по курсам
+                        </h3>
+                    </div>
+                    <div class="teacher-chart-body">
+                        <canvas id="studentsChart"></canvas>
+                    </div>
+                </div>
+                <div class="teacher-chart-card">
+                    <div class="teacher-chart-header">
+                        <h3 class="teacher-chart-title">
+                            <i class="fas fa-chart-line"></i> Средний прогресс по курсам
+                        </h3>
+                    </div>
+                    <div class="teacher-chart-body">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="teacher-stats-section">
+            <div class="teacher-stats-header">
+                <h2 class="teacher-stats-title">
+                    <i class="fas fa-chart-pie"></i> Распределение оценок
+                </h2>
+            </div>
+            <div class="teacher-grade-distribution">
+                <div class="grade-item">
+                    <span class="grade-label">Отлично (90-100%)</span>
+                    <div class="grade-bar">
+                        <div class="grade-fill grade-excellent" style="width: {% widthratio grade_distribution.excellent grade_distribution.excellent|add:grade_distribution.good|add:grade_distribution.satisfactory|add:grade_distribution.unsatisfactory 100 %}%"></div>
+                    </div>
+                    <span class="grade-count">{{ grade_distribution.excellent }}</span>
+                </div>
+                <div class="grade-item">
+                    <span class="grade-label">Хорошо (75-89%)</span>
+                    <div class="grade-bar">
+                        <div class="grade-fill grade-good" style="width: {% widthratio grade_distribution.good grade_distribution.excellent|add:grade_distribution.good|add:grade_distribution.satisfactory|add:grade_distribution.unsatisfactory 100 %}%"></div>
+                    </div>
+                    <span class="grade-count">{{ grade_distribution.good }}</span>
+                </div>
+                <div class="grade-item">
+                    <span class="grade-label">Удовлетворительно (50-74%)</span>
+                    <div class="grade-bar">
+                        <div class="grade-fill grade-satisfactory" style="width: {% widthratio grade_distribution.satisfactory grade_distribution.excellent|add:grade_distribution.good|add:grade_distribution.satisfactory|add:grade_distribution.unsatisfactory 100 %}%"></div>
+                    </div>
+                    <span class="grade-count">{{ grade_distribution.satisfactory }}</span>
+                </div>
+                <div class="grade-item">
+                    <span class="grade-label">Неудовлетворительно (0-49%)</span>
+                    <div class="grade-bar">
+                        <div class="grade-fill grade-unsatisfactory" style="width: {% widthratio grade_distribution.unsatisfactory grade_distribution.excellent|add:grade_distribution.good|add:grade_distribution.satisfactory|add:grade_distribution.unsatisfactory 100 %}%"></div>
+                    </div>
+                    <span class="grade-count">{{ grade_distribution.unsatisfactory }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="teacher-stats-section">
+            <div class="teacher-stats-header">
+                <h2 class="teacher-stats-title">
+                    <i class="fas fa-chart-line"></i> Статистика по курсам
+                </h2>
+            </div>
+            
+            {% if courses_stats %}
+            <div class="teacher-table-container">
+                <table class="teacher-stats-table">
+                    <thead>
+                        <tr>
+                            <th>Курс</th>
+                            <th>Слушателей</th>
+                            <th>Завершили</th>
+                            <th>Средний прогресс</th>
+                            <th>Средний балл</th>
+                        </thead>
+                    <tbody>
+                        {% for stat in courses_stats %}
+                        <tr>
+                            <td><strong>{{ stat.course.course_name }}</strong></td>
+                            <td class="text-center">{{ stat.total_students }}</td>
+                            <td class="text-center">{{ stat.completed_students }}</td>
+                            <td>
+                                <div class="teacher-progress-cell">
+                                    <div class="teacher-progress-bar-small">
+                                        <div class="teacher-progress-fill" style="width: {{ stat.avg_progress }}%"></div>
+                                    </div>
+                                    <span>{{ stat.avg_progress|floatformat:0 }}%</span>
+                                </div>
+                            </td>
+                            <td class="text-center">{{ stat.avg_score|floatformat:1 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="teacher-empty-state">
+                <i class="fas fa-chart-bar"></i>
+                <h3>Нет данных за выбранный период</h3>
+                <p>Попробуйте изменить даты фильтра</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="teacher-export-section">
+            <h3 class="teacher-export-title">
+                <i class="fas fa-download"></i> Экспорт отчетов
+            </h3>
+            <div class="teacher-export-buttons">
+                <div class="teacher-export-group">
+                    <span class="teacher-export-label">Статистика слушателей</span>
+                    <div class="teacher-export-actions">
+                        <a href="{% url 'teacher_app:export_statistics' 'students' 'csv' %}?start_date={{ start_date }}&end_date={{ end_date }}" 
+                           class="teacher-btn teacher-btn-success teacher-btn-small">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </a>
+                        <a href="{% url 'teacher_app:export_statistics' 'students' 'pdf' %}?start_date={{ start_date }}&end_date={{ end_date }}" 
+                           class="teacher-btn teacher-btn-danger teacher-btn-small">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </a>
+                    </div>
+                </div>
+                <div class="teacher-export-group">
+                    <span class="teacher-export-label">Статистика оценок</span>
+                    <div class="teacher-export-actions">
+                        <a href="{% url 'teacher_app:export_statistics' 'grades' 'csv' %}?start_date={{ start_date }}&end_date={{ end_date }}" 
+                           class="teacher-btn teacher-btn-success teacher-btn-small">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </a>
+                        <a href="{% url 'teacher_app:export_statistics' 'grades' 'pdf' %}?start_date={{ start_date }}&end_date={{ end_date }}" 
+                           class="teacher-btn teacher-btn-danger teacher-btn-small">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const courseNames = {{ course_names_json|safe }};
+    const studentCounts = {{ student_counts_json|safe }};
+    const progressData = {{ progress_data_json|safe }};
+    
+    const studentsCtx = document.getElementById('studentsChart');
+    if (studentsCtx && courseNames.length > 0) {
+        new Chart(studentsCtx, {
+            type: 'bar',
+            data: {
+                labels: courseNames,
+                datasets: [{
+                    label: 'Количество слушателей',
+                    data: studentCounts,
+                    backgroundColor: 'rgba(138, 79, 255, 0.8)',
+                    borderColor: 'rgba(138, 79, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: getComputedStyle(document.documentElement).getPropertyValue('--text') || '#E8EAFF'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            color: getComputedStyle(document.documentElement).getPropertyValue('--text-soft') || '#B8BFFF'
+                        },
+                        grid: {
+                            color: 'rgba(138, 79, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: getComputedStyle(document.documentElement).getPropertyValue('--text-soft') || '#B8BFFF',
+                            maxRotation: 45,
+                            minRotation: 45
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    const progressCtx = document.getElementById('progressChart');
+    if (progressCtx && courseNames.length > 0) {
+        new Chart(progressCtx, {
+            type: 'line',
+            data: {
+                labels: courseNames,
+                datasets: [{
+                    label: 'Средний прогресс (%)',
+                    data: progressData,
+                    borderColor: '#2ecc71',
+                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: getComputedStyle(document.documentElement).getPropertyValue('--text') || '#E8EAFF'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20,
+                            color: getComputedStyle(document.documentElement).getPropertyValue('--text-soft') || '#B8BFFF'
+                        },
+                        grid: {
+                            color: 'rgba(46, 204, 113, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: getComputedStyle(document.documentElement).getPropertyValue('--text-soft') || '#B8BFFF',
+                            maxRotation: 45,
+                            minRotation: 45
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    const startDateInput = document.querySelector('input[name="start_date"]');
+    const endDateInput = document.querySelector('input[name="end_date"]');
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (startDateInput && endDateInput) {
+        startDateInput.max = today;
+        endDateInput.max = today;
+        
+        startDateInput.addEventListener('change', function() {
+            if (this.value > endDateInput.value) {
+                endDateInput.value = this.value;
+            }
+        });
+        
+        endDateInput.addEventListener('change', function() {
+            if (this.value < startDateInput.value) {
+                startDateInput.value = this.value;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/teacher.js' %}"></script>
+{% endblock %}

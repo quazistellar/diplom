@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Прогресс - {{ course.course_name }} - UNIREAX{% endblock %}
+
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="breadcrumbs" style="margin-bottom: 20px;">
+            <a href="{% url 'listener_app:dashboard' %}">Личный кабинет</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'listener_app:course_study' course.id %}">{{ course.course_name }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Детальный прогресс</span>
+        </div>
+
+        <div class="lsn-header">
+            <h1 class="lsn-title">Детальный прогресс</h1>
+            <p class="lsn-subtitle">{{ course.course_name }}</p>
+        </div>
+
+        <div class="progress-summary">
+            <h3>Общая статистика</h3>
+            <div class="summary-stats">
+                <div class="summary-stat">
+                    <div class="summary-stat-value">{{ completion_data.progress|floatformat:0 }}%</div>
+                    <div class="summary-stat-label">Общий прогресс</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value">{{ completion_data.details.assignments.completed }}/{{ completion_data.details.assignments.total }}</div>
+                    <div class="summary-stat-label">Практические задания</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value">{{ completion_data.details.tests.passed }}/{{ completion_data.details.tests.total }}</div>
+                    <div class="summary-stat-label">Тесты</div>
+                </div>
+            </div>
+            {% if completion_data.completed %}
+            <div class="alert alert-success mt-3">Поздравляем! Курс успешно завершен!</div>
+            {% endif %}
+        </div>
+
+        <div class="lecture-progress-list">
+            {% for lecture_data in lectures_progress %}
+            <div class="lecture-progress-card">
+                <div class="lecture-progress-header">
+                    <div>
+                        <div class="lecture-progress-title">Лекция {{ lecture_data.lecture.lecture_order }}: {{ lecture_data.lecture.lecture_name }}</div>
+                        <div class="lecture-progress-subtitle" style="font-size: 13px; color: var(--text-soft); margin-top: 4px;">
+                            {{ lecture_data.assignments_completed }}/{{ lecture_data.total_assignments }} заданий · 
+                            {{ lecture_data.tests_passed }}/{{ lecture_data.total_tests }} тестов
+                        </div>
+                    </div>
+                    <div class="lecture-progress-percent">{{ lecture_data.progress }}%</div>
+                </div>
+                <div class="lecture-progress-body">
+                    <div class="lecture-items">
+                        {% for assignment in lecture_data.assignments %}
+                        <div class="lecture-item">
+                            <div class="item-icon {% if assignment.is_completed %}completed{% endif %}">
+                                <i class="fas {% if assignment.is_completed %}fa-check{% else %}fa-tasks{% endif %}"></i>
+                            </div>
+                            <div class="item-info">
+                                <div class="item-name">{{ assignment.name }}</div>
+                                <div class="item-status">
+                                    {% if assignment.is_completed %}
+                                    <span class="status-completed">Выполнено</span>
+                                    {% else %}
+                                    <span class="status-not-completed">Не выполнено</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% for test in lecture_data.tests %}
+                        <div class="lecture-item">
+                            <div class="item-icon {% if test.is_passed %}completed{% endif %}">
+                                <i class="fas {% if test.is_passed %}fa-check{% else %}fa-question-circle{% endif %}"></i>
+                            </div>
+                            <div class="item-info">
+                                <div class="item-name">{{ test.name }}</div>
+                                <div class="item-status">
+                                    {% if test.is_passed %}
+                                    <span class="status-completed">Пройден</span>
+                                    {% else %}
+                                    <span class="status-not-completed">Не пройден</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="stats-actions" style="margin-top: 30px;">
+            <a href="{% url 'listener_app:course_study' course.id %}" class="lsn-btn lsn-btn-outline">
+                <i class="fas fa-arrow-left"></i> Вернуться к курсу
+            </a>
+            <a href="{% url 'listener_app:statistics' course.id %}" class="lsn-btn lsn-btn-primary">
+                <i class="fas fa-chart-bar"></i> Статистика
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/listener.js' %}"></script>
+{% endblock %}

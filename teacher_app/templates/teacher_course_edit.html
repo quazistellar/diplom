@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Редактирование курса{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/teacher.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="teacher-course-edit-page">
+    <div class="teacher-container">
+        <div class="teacher-page-header">
+            <div>
+                <h1 class="teacher-page-title">Редактирование курса</h1>
+                <p class="teacher-page-subtitle">{{ course.course_name }}</p>
+            </div>
+            <div class="teacher-header-actions">
+                <a href="{% url 'teacher_app:course_detail' course.id %}" class="teacher-btn teacher-btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к курсу
+                </a>
+            </div>
+        </div>
+        
+        <div class="teacher-card">
+            <form method="post" enctype="multipart/form-data" class="teacher-form">
+                {% csrf_token %}
+                
+                <div class="teacher-form-grid">
+                    <div class="teacher-form-group full-width">
+                        <label for="{{ form.course_name.id_for_label }}">
+                            <i class="fas fa-heading"></i> {{ form.course_name.label }}
+                        </label>
+                        {{ form.course_name }}
+                        {% if form.course_name.errors %}
+                        <div class="teacher-form-error">
+                            {% for error in form.course_name.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Название курса (3-200 символов)</small>
+                    </div>
+                    
+                    <div class="teacher-form-group full-width">
+                        <label for="{{ form.course_description.id_for_label }}">
+                            <i class="fas fa-align-left"></i> {{ form.course_description.label }}
+                        </label>
+                        {{ form.course_description }}
+                        {% if form.course_description.errors %}
+                        <div class="teacher-form-error">
+                            {% for error in form.course_description.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Краткое описание курса (до 300 символов)</small>
+                    </div>
+                    
+                    <div class="teacher-form-group">
+                        <label for="{{ form.course_category.id_for_label }}">
+                            <i class="fas fa-tag"></i> {{ form.course_category.label }}
+                        </label>
+                        {{ form.course_category }}
+                        {% if form.course_category.errors %}
+                        <div class="teacher-form-error">
+                            {% for error in form.course_category.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="teacher-form-group">
+                        <label for="{{ form.course_hours.id_for_label }}">
+                            <i class="fas fa-clock"></i> {{ form.course_hours.label }}
+                        </label>
+                        {{ form.course_hours }}
+                        {% if form.course_hours.errors %}
+                        <div class="teacher-form-error">
+                            {% for error in form.course_hours.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Общая продолжительность курса в часах</small>
+                    </div>
+                    
+                    <div class="teacher-form-group">
+                        <label for="{{ form.course_price.id_for_label }}">
+                            <i class="fas fa-ruble-sign"></i> {{ form.course_price.label }}
+                        </label>
+                        {{ form.course_price }}
+                        {% if form.course_price.errors %}
+                        <div class="teacher-form-error">
+                            {% for error in form.course_price.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Оставьте пустым для бесплатного курса</small>
+                    </div>
+                    
+                    <div class="teacher-form-group">
+                        <label for="{{ form.course_max_places.id_for_label }}">
+                            <i class="fas fa-users"></i> {{ form.course_max_places.label }}
+                        </label>
+                        {{ form.course_max_places }}
+                        {% if form.course_max_places.errors %}
+                        <div class="teacher-form-error">
+                            {% for error in form.course_max_places.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Максимальное количество слушателей, которое может записаться на курс (оставьте поле пустым, если ограничений нет)</small>
+                    </div>
+                    <div class="teacher-form-group">
+                        <label for="{{ form.code_link.id_for_label }}">
+                            <i class="fas fa-link"></i> {{ form.code_link.label }}
+                        </label>
+                        {{ form.code_link }}
+                        {% if form.code_link.errors %}
+                        <div class="teacher-form-error">
+                            {% for error in form.code_link.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Ссылка на видеовстречу (Яндекс.Телемост и т.д.)</small>
+                    </div>
+                    
+                    <div class="teacher-form-group">
+                        <label for="{{ form.course_photo_path.id_for_label }}">
+                            <i class="fas fa-image"></i> {{ form.course_photo_path.label }}
+                        </label>
+                        {{ form.course_photo_path }}
+                        {% if form.course_photo_path.errors %}
+                        <div class="teacher-form-error">
+                            {% for error in form.course_photo_path.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% if course.course_photo_path %}
+                        <small class="form-text">Текущее изображение: <a href="{{ course.course_photo_path.url }}" target="_blank">{{ course.course_photo_path.name }}</a></small>
+                        {% endif %}
+                        <small class="form-text">Изображение курса (JPG, JPEG, PNG)</small>
+                    </div>
+                    
+                    <div class="teacher-form-group checkbox-group">
+                        <label class="checkbox-label">
+                            {{ form.has_certificate }}
+                            <span><i class="fas fa-certificate"></i> {{ form.has_certificate.label }}</span>
+                            <small class="form-text">Будет ли выдаваться сертфикат за прохождение вашего курса. Он генерируется автоматически при завершении курса слушателем.</small>
+                        </label>
+                    </div>
+                    
+                    <div class="teacher-form-group checkbox-group">
+                        <label class="checkbox-label">
+                            {{ form.is_active }}
+                            <span><i class="fas fa-power-off"></i> {{ form.is_active.label }}</span>
+                            <small class="form-text">ВНИМАНИЕ! Если галочка на активности курса убирается - курс становится недоступным для слушателей до тех пор, пока галочка не будет поставлена вновь.</small>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="teacher-form-actions">
+                    <button type="submit" class="teacher-btn teacher-btn-primary">
+                        <i class="fas fa-save"></i> Сохранить изменения
+                    </button>
+                    <a href="{% url 'teacher_app:course_detail' course.id %}" class="teacher-btn teacher-btn-secondary">
+                        <i class="fas fa-times"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/teacher.js' %}"></script>
+{% endblock %}

@@ -1,98 +1,93 @@
 /**
-данный файл содержит в себе программный код для работы 
-анимации поиска в шапке сайта и его результатов 
+ * данный файл содержит в себе программный код для работы 
+ * динамического поиска в шапке сайта через БД
  */
-
 
 document.addEventListener('DOMContentLoaded', function() {
     const searchInputs = document.querySelectorAll('.search-input');
     const searchResults = document.querySelectorAll('.search-results');
     
-    const searchData = [
-        {
-            id: 1,
-            title: "Веб-разработка с нуля",
-            category: "Программирование",
-            icon: "fas fa-code",
-            url: "#"
-        },
-        {
-            id: 2,
-            title: "Дизайн интерфейсов",
-            category: "Дизайн",
-            icon: "fas fa-palette",
-            url: "#"
-        },
-        {
-            id: 3,
-            title: "Анализ данных на Python",
-            category: "Аналитика",
-            icon: "fas fa-chart-line",
-            url: "#"
-        },
-        {
-            id: 4,
-            title: "Мобильная разработка",
-            category: "Программирование",
-            icon: "fas fa-mobile-alt",
-            url: "#"
-        },
-        {
-            id: 5,
-            title: "Маркетинг в социальных сетях",
-            category: "Маркетинг",
-            icon: "fas fa-hashtag",
-            url: "#"
-        }
-    ];
+    let searchTimer;
     
-    function performSearch(query, resultsContainer) {
-        if (!query.trim()) {
+    async function performSearch(query, resultsContainer) {
+        if (!query.trim() || query.length < 2) {
             resultsContainer.innerHTML = '';
             resultsContainer.classList.remove('active');
             return;
         }
+
+        resultsContainer.innerHTML = `
+            <div class="search-no-results">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Поиск...</p>
+            </div>
+        `;
+        resultsContainer.classList.add('active');
         
-        const searchTerm = query.toLowerCase().trim();
-        const filteredResults = searchData.filter(item => 
-            item.title.toLowerCase().includes(searchTerm) || 
-            item.category.toLowerCase().includes(searchTerm)
-        );
-        
-        displayResults(filteredResults, resultsContainer);
-    }
-    
-    function displayResults(results, container) {
-        container.innerHTML = '';
-        
-        if (results.length === 0) {
-            container.innerHTML = `
+        try {
+            const response = await fetch(`/search/?q=${encodeURIComponent(query)}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Ошибка сети');
+            }
+            
+            const data = await response.json();
+            displayResults(data, resultsContainer);
+            
+        } catch (error) {
+            console.error('Ошибка поиска:', error);
+            resultsContainer.innerHTML = `
                 <div class="search-no-results">
-                    <i class="fas fa-search" style="margin-bottom: 10px; font-size: 24px;"></i>
-                    <p>Курсы не найдены</p>
-                    <small>Попробуйте другие ключевые слова</small>
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>Ошибка при поиске</p>
+                    <small>Попробуйте позже</small>
                 </div>
             `;
+        }
+    }
+    
+    function displayResults(data, container) {
+        container.innerHTML = '';
+        
+        if (data.results.length === 0) {
+            if (data.suggestion) {
+                container.innerHTML = `
+                    <div class="search-no-results">
+                        <i class="fas fa-search"></i>
+                        <p>Курсы не найдены</p>
+                        <small>Возможно вы имели ввиду:</small>
+                        <a href="${data.suggestion.url}" class="search-suggestion">
+                            ${escapeHtml(data.suggestion.title)}
+                        </a>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="search-no-results">
+                        <i class="fas fa-search"></i>
+                        <p>Курсы не найдены</p>
+                        <small>Попробуйте другие ключевые слова</small>
+                    </div>
+                `;
+            }
         } else {
-            results.forEach(item => {
-                const resultElement = document.createElement('div');
+            data.results.forEach(item => {
+                const resultElement = document.createElement('a');
                 resultElement.className = 'search-result-item';
+                resultElement.href = item.url;
                 resultElement.innerHTML = `
                     <i class="${item.icon} search-result-icon"></i>
                     <div>
-                        <div class="search-result-title">${item.title}</div>
-                        <div class="search-result-category">${item.category}</div>
+                        <div class="search-result-title">${escapeHtml(item.title)}</div>
+                        <div class="search-result-category">${escapeHtml(item.category)}</div>
                     </div>
                 `;
-                
-                resultElement.addEventListener('click', function() {
-                    window.location.href = item.url;
-                    container.classList.remove('active');
-                    document.querySelectorAll('.search-input').forEach(input => {
-                        input.value = '';
-                    });
-                });
-                
                 container.appendChild(resultElement);
             });
         }
@@ -100,11 +95,28 @@ document.addEventListener('DOMContentLoaded', function() {
         container.classList.add('active');
     }
     
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+    
     searchInputs.forEach((input, index) => {
         const resultsContainer = searchResults[index];
         
+        if (!input || !resultsContainer) return;
+        
         input.addEventListener('input', function() {
-            performSearch(this.value, resultsContainer);
+            clearTimeout(searchTimer);
+            const query = this.value;
+            
+            searchTimer = setTimeout(() => {
+                performSearch(query, resultsContainer);
+            }, 300);
         });
         
         document.addEventListener('click', function(e) {
@@ -114,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         input.addEventListener('focus', function() {
-            if (this.value.trim()) {
+            if (this.value.trim().length >= 2) {
                 performSearch(this.value, resultsContainer);
             }
         });
@@ -125,4 +137,36 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    const mobileSearchInput = document.getElementById('mobileSearchInput');
+    const mobileSearchResults = document.getElementById('mobileSearchResults');
+    
+    if (mobileSearchInput && mobileSearchResults) {
+        mobileSearchInput.addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            const query = this.value;
+            
+            searchTimer = setTimeout(() => {
+                performSearch(query, mobileSearchResults);
+            }, 300);
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!mobileSearchInput.contains(e.target) && !mobileSearchResults.contains(e.target)) {
+                mobileSearchResults.classList.remove('active');
+            }
+        });
+        
+        mobileSearchInput.addEventListener('focus', function() {
+            if (this.value.trim().length >= 2) {
+                performSearch(this.value, mobileSearchResults);
+            }
+        });
+        
+        mobileSearchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                mobileSearchResults.classList.remove('active');
+            }
+        });
+    }
 });

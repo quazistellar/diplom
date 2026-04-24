@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Удаление объявления - {{ course.course_name }}{% endblock %}
+
+{% block content %}
+<div class="teacher-page">
+    <div class="teacher-container">
+        <div class="teacher-delete-page">
+            <div class="teacher-card">
+                <div class="teacher-delete-content">
+                    <div class="teacher-delete-icon">
+                        <i class="fas fa-trash-alt"></i>
+                    </div>
+                    <h3>Удаление объявления</h3>
+                    <p>Вы уверены, что хотите удалить объявление?</p>
+                    <strong>"{{ post.title }}"</strong>
+                    <p class="teacher-delete-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Объявление будет скрыто из курса. Комментарии также станут недоступны.
+                    </p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="teacher-form-actions" style="justify-content: center;">
+                            <a href="{% url 'teacher_app:course_posts_manage' course.id %}" class="teacher-btn teacher-btn-secondary">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                            <button type="submit" class="teacher-btn teacher-btn-danger">
+                                <i class="fas fa-trash-alt"></i> Да, удалить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

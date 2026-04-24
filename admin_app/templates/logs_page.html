@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Журнал действий{% endblock %}
+
+{% block content %}
+<div class="logs-page">
+    <div class="container">
+        <div class="admin-header">
+             <h1 class="logs-title">
+                <i class="fas fa-history"></i>
+                Журнал действий
+            </h1>
+            <div class="logs-stats">
+                <span class="stat-badge">
+                    <i class="fas fa-list"></i> Всего записей: {{ logs.paginator.count }}
+                </span>
+                <span class="stat-badge">
+                    <i class="fas fa-filter"></i> 
+                    {% if action_filter == '1' %}Добавления
+                    {% elif action_filter == '2' %}Изменения
+                    {% elif action_filter == '3' %}Удаления
+                    {% else %}Все действия
+                    {% endif %}
+                </span>
+                      <a href="{% url 'admin_app:dashboard' %}" class="btn-admin btn-admin-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад
+                      </a>
+            </div>
+        </div>
+        <form method="get" class="logs-filters" id="filterForm">
+            <div class="filter-group">
+                <label><i class="fas fa-filter"></i> Тип действия</label>
+                <select name="action_filter" onchange="this.form.submit()">
+                    <option value="all" {% if action_filter == 'all' or not action_filter %}selected{% endif %}>Все действия</option>
+                    <option value="1" {% if action_filter == '1' %}selected{% endif %}>Добавлено</option>
+                    <option value="2" {% if action_filter == '2' %}selected{% endif %}>Изменено</option>
+                    <option value="3" {% if action_filter == '3' %}selected{% endif %}>Удалено</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label><i class="fas fa-calendar"></i> Дата</label>
+                <input type="date" name="date_filter" value="{{ date_filter|default:'' }}" onchange="this.form.submit()">
+            </div>
+
+            <div class="filter-group">
+                <label><i class="fas fa-sort"></i> Сортировка</label>
+                <select name="time_sort" onchange="this.form.submit()">
+                    <option value="newest" {% if time_sort == 'newest' or not time_sort %}selected{% endif %}>Сначала новые</option>
+                    <option value="oldest" {% if time_sort == 'oldest' %}selected{% endif %}>Сначала старые</option>
+                </select>
+            </div>
+
+            <div class="filter-actions">
+                <button type="submit" class="btn-filter">
+                    <i class="fas fa-search"></i> Применить
+                </button>
+                <a href="{% url 'admin_app:logs_page' %}" class="btn-reset">
+                    <i class="fas fa-times"></i> Сбросить
+                </a>
+            </div>
+        </form>
+
+        <div class="logs-table-wrapper">
+            {% if logs %}
+            <table class="logs-table">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-clock"></i> Время</th>
+                        <th><i class="fas fa-tag"></i> Действие</th>
+                        <th><i class="fas fa-user"></i> Пользователь</th>
+                        <th><i class="fas fa-database"></i> Модель</th>
+                        <th><i class="fas fa-cube"></i> Объект</th>
+                        <th><i class="fas fa-comment"></i> Детали</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td class="log-time">
+                            <i class="far fa-clock"></i>
+                            {{ log.action_time|date:"d.m.Y H:i:s" }}
+                        </td>
+                        <td>
+                            {% if log.action_flag == 1 %}
+                                <span class="log-flag log-flag-added">
+                                    <i class="fas fa-plus-circle"></i> Добавлено
+                                </span>
+                            {% elif log.action_flag == 2 %}
+                                <span class="log-flag log-flag-changed">
+                                    <i class="fas fa-edit"></i> Изменено
+                                </span>
+                            {% elif log.action_flag == 3 %}
+                                <span class="log-flag log-flag-deleted">
+                                    <i class="fas fa-trash-alt"></i> Удалено
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="log-user">
+                            <i class="fas fa-user-circle"></i>
+                            {% if log.user %}
+                                {{ log.user.get_full_name|default:log.user.username }}
+                            {% else %}
+                                <span style="opacity: 0.6;">Система</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="log-model">
+                                {{ log.content_type.app_label }}.{{ log.content_type.model }}
+                            </span>
+                        </td>
+                        <td class="log-object" title="{{ log.object_repr }}">
+                            <i class="fas fa-cube"></i>
+                            <span class="log-object-text">{{ log.object_repr }}</span>
+                        </td>
+                        <td class="log-message">
+                            <i class="fas fa-comment"></i>
+                            <span class="log-message-content">
+                                {% if log.change_message %}
+                                    {% if '[Админка]' in log.change_message %}
+                                        {{ log.change_message|slice:"10:"|default:"—" }}
+                                    {% else %}
+                                        {{ log.change_message|default:"—" }}
+                                    {% endif %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-logs">
+                <i class="fas fa-inbox"></i>
+                <h3>Записи не найдены</h3>
+                <p>Попробуйте изменить параметры фильтрации</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if logs.has_other_pages %}
+        <div class="logs-pagination">
+            <div class="pagination">
+                <span class="step-links">
+                    {% if logs.has_previous %}
+                        <a href="?page=1{% if action_filter %}&action_filter={{ action_filter }}{% endif %}{% if time_sort %}&time_sort={{ time_sort }}{% endif %}{% if date_filter %}&date_filter={{ date_filter }}{% endif %}" 
+                           class="page-link" title="Первая">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                        <a href="?page={{ logs.previous_page_number }}{% if action_filter %}&action_filter={{ action_filter }}{% endif %}{% if time_sort %}&time_sort={{ time_sort }}{% endif %}{% if date_filter %}&date_filter={{ date_filter }}{% endif %}" 
+                           class="page-link" title="Предыдущая">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    {% endif %}
+
+                    {% for i in logs.paginator.page_range %}
+                        {% if logs.number == i %}
+                            <span class="page-link active">{{ i }}</span>
+                        {% elif i > logs.number|add:'-3' and i < logs.number|add:'3' %}
+                            <a href="?page={{ i }}{% if action_filter %}&action_filter={{ action_filter }}{% endif %}{% if time_sort %}&time_sort={{ time_sort }}{% endif %}{% if date_filter %}&date_filter={{ date_filter }}{% endif %}" 
+                               class="page-link">{{ i }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if logs.has_next %}
+                        <a href="?page={{ logs.next_page_number }}{% if action_filter %}&action_filter={{ action_filter }}{% endif %}{% if time_sort %}&time_sort={{ time_sort }}{% endif %}{% if date_filter %}&date_filter={{ date_filter }}{% endif %}" 
+                           class="page-link" title="Следующая">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                        <a href="?page={{ logs.paginator.num_pages }}{% if action_filter %}&action_filter={{ action_filter }}{% endif %}{% if time_sort %}&time_sort={{ time_sort }}{% endif %}{% if date_filter %}&date_filter={{ date_filter }}{% endif %}" 
+                           class="page-link" title="Последняя">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selects = document.querySelectorAll('.filter-group select');
+    const dateInput = document.querySelector('.filter-group input[type="date"]');
+    
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            document.getElementById('filterForm').submit();
+        });
+    });
+    
+    if (dateInput) {
+        dateInput.addEventListener('change', function() {
+            document.getElementById('filterForm').submit();
+        });
+    }
+});
+</script>
+{% endblock %}

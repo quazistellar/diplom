@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мой профиль (ожидание подтверждения) - UNIREAX{% endblock %}
+
+{% block content %}
+<div class="unv-page">
+    <div class="unv-container">
+        <div class="unv-layout">
+            <aside class="unv-sidebar">
+                <div class="unv-avatar">
+                    <div class="unv-avatar-text">{{ user.last_name|first|upper }}{{ user.first_name|first|upper }}</div>
+                </div>
+                <div class="unv-user-info">
+                    <h2 class="unv-user-name">{{ user.get_full_name|default:user.username }}</h2>
+                    <p class="unv-user-email">{{ user.email }}</p>
+                    <div class="unv-badge-group">
+                        {% if user.role.role_name == 'методист' %}
+                        <span class="unv-badge unv-badge-metodist">
+                            <i class="fas fa-chalkboard-user"></i> Методист
+                        </span>
+                        {% elif user.role.role_name == 'преподаватель' %}
+                        <span class="unv-badge unv-badge-teacher">
+                            <i class="fas fa-chalkboard"></i> Преподаватель
+                        </span>
+                        {% elif user.role.role_name == 'слушатель курсов' %}
+                        <span class="unv-badge unv-badge-student">
+                            <i class="fas fa-graduation-cap"></i> Слушатель курсов
+                        </span>
+                        {% endif %}
+                        <span class="unv-badge unv-badge-pending">
+                            <i class="fas fa-clock"></i> Ожидает подтверждения
+                        </span>
+                    </div>
+                </div>
+
+                <nav class="unv-nav">
+                    <a href="#overview" class="unv-nav-item active" data-tab="overview">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Обзор</span>
+                    </a>
+                    <a href="#verification" class="unv-nav-item" data-tab="verification">
+                        <i class="fas fa-check-double"></i>
+                        <span>Подтверждение</span>
+                    </a>
+                    <a href="#profile" class="unv-nav-item" data-tab="profile">
+                        <i class="fas fa-user-edit"></i>
+                        <span>Редактировать профиль</span>
+                    </a>
+                    <a href="#security" class="unv-nav-item" data-tab="security">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Безопасность</span>
+                    </a>
+                    <a href="{% url 'logout_move' %}" class="unv-nav-item">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Выйти</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <main class="unv-main">
+
+                <div class="unv-banner">
+                    <div class="unv-banner-content">
+                        <div class="unv-banner-icon">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div class="unv-banner-text">
+                            <h3>Ваш аккаунт ожидает подтверждения</h3>
+                            <p>
+                                {% if user.role.role_name == 'преподаватель' or user.role.role_name == 'методист' %}
+                                Ваши документы находятся на проверке. После подтверждения администратором вы получите полный доступ к функционалу платформы.
+                                {% else %}
+                                Ваш аккаунт находится на проверке. После подтверждения вы получите полный доступ к платформе.
+                                {% endif %}
+                            </p>
+                            <div class="unv-banner-info">
+                                <small>
+                                    <strong>Статус:</strong> Ожидает подтверждения 
+                                    {% if user.role.role_name == 'преподаватель' or user.role.role_name == 'методист' %}
+                                    • Проверка документов
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="unv-banner-actions">
+                        <button class="unv-btn-contact" id="showContactBtn">
+                            <i class="fas fa-envelope"></i> Связаться с администрацией
+                        </button>
+                    </div>
+                </div>
+
+                <div class="unv-tab active" id="overview-tab">
+                    <div class="unv-tab-header">
+                        <h1>Обзор профиля</h1>
+                        <p>Основная информация и ограничения</p>
+                    </div>
+
+                    <div class="unv-info-grid">
+                        <div class="unv-info-card">
+                            <div class="unv-info-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div class="unv-info-content">
+                                <div class="unv-info-label">Почта</div>
+                                <div class="unv-info-value">{{ user.email }}</div>
+                            </div>
+                        </div>
+
+                        <div class="unv-info-card">
+                            <div class="unv-info-icon">
+                                <i class="fas fa-user-tag"></i>
+                            </div>
+                            <div class="unv-info-content">
+                                <div class="unv-info-label">Имя пользователя</div>
+                                <div class="unv-info-value">{{ user.username }}</div>
+                            </div>
+                        </div>
+
+                        <div class="unv-info-card">
+                            <div class="unv-info-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="unv-info-content">
+                                <div class="unv-info-label">Дата регистрации</div>
+                                <div class="unv-info-value">{{ user.date_joined|date:"d.m.Y" }}</div>
+                            </div>
+                        </div>
+
+                        <div class="unv-info-card">
+                            <div class="unv-info-icon">
+                                <i class="fas fa-flag-checkered"></i>
+                            </div>
+                            <div class="unv-info-content">
+                                <div class="unv-info-label">Статус</div>
+                                <div class="unv-info-value unv-status-pending">
+                                    <i class="fas fa-clock"></i> Ожидает подтверждения
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="unv-limitations">
+                        <div class="unv-limitations-header">
+                            <h3>Ограничения в режиме ожидания</h3>
+                            <p>До подтверждения вашего аккаунта некоторые функции недоступны:</p>
+                        </div>
+                        <div class="unv-limitations-grid">
+                            <div class="unv-limitation-item">
+                                <span class="unv-limitation-icon">❌</span>
+                                <span class="unv-limitation-text">Запись на курсы</span>
+                            </div>
+                            <div class="unv-limitation-item">
+                                <span class="unv-limitation-icon">❌</span>
+                                <span class="unv-limitation-text">Создание курсов (для методистов)</span>
+                            </div>
+                            <div class="unv-limitation-item">
+                                <span class="unv-limitation-icon">❌</span>
+                                <span class="unv-limitation-text">Преподавание (для преподавателей)</span>
+                            </div>
+                            <div class="unv-limitation-item">
+                                <span class="unv-limitation-icon">❌</span>
+                                <span class="unv-limitation-text">Доступ к материалам курсов</span>
+                            </div>
+                            <div class="unv-limitation-item">
+                                <span class="unv-limitation-icon">✅</span>
+                                <span class="unv-limitation-text">Просмотр каталога курсов</span>
+                            </div>
+                            <div class="unv-limitation-item">
+                                <span class="unv-limitation-icon">✅</span>
+                                <span class="unv-limitation-text">Редактирование профиля</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="unv-tab" id="verification-tab">
+                    <div class="unv-tab-header">
+                        <h1>Подтверждение аккаунта</h1>
+                        <p>Исправьте данные и отправьте на повторную проверку</p>
+                    </div>
+
+                    <div class="unv-process">
+                        <div class="unv-steps">
+                            <div class="unv-step active">
+                                <div class="unv-step-number">1</div>
+                                <div class="unv-step-content">
+                                    <h4>Проверка данных</h4>
+                                    <p>Администратор проверяет ваши данные и документы</p>
+                                </div>
+                            </div>
+                            <div class="unv-step active">
+                                <div class="unv-step-number">2</div>
+                                <div class="unv-step-content">
+                                    <h4>Исправление замечаний</h4>
+                                    <p>Внесите необходимые исправления по комментариям администратора</p>
+                                </div>
+                            </div>
+                            <div class="unv-step">
+                                <div class="unv-step-number">3</div>
+                                <div class="unv-step-content">
+                                    <h4>Подтверждение</h4>
+                                    <p>Аккаунт активирован после успешной проверки</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="unv-documents-list">
+                            <div class="unv-document-item">
+                                <span class="unv-document-name">Личные данные</span>
+                                <span class="unv-document-status uploaded">Заполнены</span>
+                            </div>
+                            {% if user.role.role_name == 'преподаватель' or user.role.role_name == 'методист' %}
+                            <div class="unv-document-item">
+                                <span class="unv-document-name">Справка с места работы/документ об образовании</span>
+                                {% if user.certificate_file %}
+                                <span class="unv-document-status uploaded">Загружена</span>
+                                <a href="{{ user.certificate_file.url }}" target="_blank" class="unv-document-link">Просмотреть</a>
+                                {% else %}
+                                <span class="unv-document-status missing">Отсутствует</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="unv-warning-notice">
+                            <p><i class="fas fa-info-circle"></i> После изменения данных ваш аккаунт будет отправлен на повторную проверку</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="unv-tab" id="profile-tab">
+                    <div class="unv-tab-header">
+                        <h1>Редактирование профиля</h1>
+                        <p>Управление личной информацией</p>
+                    </div>
+
+                    <div class="unv-form-card">
+                        <h3 class="unv-form-title">
+                            <i class="fas fa-user-edit"></i> Личная информация
+                        </h3>
+                        <form method="post" class="unv-form" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="profile_update" value="true">
+                            
+                            <div class="unv-form-row">
+                                <div class="unv-form-group">
+                                    <label class="unv-form-label">
+                                        <i class="fas fa-user"></i> Имя *
+                                    </label>
+                                    <input type="text" name="first_name" value="{{ user.first_name }}" class="unv-form-control" required>
+                                </div>
+                                <div class="unv-form-group">
+                                    <label class="unv-form-label">
+                                        <i class="fas fa-user"></i> Фамилия *
+                                    </label>
+                                    <input type="text" name="last_name" value="{{ user.last_name }}" class="unv-form-control" required>
+                                </div>
+                            </div>
+
+                            <div class="unv-form-group">
+                                <label class="unv-form-label">
+                                    <i class="fas fa-user"></i> Отчество
+                                </label>
+                                <input type="text" name="patronymic" value="{{ user.patronymic|default:'' }}" class="unv-form-control">
+                            </div>
+
+                            <div class="unv-form-group">
+                                <label class="unv-form-label">
+                                    <i class="fas fa-at"></i> Имя пользователя *
+                                </label>
+                                <input type="text" name="username" value="{{ user.username }}" class="unv-form-control" required>
+                            </div>
+
+                            <div class="unv-form-group">
+                                <label class="unv-form-label">
+                                    <i class="fas fa-envelope"></i> Email *
+                                </label>
+                                <input type="email" name="email" value="{{ user.email }}" class="unv-form-control" required>
+                            </div>
+
+                            {% if user.role.role_name == 'преподаватель' or user.role.role_name == 'методист' %}
+                            <div class="unv-form-group">
+                                <label class="unv-form-label">
+                                    <i class="fas fa-briefcase"></i> Должность *
+                                </label>
+                                <input type="text" name="position" value="{{ user.position }}" class="unv-form-control" required>
+                            </div>
+
+                            <div class="unv-form-group">
+                                <label class="unv-form-label">
+                                    <i class="fas fa-university"></i> Учебное заведение *
+                                </label>
+                                <input type="text" name="educational_institution" value="{{ user.educational_institution }}" class="unv-form-control" required>
+                            </div>
+
+                            <div class="unv-form-group">
+                                <label class="unv-form-label">
+                                    <i class="fas fa-file-alt"></i> Справка с места работы/документ об образовании
+                                </label>
+                                <input type="file" name="certificate_file" class="unv-form-control" accept=".jpg,.jpeg,.png,.pdf">
+                                {% if user.certificate_file %}
+                                <small class="unv-form-text">Текущий файл: {{ user.certificate_file.name }}</small>
+                                {% endif %}
+                                <small class="unv-form-text">Форматы: JPG, PNG, PDF. Максимальный размер: 10 МБ</small>
+                            </div>
+                            {% endif %}
+
+                            <div class="unv-form-actions">
+                                <button type="submit" class="unv-btn-primary">
+                                    <i class="fas fa-save"></i> Сохранить и отправить на проверку
+                                </button>
+                            </div>
+
+                            <div class="unv-notice">
+                                <p><i class="fas fa-info-circle"></i> После сохранения изменений ваш аккаунт будет отправлен на повторную проверку администратором.</p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="unv-tab" id="security-tab">
+                    <div class="unv-tab-header">
+                        <h1>Безопасность</h1>
+                        <p>Управление паролем и настройками безопасности</p>
+                    </div>
+
+                    <div class="unv-form-card">
+                        <h3 class="unv-form-title">
+                            <i class="fas fa-key"></i> Смена пароля
+                        </h3>
+                        <form method="post" class="unv-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="password_change" value="true">
+                            
+                            <div class="unv-form-group">
+                                <label class="unv-form-label">
+                                    <i class="fas fa-lock"></i> Текущий пароль
+                                </label>
+                                <input type="password" name="old_password" class="unv-form-control" required>
+                            </div>
+
+                            <div class="unv-form-group">
+                                <label class="unv-form-label">
+                                    <i class="fas fa-key"></i> Новый пароль
+                                </label>
+                                <input type="password" name="new_password1" class="unv-form-control" required>
+                                <small class="unv-form-text">Пароль должен содержать минимум 8 символов, включая заглавную букву, строчную, цифру и спецсимвол</small>
+                            </div>
+
+                            <div class="unv-form-group">
+                                <label class="unv-form-label">
+                                    <i class="fas fa-check-circle"></i> Подтвердите новый пароль
+                                </label>
+                                <input type="password" name="new_password2" class="unv-form-control" required>
+                            </div>
+
+                            <div class="unv-form-actions">
+                                <button type="submit" class="unv-btn-primary">
+                                    <i class="fas fa-save"></i> Обновить пароль
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+
+<div id="contactModal" class="unv-modal">
+    <div class="unv-modal-content">
+        <div class="unv-modal-header">
+            <h3><i class="fas fa-headset"></i> Связаться с администрацией</h3>
+            <span class="unv-modal-close" onclick="closeContactModal()">&times;</span>
+        </div>
+        <div class="unv-modal-body">
+            <p>Для ускорения процесса подтверждения аккаунта вы можете:</p>
+            <ul>
+                <li><i class="fas fa-envelope"></i> Написать на email: <strong>unireax@mail.ru</strong></li>
+                <li><i class="fas fa-phone-alt"></i> Позвонить по телефону: <strong>8-834-321-77-89</strong></li>
+                <li><i class="fas fa-phone-alt"></i> Дополнительный номер: <strong>8-875-385-81-54</strong></li>
+                <li><i class="fas fa-comment"></i> Обратиться через форму обратной связи на странице "О нас"</li>
+            </ul>
+            <p>При обращении укажите ваше имя пользователя: <strong>{{ user.username }}</strong></p>
+        </div>
+        <div class="unv-modal-footer">
+            <button onclick="closeContactModal()" class="unv-btn-primary">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.unv-nav-item[data-tab]').forEach(item => {
+    item.addEventListener('click', function(e) {
+        e.preventDefault();
+        const tabName = this.getAttribute('data-tab');
+        
+        document.querySelectorAll('.unv-nav-item').forEach(nav => nav.classList.remove('active'));
+        document.querySelectorAll('.unv-tab').forEach(tab => tab.classList.remove('active'));
+        
+        this.classList.add('active');
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+    });
+});
+
+const contactModal = document.getElementById('contactModal');
+
+function showContactModal() {
+    contactModal.classList.add('active');
+}
+
+function closeContactModal() {
+    contactModal.classList.remove('active');
+}
+
+window.onclick = function(event) {
+    if (event.target === contactModal) {
+        closeContactModal();
+    }
+}
+
+document.getElementById('showContactBtn').addEventListener('click', showContactModal);
+</script>
+{% endblock %}

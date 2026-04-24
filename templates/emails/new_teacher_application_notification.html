@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #8A4FFF, #6B31CC);
+            padding: 30px;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+        }
+        .header h1 {
+            color: white;
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 12px 12px;
+            border: 1px solid #e9ecef;
+            border-top: none;
+        }
+        .info-box {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #8A4FFF, #6B31CC);
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            font-size: 12px;
+            color: #6c757d;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>UNIREAX</h1>
+    </div>
+    <div class="content">
+        <p>Здравствуйте, <strong>{{ methodist_name }}</strong>!</p>
+        
+        <p>Поступила новая заявка на преподавание курса.</p>
+        
+        <div class="info-box">
+            <p><strong>📋 Информация о заявке:</strong></p>
+            <ul style="margin-bottom: 0;">
+                <li><strong>Преподаватель:</strong> {{ teacher_name }}</li>
+                <li><strong>Email преподавателя:</strong> {{ teacher_email }}</li>
+                <li><strong>Курс:</strong> {{ course_name }}</li>
+            </ul>
+        </div>
+        
+        <p>Для обработки заявки перейдите по ссылке ниже:</p>
+        
+        <div style="text-align: center;">
+            <a href="{{ protocol }}://{{ domain }}/methodist/teacher-applications/{{ application_id }}/" class="button">
+                Рассмотреть заявку
+            </a>
+        </div>
+        
+        <p>Вы можете одобрить или отклонить заявку. В случае отклонения рекомендуется указать причину.</p>
+        
+        <p>С уважением,<br>Команда UNIREAX</p>
+    </div>
+    <div class="footer">
+        <p>© {% now "Y" %} UNIREAX - Образовательная платформа</p>
+        <p>Это письмо было отправлено автоматически, пожалуйста, не отвечайте на него.</p>
+    </div>
+</body>
+</html>

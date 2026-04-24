@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - {% if lecture %}Редактирование лекции{% else %}Создание лекции{% endif %}{% endblock %}
+
+{% block content %}
+<div class="methodist-lecture-form-page">
+    <div class="methodist-container">
+        <div class="methodist-page-header">
+            <div>
+                <h1 class="methodist-page-title">
+                    {% if lecture %}Редактирование лекции{% else %}Создание лекции{% endif %}
+                </h1>
+                <p class="methodist-page-subtitle">Для курса: {{ course.course_name }}</p>
+            </div>
+             {% if user.role.role_name == 'методист' %}
+                        <a href="{% url 'methodist_app:course_detail' course.id %}" class="methodist-btn methodist-btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Назад к курсу
+                        </a>
+                        {% elif user.role.role_name == 'преподаватель' %}
+                        <a href="{% url 'teacher_app:course_detail' course.id %}" class="teacher-btn teacher-btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Назад к курсу
+                        </a>
+            {% endif %}
+        </div>
+        
+        <div class="methodist-card">
+            <form method="post" class="methodist-form">
+                {% csrf_token %}
+                
+                <div class="methodist-form-group">
+                    <label for="{{ form.lecture_name.id_for_label }}">
+                        <i class="fas fa-heading"></i> {{ form.lecture_name.label }}
+                    </label>
+                    {{ form.lecture_name }}
+                    {% if form.lecture_name.errors %}
+                    <div class="methodist-form-error">
+                        {% for error in form.lecture_name.errors %}
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text">Название лекции (3-200 символов)</small>
+                </div>
+                
+                <div class="methodist-form-group">
+                    <label for="{{ form.lecture_content.id_for_label }}">
+                        <i class="fas fa-align-left"></i> {{ form.lecture_content.label }}
+                    </label>
+                    {{ form.lecture_content }}
+                    {% if form.lecture_content.errors %}
+                    <div class="methodist-form-error">
+                        {% for error in form.lecture_content.errors %}
+                            <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <small class="form-text">Содержание лекции (минимум 50 символов)</small>
+                </div>
+                
+                <div class="methodist-form-grid">
+                    <div class="methodist-form-group">
+                        <label for="{{ form.lecture_order.id_for_label }}">
+                            <i class="fas fa-sort-numeric-down"></i> {{ form.lecture_order.label }}
+                        </label>
+                        {{ form.lecture_order }}
+                        {% if form.lecture_order.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.lecture_order.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Порядковый номер лекции в курсе</small>
+                    </div>
+                    
+                    <div class="methodist-form-group">
+                        <label for="{{ form.lecture_document_path.id_for_label }}">
+                            <i class="fas fa-file-pdf"></i> {{ form.lecture_document_path.label }}
+                        </label>
+                        {{ form.lecture_document_path }}
+                        {% if form.lecture_document_path.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.lecture_document_path.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% if lecture and lecture.lecture_document_path %}
+                        <small class="form-text">Текущий файл: <a href="{{ lecture.lecture_document_path.url }}" target="_blank">{{ lecture.lecture_document_path.name }}</a></small>
+                        {% endif %}
+                        <small class="form-text">PDF, DOC, DOCX, PPT, PPTX, TXT (до 50 МБ)</small>
+                    </div>
+                </div>
+                
+                <div class="methodist-form-group checkbox-group">
+                    <label class="checkbox-label">
+                        {{ form.is_active }}
+                        <span><i class="fas fa-eye"></i> {{ form.is_active.label }}</span>
+                    </label>
+                </div>
+                
+                <div class="methodist-form-actions">
+                    <button type="submit" class="methodist-btn methodist-btn-primary">
+                        <i class="fas fa-save"></i> {% if lecture %}Сохранить изменения{% else %}Создать лекцию{% endif %}
+                    </button>
+                      {% if user.role.role_name == 'методист' %}
+                        <a href="{% url 'methodist_app:course_detail' course.id %}" class="methodist-btn methodist-btn-secondary">
+                            <i class="fas fas fa-times"></i> Отмена
+                        </a>
+                        {% elif user.role.role_name == 'преподаватель' %}
+                        <a href="{% url 'teacher_app:course_detail' course.id %}" class="teacher-btn teacher-btn-secondary">
+                            <i class="fas fas fa-times"></i> Отмена
+                        </a>
+                        {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/methodist.js' %}"></script>
+{% endblock %}

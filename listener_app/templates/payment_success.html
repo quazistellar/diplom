@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Оплата успешна - UNIREAX{% endblock %}
+
+{% block extra_css %}
+<style>
+.payment-success-container {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.success-icon {
+    width: 80px;
+    height: 80px;
+    background: #2ecc71;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 30px;
+    font-size: 40px;
+    color: white;
+    box-shadow: 0 10px 30px rgba(46,204,113,0.4);
+}
+
+.payment-details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 25px;
+    margin: 25px 0;
+    text-align: left;
+}
+
+.payment-detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.payment-detail-row:last-child {
+    border-bottom: none;
+}
+
+.payment-detail-label {
+    color: var(--text-soft);
+    font-weight: 900;
+}
+
+.payment-detail-value {
+    font-weight: 900;
+    color: var(--text);
+}
+
+.receipt-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin: 25px 0;
+    flex-wrap: wrap;
+}
+
+.receipt-number {
+    background: rgba(138,79,255,0.1);
+    padding: 12px;
+    border-radius: 12px;
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--text-soft);
+}
+
+@media (max-width: 480px) {
+    .receipt-actions {
+        flex-direction: column;
+    }
+    
+    .receipt-actions .lsn-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="payment-success-container">
+            <div class="success-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <h1 class="lsn-title">Оплата успешна!</h1>
+            <p>Курс <strong>{{ course.course_name }}</strong> успешно оплачен.</p>
+            <p>Сумма: <strong>{{ course.course_price }} ₽</strong></p>
+
+            <div class="payment-details">
+                <div class="payment-detail-row">
+                    <span class="payment-detail-label">Номер платежа:</span>
+                    <span class="payment-detail-value">{{ payment_id }}</span>
+                </div>
+                <div class="payment-detail-row">
+                    <span class="payment-detail-label">Дата оплаты:</span>
+                    <span class="payment-detail-value">{{ user_course.payment_date|date:"d.m.Y H:i" }}</span>
+                </div>
+                <div class="payment-detail-row">
+                    <span class="payment-detail-label">Слушатель:</span>
+                    <span class="payment-detail-value">{{ user.get_full_name }}</span>
+                </div>
+                <div class="payment-detail-row">
+                    <span class="payment-detail-label">Статус:</span>
+                    <span class="payment-detail-value" style="color: #2ecc71;">Оплачено</span>
+                </div>
+            </div>
+
+            <div class="receipt-actions">
+                <a href="{% url 'listener_app:payment_receipt' course.id payment_id %}" class="lsn-btn lsn-btn-primary" id="downloadReceiptBtn">
+                    <i class="fas fa-receipt"></i> Скачать чек (PDF)
+                </a>
+                <button onclick="printReceipt()" class="lsn-btn lsn-btn-outline" id="printReceiptBtn">
+                    <i class="fas fa-print"></i> Распечатать чек
+                </button>
+            </div>
+
+            <div class="receipt-number">
+                <i class="fas fa-hashtag"></i> Чек №{{ payment_id|slice:"-8:"|upper }}
+            </div>
+
+            <div class="receipt-actions" style="margin-top: 15px;">
+                <a href="{% url 'listener_app:course_study' course.id %}" class="lsn-btn lsn-btn-primary">
+                    <i class="fas fa-play"></i> Перейти к курсу
+                </a>
+                <a href="{% url 'main_page' %}" class="lsn-btn lsn-btn-outline">
+                    <i class="fas fa-home"></i> На главную
+                </a>
+            </div>
+
+            <div class="payment-note" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border);">
+                <p style="color: var(--text-soft); font-size: 12px;">
+                    <i class="fas fa-envelope"></i> Чек также отправлен на вашу почту: <strong>{{ user.email }}</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function printReceipt() {
+    // Получаем URL для скачивания чека
+    const receiptUrl = "{% url 'listener_app:payment_receipt' course.id payment_id %}";
+    
+    // Скачиваем PDF и открываем его для печати
+    fetch(receiptUrl)
+        .then(response => response.blob())
+        .then(blob => {
+            // Создаем URL для blob
+            const blobUrl = URL.createObjectURL(blob);
+            
+            // Открываем PDF в новой вкладке для печати
+            const printWindow = window.open(blobUrl, '_blank');
+            
+            // Ждем загрузки PDF и вызываем печать
+            if (printWindow) {
+                printWindow.onload = function() {
+                    setTimeout(function() {
+                        printWindow.print();
+                    }, 1000);
+                };
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при загрузке чека:', error);
+            // Fallback: просто открываем ссылку
+            window.open(receiptUrl, '_blank');
+        });
+}
+
+// Предотвращаем случайное закрытие окна при скачивании
+document.getElementById('downloadReceiptBtn').addEventListener('click', function(e) {
+    // Разрешаем стандартное поведение - скачивание файла
+    // Ничего не делаем, просто даем ссылке работать
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/listener.js' %}"></script>
+{% endblock %}

@@ -23,6 +23,16 @@ class UnireaxMainConfig(AppConfig):
 
     def ready(self):
         """запускается при готовности приложения"""
+
+        try:
+            import admin_app.logs_utils
+        except ImportError as e:
+            print(f"не удалось подключить логирование: {e}")
+        
+        try:
+            import unireax_main.signals
+        except ImportError as e:
+            print(f"[сигналы] не удалось подключить сигналы: {e}")
         
         if os.environ.get('RUN_MAIN', None) == 'true' or not os.environ.get('RUN_MAIN'):
             thread_setup = threading.Thread(target=run_initial_setup)

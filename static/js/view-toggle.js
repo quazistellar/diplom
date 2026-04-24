@@ -1,6 +1,7 @@
 /**
  * данный файл содержит в себе программный код для работы 
  * отображения списка курсов в сетке по карточкам или по одному элементу
+ * с плавной анимацией переключения
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -8,25 +9,57 @@ document.addEventListener('DOMContentLoaded', function() {
     const coursesContainer = document.getElementById('courses-container');
     
     if (!coursesContainer) {
-        console.log('Контейнер курсов не найден');
         return;
     }
     
-    function applyView(viewType) {
-        coursesContainer.classList.remove('grid-view', 'list-view');
-        coursesContainer.classList.add(viewType + '-view');
-        viewBtns.forEach(btn => {
-            if (btn.dataset.view === viewType) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
+    const style = document.createElement('style');
+    style.textContent = `
+        .courses-container {
+            transition: opacity 0.3s ease;
+        }
         
-        localStorage.setItem('coursesView', viewType);
+        .courses-container.view-transition {
+            opacity: 0.6;
+        }
         
-    }
+        .grid-card, .list-card {
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        
+        .grid-card {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .list-card {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    `;
+    document.head.appendChild(style);
     
+    function applyView(viewType) {
+        coursesContainer.classList.add('view-transition');
+
+        setTimeout(() => {
+            coursesContainer.classList.remove('grid-view', 'list-view');
+            coursesContainer.classList.add(viewType + '-view');
+            
+            viewBtns.forEach(btn => {
+                if (btn.dataset.view === viewType) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            localStorage.setItem('coursesView', viewType);
+            
+            setTimeout(() => {
+                coursesContainer.classList.remove('view-transition');
+            }, 50);
+        }, 50);
+    }
 
     function handleViewButtonClick(e) {
         e.stopPropagation();
@@ -78,7 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 applyView(viewType);
                 return true;
             }
-            console.error('Неверный тип вида. Используйте "grid" или "list"');
             return false;
         },
         getCurrentView: function() {

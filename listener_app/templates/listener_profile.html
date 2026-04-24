@@ -1,0 +1,561 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мой профиль - UNIREAX{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/teacher_deleted_account_modal.css' %}">
+<link rel="stylesheet" href="{% static 'css/listener_payment_modal.css' %}">
+<style>
+    .lsn-nav-link.payments-link {
+        color: #2ecc71;
+    }
+    .lsn-nav-link.payments-link:hover,
+    .lsn-nav-link.payments-link.active {
+        background: rgba(46, 204, 113, 0.1);
+        color: #2ecc71;
+    }
+    .lsn-nav-link.payments-link i {
+        color: #2ecc71;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="lsn-profile-layout">
+            <aside class="lsn-sidebar">
+                <div class="lsn-avatar">
+                    <div class="lsn-avatar-text">{{ user.last_name|first|upper }}{{ user.first_name|first|upper }}</div>
+                </div>
+                <div class="lsn-user-info">
+                    <h2 class="lsn-user-name">{{ user.get_full_name|default:user.username }}</h2>
+                    <p class="lsn-user-email">{{ user.email }}</p>
+                </div>
+
+                <nav class="lsn-nav">
+                    <a href="#overview" class="lsn-nav-link active" data-tab="overview">
+                        <i class="fas fa-chart-line"></i> Обзор
+                    </a>
+                    <a href="#payments" class="lsn-nav-link payments-link" data-tab="payments">
+                        <i class="fas fa-credit-card"></i> Оплата курсов
+                    </a>
+                    <a href="#profile" class="lsn-nav-link" data-tab="profile">
+                        <i class="fas fa-user-edit"></i> Редактировать профиль
+                    </a>
+                    <a href="#security" class="lsn-nav-link" data-tab="security">
+                        <i class="fas fa-shield-alt"></i> Безопасность
+                    </a>
+                </nav>
+            </aside>
+
+            <main class="lsn-main">
+
+                <div class="lsn-tab active" id="overview-tab">
+                    <div class="lsn-tab-header">
+                        <h1>Обзор профиля</h1>
+                        <p>Основная информация и активность</p>
+                    </div>
+
+                    <div class="lsn-info-grid">
+                        <div class="lsn-info-card">
+                            <div class="lsn-info-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div class="lsn-info-content">
+                                <div class="lsn-info-label">Почта</div>
+                                <div class="lsn-info-value">{{ user.email }}</div>
+                            </div>
+                        </div>
+                        <div class="lsn-info-card">
+                            <div class="lsn-info-icon">
+                                <i class="fas fa-user-tag"></i>
+                            </div>
+                            <div class="lsn-info-content">
+                                <div class="lsn-info-label">Имя пользователя</div>
+                                <div class="lsn-info-value">{{ user.username }}</div>
+                            </div>
+                        </div>
+                        <div class="lsn-info-card">
+                            <div class="lsn-info-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="lsn-info-content">
+                                <div class="lsn-info-label">Дата регистрации</div>
+                                <div class="lsn-info-value">{{ user.date_joined|date:"d.m.Y" }}</div>
+                            </div>
+                        </div>
+                        <div class="lsn-info-card">
+                            <div class="lsn-info-icon">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <div class="lsn-info-content">
+                                <div class="lsn-info-label">Изучается курсов</div>
+                                <div class="lsn-info-value">{{ total_courses }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lsn-info-grid">
+                        <div class="lsn-info-card">
+                            <div class="lsn-info-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="lsn-info-content">
+                                <div class="lsn-info-label">Завершено курсов</div>
+                                <div class="lsn-info-value">{{ completed_courses }}</div>
+                            </div>
+                        </div>
+                        <div class="lsn-info-card">
+                            <div class="lsn-info-icon">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="lsn-info-content">
+                                <div class="lsn-info-label">Сдано работ</div>
+                                <div class="lsn-info-value">{{ graded_assignments }}/{{ total_assignments }}</div>
+                            </div>
+                        </div>
+                        <div class="lsn-info-card">
+                            <div class="lsn-info-icon">
+                                <i class="fas fa-question-circle"></i>
+                            </div>
+                            <div class="lsn-info-content">
+                                <div class="lsn-info-label">Пройдено тестов</div>
+                                <div class="lsn-info-value">{{ passed_tests }}/{{ total_tests }}</div>
+                            </div>
+                        </div>
+                        <div class="lsn-info-card">
+                            <div class="lsn-info-icon">
+                                <i class="fas fa-certificate"></i>
+                            </div>
+                            <div class="lsn-info-content">
+                                <div class="lsn-info-label">Сертификатов</div>
+                                <div class="lsn-info-value">{{ completed_courses }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lsn-tab" id="payments-tab">
+                    <div class="lsn-tab-header">
+                        <h1><i class="fas fa-credit-card"></i> Оплата курсов</h1>
+                        <p>История ваших платежей и чеки</p>
+                    </div>
+                    
+                    <div class="lsn-payments-summary">
+                        <div class="lsn-payments-total">
+                            <div class="total-icon">
+                                <i class="fas fa-ruble-sign"></i>
+                            </div>
+                            <div class="total-info">
+                                <span class="total-label">Общая сумма оплат</span>
+                                <span class="total-value">{{ total_spent|floatformat:2|default:"0" }} ₽</span>
+                            </div>
+                        </div>
+                        <div class="lsn-payments-count">
+                            <i class="fas fa-receipt"></i>
+                            <span>{{ paid_courses_count|default:"0" }} оплаченных курсов</span>
+                        </div>
+                    </div>
+                    
+                    {% if paid_courses %}
+                    <div class="lsn-payments-list">
+                        {% for payment in paid_courses %}
+                        <div class="lsn-payment-card">
+                            <div class="payment-card-header">
+                                <div class="payment-course-icon">
+                                    <i class="fas fa-graduation-cap"></i>
+                                </div>
+                                <div class="payment-course-info">
+                                    <h3 class="payment-course-name">{{ payment.course.course_name }}</h3>
+                                    <p class="payment-course-category">
+                                        {% if payment.course.course_category %}
+                                            {{ payment.course.course_category.course_category_name }}
+                                        {% else %}
+                                            Без категории
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="payment-amount">
+                                    <span class="amount-value">{{ payment.course_price|floatformat:2 }} ₽</span>
+                                </div>
+                            </div>
+                            <div class="payment-card-body">
+                                <div class="payment-details">
+                                    <div class="payment-detail-item">
+                                        <i class="fas fa-calendar"></i>
+                                        <span>Дата оплаты:</span>
+                                        <strong>{{ payment.payment_date|date:"d.m.Y H:i" }}</strong>
+                                    </div>
+                                    <div class="payment-detail-item">
+                                        <i class="fas fa-hashtag"></i>
+                                        <span>Номер платежа:</span>
+                                        <strong>{{ payment.payment_id|slice:"-12:"|upper }}</strong>
+                                    </div>
+                                    <div class="payment-detail-item">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Статус:</span>
+                                        <strong style="color: #2ecc71;">Оплачено</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="payment-card-footer">
+                                <button type="button" class="text-link view-receipt-btn" 
+                                        data-payment-id="{{ payment.payment_id }}"
+                                        data-course-id="{{ payment.course.id }}"
+                                        data-course-name="{{ payment.course.course_name }}"
+                                        data-amount="{{ payment.course_price }}"
+                                        data-date="{{ payment.payment_date|date:"Y-m-d H:i:s" }}">
+                                    <i class="fas fa-receipt"></i> Просмотреть чек
+                                </button>
+                                <a href="{% url 'listener_app:payment_receipt' payment.course.id payment.payment_id %}" class="text-link" target="_blank" style="display: inline-flex; align-items: center; gap: 6px;">
+                                    <i class="fas fa-download"></i> Скачать чек (PDF)
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="lsn-empty-state">
+                        <i class="fas fa-credit-card"></i>
+                        <h3>Нет оплаченных курсов</h3>
+                        <p>Вы пока не приобрели ни одного платного курса</p>
+                        <a href="{% url 'courses_page' %}" class="lsn-btn lsn-btn-primary">
+                            <i class="fas fa-search"></i> Перейти в каталог курсов
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="lsn-tab" id="profile-tab">
+                    <div class="lsn-tab-header">
+                        <h1>Редактирование профиля</h1>
+                        <p>Управление личной информацией</p>
+                    </div>
+
+                    <div class="lsn-form-card">
+                        <h3 class="lsn-form-title">
+                            <i class="fas fa-user-edit"></i> Личная информация
+                        </h3>
+                        <form method="post" class="lsn-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="profile_update" value="true">
+                            
+                            <div class="lsn-form-row">
+                                <div class="lsn-form-group">
+                                    <label class="lsn-form-label">
+                                        <i class="fas fa-user"></i> Имя *
+                                    </label>
+                                    <input type="text" name="first_name" value="{{ user.first_name }}" class="lsn-form-control" required>
+                                </div>
+                                <div class="lsn-form-group">
+                                    <label class="lsn-form-label">
+                                        <i class="fas fa-user"></i> Фамилия *
+                                    </label>
+                                    <input type="text" name="last_name" value="{{ user.last_name }}" class="lsn-form-control" required>
+                                </div>
+                            </div>
+
+                            <div class="lsn-form-group">
+                                <label class="lsn-form-label">
+                                    <i class="fas fa-user"></i> Отчество
+                                </label>
+                                <input type="text" name="patronymic" value="{{ user.patronymic|default:'' }}" class="lsn-form-control">
+                            </div>
+
+                            <div class="lsn-form-group">
+                                <label class="lsn-form-label">
+                                    <i class="fas fa-at"></i> Имя пользователя *
+                                </label>
+                                <input type="text" name="username" value="{{ user.username }}" class="lsn-form-control" required>
+                            </div>
+
+                            <div class="lsn-form-group">
+                                <label class="lsn-form-label">
+                                    <i class="fas fa-envelope"></i> Email *
+                                </label>
+                                <input type="email" name="email" value="{{ user.email }}" class="lsn-form-control" required>
+                            </div>
+
+                            <div class="lsn-form-actions">
+                                <button type="submit" class="lsn-btn lsn-btn-primary">
+                                    <i class="fas fa-save"></i> Сохранить изменения
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="lsn-form-card" style="margin-top: 20px; border-top: 2px solid #e74c3c;">
+                        <h3 class="lsn-form-title" style="color: #e74c3c;">
+                            <i class="fas fa-exclamation-triangle"></i> Опасная зона
+                        </h3>
+                        <p style="margin-bottom: 15px; color: #666;">Действия, которые нельзя отменить</p>
+                        <button type="button" class="profile-btn-danger" onclick="openDeleteModal()">
+                            <i class="fas fa-trash-alt"></i> Удалить аккаунт
+                        </button>
+                        <small class="form-text" style="display: block; margin-top: 10px; color: #e74c3c;">
+                            <i class="fas fa-info-circle"></i> Внимание! Удаление аккаунта необратимо. Все ваши данные будут анонимизированы.
+                        </small>
+                    </div>
+                </div>
+
+                <div class="lsn-tab" id="security-tab">
+                    <div class="lsn-tab-header">
+                        <h1>Безопасность</h1>
+                        <p>Управление паролем и настройками безопасности</p>
+                    </div>
+
+                    <div class="lsn-form-card">
+                        <h3 class="lsn-form-title">
+                            <i class="fas fa-key"></i> Смена пароля
+                        </h3>
+                        <form method="post" class="lsn-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="password_change" value="true">
+                            
+                            <div class="lsn-form-group">
+                                <label class="lsn-form-label">
+                                    <i class="fas fa-lock"></i> Текущий пароль
+                                </label>
+                                <input type="password" name="old_password" class="lsn-form-control" required>
+                            </div>
+
+                            <div class="lsn-form-group">
+                                <label class="lsn-form-label">
+                                    <i class="fas fa-key"></i> Новый пароль
+                                </label>
+                                <input type="password" name="new_password1" class="lsn-form-control" required>
+                                <small class="form-text">Пароль должен содержать минимум 8 символов</small>
+                            </div>
+
+                            <div class="lsn-form-group">
+                                <label class="lsn-form-label">
+                                    <i class="fas fa-check-circle"></i> Подтвердите новый пароль
+                                </label>
+                                <input type="password" name="new_password2" class="lsn-form-control" required>
+                            </div>
+
+                            <div class="lsn-form-actions">
+                                <button type="submit" class="lsn-btn lsn-btn-primary">
+                                    <i class="fas fa-save"></i> Обновить пароль
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+
+<div id="receiptModal" class="receipt-modal" style="display: none;">
+    <div class="receipt-modal-overlay"></div>
+    <div class="receipt-modal-container">
+        <div class="receipt-modal-header">
+            <div class="receipt-modal-icon">
+                <i class="fas fa-receipt"></i>
+            </div>
+            <h3 class="receipt-modal-title">Чек об оплате</h3>
+            <button class="receipt-modal-close" onclick="closeReceiptModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="receipt-modal-body">
+            <div class="receipt-success-icon">
+                <i class="fas fa-check-circle"></i>
+                <span>Оплата успешна!</span>
+            </div>
+            
+            <p class="receipt-modal-text">
+                Курс "<strong id="receiptCourseName"></strong>" успешно оплачен.
+            </p>
+            
+            <div class="receipt-details">
+                <div class="receipt-detail-row">
+                    <span class="receipt-detail-label">Номер платежа:</span>
+                    <span class="receipt-detail-value" id="receiptPaymentId"></span>
+                </div>
+                <div class="receipt-detail-row">
+                    <span class="receipt-detail-label">Дата оплаты:</span>
+                    <span class="receipt-detail-value" id="receiptDate"></span>
+                </div>
+                <div class="receipt-detail-row">
+                    <span class="receipt-detail-label">Слушатель:</span>
+                    <span class="receipt-detail-value">{{ user.get_full_name|default:user.username }}</span>
+                </div>
+                <div class="receipt-detail-row">
+                    <span class="receipt-detail-label">Статус:</span>
+                    <span class="receipt-detail-value" style="color: #2ecc71;">Оплачено</span>
+                </div>
+                <div class="receipt-detail-row total-row">
+                    <span class="receipt-detail-label">Сумма:</span>
+                    <span class="receipt-detail-value" id="receiptAmount" style="font-size: 18px; font-weight: bold; color: #8A4FFF;"></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="receipt-modal-footer">
+            <button type="button" class="text-link" onclick="closeReceiptModal()" style="padding: 10px 20px;">
+                <i class="fas fa-times"></i> Закрыть
+            </button>
+            <a href="#" id="downloadReceiptLink" class="text-link" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;">
+                <i class="fas fa-download"></i> Скачать чек (PDF)
+            </a>
+        </div>
+    </div>
+</div>
+
+<div id="deleteAccountModal" class="deleted-modal" style="display: none;">
+    <div class="deleted-modal-overlay"></div>
+    <div class="deleted-modal-container">
+        <div class="deleted-modal-header">
+            <div class="deleted-modal-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="deleted-modal-title">Удаление аккаунта</h3>
+            <button class="deleted-modal-close" onclick="closeDeleteModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="deleted-modal-body">
+            <div class="deleted-modal-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Внимание! Это действие необратимо!</span>
+            </div>
+            
+            <p class="deleted-modal-text">
+                Вы действительно хотите удалить свой аккаунт <strong>{{ user.username }}</strong>?
+            </p>
+            
+            <div class="deleted-modal-info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>Что произойдет после удаления?</strong>
+                    <ul>
+                        <li>Ваш аккаунт будет деактивирован</li>
+                        <li>Все ваши персональные данные будут анонимизированы</li>
+                        <li>Все записи на курсы будут отменены</li>
+                        <li>Избранные курсы будут удалены</li>
+                        <li>Вы больше не сможете войти в систему</li>
+                        <li>Восстановление аккаунта возможно только через администратора</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <form method="post" action="{% url 'listener_app:deactivate_account' %}" id="deleteAccountForm">
+                {% csrf_token %}
+                <div class="teacher-form-group" style="margin-top: 20px;">
+                    <label for="delete_password" style="font-weight: 600;">
+                        <i class="fas fa-lock"></i> Введите пароль для подтверждения:
+                    </label>
+                    <input type="password" name="password" id="delete_password" class="form-control" 
+                           placeholder="Ваш пароль" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 8px;">
+                </div>
+            </form>
+        </div>
+        
+        <div class="deleted-modal-footer">
+            <button type="button" class="deleted-modal-btn deleted-modal-btn-cancel" onclick="closeDeleteModal()">
+                <i class="fas fa-times"></i> Отмена
+            </button>
+            <button type="button" class="deleted-modal-btn deleted-modal-btn-danger" onclick="submitDeleteAccount()">
+                <i class="fas fa-trash-alt"></i> Да, удалить аккаунт
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.lsn-nav-link[data-tab]').forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const tabName = this.getAttribute('data-tab');
+        
+        document.querySelectorAll('.lsn-nav-link').forEach(l => l.classList.remove('active'));
+        this.classList.add('active');
+        
+        document.querySelectorAll('.lsn-tab').forEach(tab => tab.classList.remove('active'));
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+    });
+});
+
+// открытие модального окна чека
+function openReceiptModal(paymentId, courseId, courseName, amount, date) {
+    const modal = document.getElementById('receiptModal');
+    document.getElementById('receiptCourseName').textContent = courseName;
+    document.getElementById('receiptPaymentId').textContent = paymentId.slice(-12).toUpperCase();
+    document.getElementById('receiptAmount').textContent = amount + ' ₽';
+    
+    const formattedDate = new Date(date).toLocaleString('ru-RU', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    document.getElementById('receiptDate').textContent = formattedDate;
+    
+    const downloadLink = document.getElementById('downloadReceiptLink');
+    downloadLink.href = `/listener/payment/receipt/${courseId}/${paymentId}/`;
+    
+    modal.style.display = 'block';
+    
+    window.onclick = function(event) {
+        if (event.target === modal || event.target.classList.contains('receipt-modal-overlay')) {
+            closeReceiptModal();
+        }
+    }
+}
+
+function closeReceiptModal() {
+    document.getElementById('receiptModal').style.display = 'none';
+}
+
+document.querySelectorAll('.view-receipt-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        openReceiptModal(
+            this.getAttribute('data-payment-id'),
+            this.getAttribute('data-course-id'),
+            this.getAttribute('data-course-name'),
+            this.getAttribute('data-amount'),
+            this.getAttribute('data-date')
+        );
+    });
+});
+
+// функции для удаления аккаунта
+function openDeleteModal() {
+    const modal = document.getElementById('deleteAccountModal');
+    modal.style.display = 'block';
+    
+    window.onclick = function(event) {
+        if (event.target === modal || event.target.classList.contains('deleted-modal-overlay')) {
+            closeDeleteModal();
+        }
+    }
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteAccountModal');
+    modal.style.display = 'none';
+    document.getElementById('delete_password').value = '';
+}
+
+function submitDeleteAccount() {
+    const password = document.getElementById('delete_password').value;
+    if (!password) {
+        alert('Пожалуйста, введите пароль для подтверждения');
+        return;
+    }
+    
+    if (confirm('Вы уверены, что хотите удалить аккаунт? Это действие нельзя отменить!')) {
+        const form = document.getElementById('deleteAccountForm');
+        form.submit();
+    }
+}
+</script>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/listener.js' %}"></script>
+{% endblock %}

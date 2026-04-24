@@ -1,0 +1,133 @@
+<!-- в данном файле находится html-верстка для страницы "преподавателям" -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title_name %}UNIREAX - Преподавателям{% endblock %}
+
+{% block content %}
+<div class="teachers-page">
+    <div class="teachers-hero">
+        <div class="container">
+            <h1 class="teachers-title">Станьте частью нашей команды!</h1>
+            <p class="teachers-subtitle">
+                Делитесь знаниями и вдохновляйте слушателей на новые свершения вместе с Unireax.
+            </p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="teachers-features">
+            <div class="teachers-feature-card">
+                <div class="teachers-feature-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3 class="teachers-feature-title">Цифровое пространство для организации работы</h3>
+                <p class="teachers-feature-text">
+                    Преподаватели могут создать классную комнату и пригласить в неё учеников для отслеживания их прогресса и систематизации знаний.
+                </p>
+            </div>
+
+            <div class="teachers-feature-card">
+                <div class="teachers-feature-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="teachers-feature-title">Сотни слушателей</h3>
+                <p class="teachers-feature-text">
+                    Ваши знания увидят сотни учеников со всей страны. Делитесь опытом с теми, кому это действительно нужно.
+                </p>
+            </div>
+
+            <div class="teachers-feature-card">
+                <div class="teachers-feature-icon">
+                    <i class="fas fa-laptop"></i>
+                </div>
+                <h3 class="teachers-feature-title">Удобная платформа</h3>
+                <p class="teachers-feature-text">
+                    Интуитивно понятный интерфейс для создания и управления курсами, включая их материалы - лекции, тесты и практические работы. Все инструменты уже готовы!
+                </p>
+            </div>
+
+            <div class="teachers-feature-card">
+                <div class="teachers-feature-icon">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <h3 class="teachers-feature-title">Поддержка 24/7</h3>
+                <p class="teachers-feature-text">
+                    Наша команда всегда готова помочь с любыми вопросами: от технических до маркетинговых.
+                </p>
+            </div>
+
+            <div class="teachers-feature-card">
+                <div class="teachers-feature-icon">
+                    <i class="fas fa-certificate"></i>
+                </div>
+                <h3 class="teachers-feature-title">Официальный статус</h3>
+                <p class="teachers-feature-text">
+                    Сотрудничество с платформой под руководством РЭУ им. Плеханова придает вашим курсам официальный статус и доверие слушателей.
+                </p>
+            </div>
+
+            <div class="teachers-feature-card">
+                <div class="teachers-feature-icon">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <h3 class="teachers-feature-title">Развитие</h3>
+                <p class="teachers-feature-text">
+                    Продвигайте себя, становитесь экспертом в своей области и растите профессионально.
+                </p>
+            </div>
+        </div>
+
+        <div class="teachers-cta">
+            <h2 class="teachers-cta-title">Готовы начать?</h2>
+            <p class="teachers-cta-text">
+                {% if user.is_authenticated %}
+                    {% if user.role.role_name == 'слушатель курсов' or user.role.role_name == 'Слушатель курсов' %}
+                        Вы зарегистрированы как слушатель курсов. Чтобы стать преподавателем или методистом, 
+                        пожалуйста, выйдите из текущего аккаунта и зарегистрируйтесь заново с ролью преподавателя или методиста.
+                    {% elif user.role.role_name == 'преподаватель' or user.role.role_name == 'Преподаватель' %}
+                        Вы уже с нами как преподаватель! Рады видеть вас в команде UNIREAX.
+                    {% elif user.role.role_name == 'методист' or user.role.role_name == 'Методист' %}
+                        Вы уже с нами как методист! Рады видеть вас в команде UNIREAX.
+                    {% elif user.role.role_name == 'администратор' or user.role.role_name == 'Администратор' or user.is_superuser %}
+                        Добро пожаловать, администратор!
+                    {% else %}
+                        Зарегистрируйтесь как преподаватель или методист, и мы проверим Вашу заявку в ближайшее время!
+                    {% endif %}
+                {% else %}
+                    Зарегистрируйтесь как преподаватель или методист, и мы проверим Вашу заявку в ближайшее время!
+                {% endif %}
+            </p>
+            
+            {% if user.is_authenticated %}
+                {% if user.role.role_name == 'слушатель курсов' or user.role.role_name == 'Слушатель курсов' %}
+                    <a href="{% url 'logout_move' %}" class="teachers-cta-btn">
+                        Выйти из аккаунта
+                    </a>
+                {% elif user.role.role_name == 'преподаватель' or user.role.role_name == 'Преподаватель' %}
+                    <a href="{% url 'main_page' %}" class="teachers-cta-btn">
+                        На главную
+                    </a>
+                {% elif user.role.role_name == 'методист' or user.role.role_name == 'Методист' %}
+                    <a href="{% url 'main_page' %}" class="teachers-cta-btn">
+                        На главную
+                    </a>
+                {% elif user.role.role_name == 'администратор' or user.role.role_name == 'Администратор' or user.is_superuser %}
+                    <a href="{% url 'admin_app:dashboard' %}" class="teachers-cta-btn">
+                        Перейти в панель администратора
+                    </a>
+                {% else %}
+                    <a href="{% url 'main_page' %}" class="teachers-cta-btn">
+                        На главную
+                    </a>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'register_listener' %}" class="teachers-cta-btn">
+                    Стать частью UNIREAX
+                </a>
+            {% endif %}
+            <br>
+        </div>
+    </div>
+</div>
+{% endblock %}

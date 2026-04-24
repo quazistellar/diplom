@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load listener_extras %}
+
+{% block title %}Обучение: {{ course.course_name }} - UNIREAX{% endblock %}
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="breadcrumbs">
+            <a href="{% url 'listener_app:dashboard' %}">Личный кабинет</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'listener_app:my_courses' %}">Мои курсы</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'listener_app:course_detail' course.id %}">{{ course.course_name|truncatechars:40 }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Обучение</span>
+        </div>
+
+        <div class="study-header">
+            <h1>{{ course.course_name }}</h1>
+            <div class="study-progress-large">
+                <div class="progress-label">
+                    <span>Общий прогресс</span>
+                    <span>{{ progress|floatformat:0 }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ progress }}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="study-nav-custom">
+            <button class="nav-btn active" data-tab="lectures">
+                <i class="fas fa-book"></i> Лекции
+            </button>
+            <button class="nav-btn" data-tab="practicals">
+                <i class="fas fa-tasks"></i> Практические
+            </button>
+            <button class="nav-btn" data-tab="tests">
+                <i class="fas fa-question-circle"></i> Тесты
+            </button>
+            <button class="nav-btn" data-tab="posts" id="postsTabBtn">
+                <i class="fas fa-bullhorn"></i> Объявления
+                <span class="posts-badge" style="display: none;"></span>
+            </button>
+        </div>
+
+        <div class="course-study-layout">
+            <aside class="course-study-sidebar">
+                <div class="study-sidebar-card">
+                    <h3>Статистика</h3>
+                    <div class="study-sidebar-stats">
+                        <div>
+                            <div class="stat-number">{{ lectures|length }}</div>
+                            <div class="stat-text">Лекций</div>
+                        </div>
+                        <div>
+                            <div class="stat-number">{{ practical_works|length }}</div>
+                            <div class="stat-text">Заданий</div>
+                        </div>
+                        <div>
+                            <div class="stat-number">{{ tests|length }}</div>
+                            <div class="stat-text">Тестов</div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if course.code_link %}
+                <div class="study-sidebar-card" style="border-left: 4px solid #046806;">
+                    <h3><i class="fas fa-video" style="color: #08a537;"></i> Видео-встреча</h3>
+                    <div style="background: rgba(231, 76, 60, 0.1); border-radius: 12px; padding: 15px; text-align: center;">
+                        <i class="fas fa-chalkboard-user" style="font-size: 36px; color: #12ae15; margin-bottom: 10px;"></i>
+                        <p style="font-size: 13px; margin-bottom: 12px; font-weight: 900;">Присоединяйтесь к онлайн-занятиям здесь</p>
+                        <a href="{{ course.code_link }}" target="_blank" rel="noopener noreferrer" 
+                           class="lsn-btn" style="justify-content: center; width: 100%; background: #046806; color: white;">
+                            <i class="fas fa-video"></i> Присоединиться
+                        </a>
+                        <p style="font-size: 10px; color: var(--text-soft); margin-top: 10px;">
+                            Ссылка действительна в течение курса. Преподаватель сообщит вам, когда необходимо будет зайти на встречу.
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="study-sidebar-card">
+                    <h3>Быстрые ссылки</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <a href="{% url 'listener_app:course_progress' course.id %}" class="lsn-btn lsn-btn-outline lsn-btn-block" style="justify-content: center;">
+                            <i class="fas fa-chart-line"></i> Детальный прогресс
+                        </a>
+                        <a href="{% url 'listener_app:statistics' course.id %}" class="lsn-btn lsn-btn-outline lsn-btn-block" style="justify-content: center;">
+                            <i class="fas fa-chart-bar"></i> Статистика
+                        </a>
+                        <a href="{% url 'listener_app:test_results_list' course.id %}" class="lsn-btn lsn-btn-outline lsn-btn-block" style="justify-content: center;">
+                            <i class="fas fa-clipboard-list"></i> Результаты тестов
+                        </a>
+                        <a href="{% url 'listener_app:graded_assignments' course.id %}" class="lsn-btn lsn-btn-outline lsn-btn-block" style="justify-content: center;">
+                            <i class="fas fa-check-circle"></i> Оцененные работы
+                        </a>
+                    </div>
+                </div>
+
+                {% if course_has_certificate %}
+                <div class="study-sidebar-card">
+                    <h3><i class="fas fa-certificate"></i> Сертификат</h3>
+                    
+                    {% if existing_certificate %}
+                        <div style="text-align: center; padding: 10px 0;">
+                            <i class="fas fa-check-circle" style="font-size: 48px; color: #2ecc71; margin-bottom: 10px;"></i>
+                            <p style="font-weight: 900; margin-bottom: 15px;">Сертификат получен!</p>
+                            <a href="{% url 'listener_app:certificate_detail' existing_certificate.id %}" class="lsn-btn lsn-btn-primary" style="justify-content: center;">
+                                <i class="fas fa-eye"></i> Посмотреть сертификат
+                            </a>
+                        </div>
+                    {% elif certificate_data.is_eligible %}
+                        <div style="text-align: center; padding: 10px 0;">
+                            <i class="fas fa-trophy" style="font-size: 48px; color: #f1c40f; margin-bottom: 10px;"></i>
+                            <p style="font-weight: 900; margin-bottom: 15px;">Вы успешно завершили курс!</p>
+                            <a href="{% url 'listener_app:generate_certificate' course.id %}" class="lsn-btn lsn-btn-primary" style="justify-content: center;">
+                                <i class="fas fa-download"></i> Получить сертификат
+                            </a>
+                        </div>
+                    {% else %}
+                        <div style="padding: 5px 0;">
+                            <div class="lsn-progress" style="margin-bottom: 15px;">
+                                <div class="progress-label" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span>Прогресс получения</span>
+                                    <span>{{ progress|floatformat:0 }}%</span>
+                                </div>
+                                <div class="lsn-progress-bar">
+                                    <div class="lsn-progress-fill" style="width: {{ progress }}%"></div>
+                                </div>
+                            </div>
+                            <p style="color: var(--text-soft); font-size: 13px; text-align: center;">
+                                {% if progress < 100 %}
+                                    Продолжайте выполнять задания, чтобы получить сертификат.
+                                {% else %}
+                                    {% if not certificate_data.requirements.course_completed %}
+                                        Необходимо завершить курс (отметка о завершении).
+                                    {% elif not certificate_data.requirements.final_tests_passed %}
+                                        Необходимо успешно пройти все финальные тесты.
+                                    {% else %}
+                                        Выполните все условия для получения сертификата.
+                                    {% endif %}
+                                {% endif %}
+                            </p>
+                            {% if not certificate_data.is_eligible and certificate_data.final_tests and certificate_data.final_tests.failed_tests %}
+                                <details style="margin-top: 12px;">
+                                    <summary style="cursor: pointer; font-size: 12px; color: var(--primary);">Что нужно доделать?</summary>
+                                    <ul style="margin-top: 10px; padding-left: 20px; font-size: 12px; color: var(--text-soft);">
+                                        {% for failed in certificate_data.final_tests.failed_tests %}
+                                        <li>{{ failed.test_name }}: {{ failed.reason }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </details>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if upcoming_deadlines %}
+                <div class="study-sidebar-card">
+                    <h3>Ближайшие дедлайны</h3>
+                    {% for deadline in upcoming_deadlines %}
+                    <div class="deadline-item" style="padding: 12px 0; border-bottom: 1px solid var(--border);">
+                        <div class="deadline-title">{{ deadline.title }}</div>
+                        <div class="deadline-date">{{ deadline.deadline|date:"d.m.Y H:i" }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="study-sidebar-card">
+                    <h3>Действия</h3>
+                    <a href="{% url 'listener_app:exit_course' course.id %}" class="lsn-btn lsn-btn-danger lsn-btn-block" style="justify-content: center;" onclick="return confirm('Вы уверены, что хотите выйти из курса? Ваш прогресс будет сохранен.')">
+                        <i class="fas fa-sign-out-alt"></i> Выйти из курса
+                    </a>
+                </div>
+            </aside>
+
+            <main class="course-study-main">
+                <div class="study-tab active" id="lectures-tab">
+                    {% if lectures %}
+                        {% for lecture in lectures %}
+                        <div class="study-card">
+                            <div class="study-card-title">
+                                <i class="fas fa-book" style="color: var(--primary);"></i>
+                                Лекция {{ lecture.lecture_order }}: {{ lecture.lecture_name }}
+                            </div>
+                            <div class="study-card-meta">
+                                <span><i class="fas fa-calendar-alt"></i> Добавлена: {{ lecture.created_at|date:"d.m.Y"|default:"недавно" }}</span>
+                            </div>
+                            <div class="study-card-description">
+                                {{ lecture.lecture_content|truncatechars:50 }}
+                            </div>
+                            <div class="study-card-actions">
+                                <a href="{% url 'listener_app:lecture_detail' lecture.id %}" class="lsn-btn lsn-btn-primary">
+                                    <i class="fas fa-book-open"></i> Читать лекцию
+                                </a>
+                                {% if lecture.lecture_document_path %}
+                                <a href="{{ lecture.lecture_document_path.url }}" class="lsn-btn lsn-btn-outline" download>
+                                    <i class="fas fa-download"></i> Скачать материалы
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="lsn-empty-state">
+                            <i class="fas fa-book"></i>
+                            <h3>Лекции пока не добавлены</h3>
+                            <p>Материалы курса находятся в разработке</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="study-tab" id="practicals-tab">
+                    {% if practical_works %}
+                        {% for assignment in practical_works %}
+                        <div class="study-card">
+                            <div class="study-card-title">
+                                <i class="fas fa-tasks" style="color: #f39c12;"></i>
+                                {{ assignment.practical_assignment_name }}
+                            </div>
+                            <div class="study-card-meta">
+                                <span><i class="fas fa-book"></i> Лекция {{ assignment.lecture.lecture_order }}: {{ assignment.lecture.lecture_name }}</span>
+                                {% if assignment.assignment_deadline %}
+                                <span><i class="fas fa-clock"></i> Срок сдачи: {{ assignment.assignment_deadline|date:"d.m.Y H:i" }}</span>
+                                {% endif %}
+                                <span><i class="fas fa-chart-simple"></i> {{ assignment.get_grading_type_display }}</span>
+                            </div>
+                            <div class="study-card-description">
+                                {{ assignment.practical_assignment_description|truncatewords:40 }}
+                            </div>
+                            <div class="study-card-actions">
+                                {% with user_assignments|get_item:assignment.id as status %}
+                                <a href="{% url 'listener_app:practical_submit' assignment.id %}" class="lsn-btn lsn-btn-primary">
+                                    <i class="fas fa-upload"></i> 
+                                    {% if status.status == 'завершено' %}Пересдать{% else %}Сдать работу{% endif %}
+                                </a>
+                                <span class="status-badge-lg 
+                                    {% if status.status == 'завершено' %}completed
+                                    {% elif status.status == 'на проверке' %}pending
+                                    {% else %}not-started{% endif %}">
+                                    <i class="fas 
+                                        {% if status.status == 'завершено' %}fa-check-circle
+                                        {% elif status.status == 'на проверке' %}fa-spinner fa-pulse
+                                        {% else %}fa-clock{% endif %}"></i>
+                                    {% if status.status == 'завершено' %}Сдано
+                                    {% elif status.status == 'на проверке' %}На проверке
+                                    {% else %}Не сдано{% endif %}
+                                </span>
+                                {% endwith %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="lsn-empty-state">
+                            <i class="fas fa-tasks"></i>
+                            <h3>Практических заданий пока нет</h3>
+                            <p>Задания появятся в ближайшее время</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="study-tab" id="tests-tab">
+                    {% if tests %}
+                        {% for test in tests %}
+                        <div class="study-card">
+                            <div class="study-card-title">
+                                <i class="fas fa-question-circle" style="color: #27ae60;"></i>
+                                {{ test.test_name }}
+                            </div>
+                            <div class="study-card-meta">
+                                <span><i class="fas fa-book"></i> Лекция {{ test.lecture.lecture_order }}: {{ test.lecture.lecture_name }}</span>
+                                <span><i class="fas fa-chart-simple"></i> {{ test.get_grading_form_display }}</span>
+                                {% if test.passing_score %}
+                                <span><i class="fas fa-flag-checkered"></i> Проходной балл: {{ test.passing_score }}</span>
+                                {% endif %}
+                                {% if test.max_attempts %}
+                                <span><i class="fas fa-repeat"></i> Макс. попыток: {{ test.max_attempts }}</span>
+                                {% endif %}
+                            </div>
+                            {% if test.test_description %}
+                            <div class="study-card-description">
+                                {{ test.test_description|truncatewords:30 }}
+                            </div>
+                            {% endif %}
+                            <div class="study-card-actions">
+                                {% with test_results|get_item:test.id as result %}
+                                <a href="{% url 'listener_app:test_start' test.id %}" class="lsn-btn lsn-btn-primary">
+                                    <i class="fas fa-play"></i> 
+                                    {% if result.passed %}Пройти еще раз{% else %}Начать тест{% endif %}
+                                </a>
+                                <span class="status-badge-lg 
+                                    {% if result.passed %}completed
+                                    {% else %}not-started{% endif %}">
+                                    <i class="fas {% if result.passed %}fa-check-circle{% else %}fa-clock{% endif %}"></i>
+                                    {% if result.passed %}Пройден{% else %}Не пройден{% endif %}
+                                </span>
+                                {% endwith %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="lsn-empty-state">
+                            <i class="fas fa-question-circle"></i>
+                            <h3>Тестов пока нет</h3>
+                            <p>Проверочные работы появятся позже</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="study-tab" id="posts-tab">
+                    <div id="posts-container">
+                        {% if course_posts %}
+                            {% for post in course_posts %}
+                            <div class="post-card" data-post-id="{{ post.id }}">
+                                <div class="post-header">
+                                    <div class="post-type-badge post-type-{{ post.post_type }}">
+                                        <i class="fas 
+                                            {% if post.post_type == 'announcement' %}fa-bullhorn
+                                            {% elif post.post_type == 'question' %}fa-question-circle
+                                            {% else %}fa-bell{% endif %}"></i>
+                                        {{ post.post_type_display }}
+                                    </div>
+                                    {% if post.is_pinned %}
+                                    <span class="pinned-badge"><i class="fas fa-thumbtack"></i> Закреплено</span>
+                                    {% endif %}
+                                    {% if post.can_edit %}
+                                    <div class="post-actions">
+                                        <button class="post-edit-btn" onclick="openEditPostModal({{ post.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="post-delete-btn" onclick="deletePost({{ post.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="post-body">
+                                    <h3 class="post-title">{{ post.title }}</h3>
+                                    <div class="post-content">{{ post.content|linebreaks }}</div>
+                                    <div class="post-meta">
+                                        <span><i class="fas fa-user"></i> {{ post.author_name }}</span>
+                                        <span><i class="fas fa-calendar"></i> {{ post.created_at }}</span>
+                                        <span class="reply-count" onclick="toggleComments(this, {{ post.id }})" style="cursor: pointer;">
+                                            <i class="fas fa-comment"></i> {{ post.total_comments }} комментариев
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="comments-section" id="comments-{{ post.id }}" style="display: none;">
+                                        <div class="comments-list">
+                                            {% for comment in post.comments %}
+                                            <div class="comment-item">
+                                                <div class="comment-avatar">
+                                                    <i class="fas fa-user-circle"></i>
+                                                </div>
+                                                <div class="comment-content">
+                                                    <div class="comment-author">
+                                                        {{ comment.author_name }}
+                                                        <span class="comment-date">{{ comment.created_at }}</span>
+                                                        {% if comment.can_delete %}
+                                                        <button class="comment-delete" onclick="deleteComment({{ comment.id }})">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="comment-text">{{ comment.content|linebreaks }}</div>
+                                                    
+                                                    {% if comment.replies %}
+                                                    <div class="replies-list">
+                                                        {% for reply in comment.replies %}
+                                                        <div class="reply-item">
+                                                            <div class="reply-avatar">
+                                                                <i class="fas fa-user-circle"></i>
+                                                            </div>
+                                                            <div class="reply-content">
+                                                                <div class="reply-author">
+                                                                    {{ reply.author_name }}
+                                                                    <span class="reply-date">{{ reply.created_at }}</span>
+                                                                    {% if reply.can_delete %}
+                                                                    <button class="reply-delete" onclick="deleteComment({{ reply.id }})">
+                                                                        <i class="fas fa-trash-alt"></i>
+                                                                    </button>
+                                                                    {% endif %}
+                                                                </div>
+                                                                <div class="reply-text">{{ reply.content|linebreaks }}</div>
+                                                            </div>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                    {% endif %}
+                                                    
+                                                    <button class="reply-btn" onclick="showReplyForm({{ comment.id }}, {{ post.id }})">
+                                                        <i class="fas fa-reply"></i> Ответить
+                                                    </button>
+                                                    
+                                                    <div class="reply-form" id="reply-form-{{ comment.id }}" style="display: none;">
+                                                        <textarea class="reply-textarea" rows="2" placeholder="Написать ответ..."></textarea>
+                                                        <button class="lsn-btn lsn-btn-primary" onclick="submitReply({{ comment.id }})">
+                                                            <i class="fas fa-paper-plane"></i> Отправить
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% empty %}
+                                            <p class="no-comments">Пока нет комментариев. Будьте первым!</p>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        <div class="add-comment-form">
+                                            <textarea id="new-comment-{{ post.id }}" rows="3" placeholder="Написать комментарий..."></textarea>
+                                            <button class="lsn-btn lsn-btn-primary" onclick="submitComment({{ post.id }})">
+                                                <i class="fas fa-paper-plane"></i> Отправить
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="lsn-empty-state">
+                                <i class="fas fa-bullhorn"></i>
+                                <h3>Нет объявлений</h3>
+                                <p>Пока нет объявлений от преподавателя</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/listener.js' %}"></script>
+<script src="{% static 'js/course_study.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,24 @@
+UNIREAX - Результаты проверки работы
+
+Здравствуйте, {{ user.first_name }} {{ user.last_name }}!
+
+{% if is_changed %}Преподаватель изменил вашу оценку за работу.{% else %}Преподаватель проверил вашу работу.{% endif %}
+
+Работа: {{ assignment.practical_assignment_name }}
+Курс: {{ course.course_name }}
+Оценка: {{ score_display }}
+Статус: {% if is_passed %}Зачтено{% else %}Не зачтено{% endif %}
+{% if old_score_display %}
+Предыдущая оценка: {{ old_score_display }}
+{% endif %}
+{% if feedback.comment_feedback %}
+Комментарий преподавателя:
+{{ feedback.comment_feedback }}
+{% endif %}
+
+Дата проверки: {{ feedback_date }}
+
+Перейти к курсу: {{ course_url }}
+
+---
+© 2026 UNIREAX - Образовательная платформа

@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - Работы на проверке{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/teacher.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="teacher-pending-page">
+    <div class="teacher-container">
+        <div class="teacher-page-header">
+            <div>
+                <h1 class="teacher-page-title">Работы на проверке</h1>
+                <p class="teacher-page-subtitle">Задания, ожидающие вашей оценки ({{ pending_submissions|length }})</p>
+            </div>
+            <div class="teacher-header-actions">
+                <a href="{% url 'teacher_app:dashboard' %}" class="teacher-btn teacher-btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к дашборду
+                </a>
+            </div>
+        </div>
+        
+        {% if pending_submissions %}
+        <div class="teacher-pending-list-full">
+            {% for submission in pending_submissions %}
+            <div class="teacher-pending-card-full">
+                <div class="pending-header">
+                    <div class="student-avatar-medium">
+                        {{ submission.user.last_name|first|upper }}{{ submission.user.first_name|first|upper }}
+                    </div>
+                    <div class="pending-info-full">
+                        <h3>{{ submission.user.last_name }} {{ submission.user.first_name }}</h3>
+                        <p class="assignment-name">{{ submission.practical_assignment.practical_assignment_name }}</p>
+                        <p class="course-name">{{ submission.practical_assignment.lecture.course.course_name }}</p>
+                    </div>
+                    <div class="pending-date">
+                        <i class="fas fa-calendar-alt"></i> {{ submission.submission_date|date:"d.m.Y H:i" }}
+                    </div>
+                </div>
+                
+                <div class="pending-details-full">
+                    {% if submission.assignmentsubmissionfile_set.all %}
+                    <div class="submission-files">
+                        <strong>Прикрепленные файлы:</strong>
+                        <div class="files-list">
+                            {% for file in submission.assignmentsubmissionfile_set.all %}
+                            <a href="{{ file.file.url }}" class="file-link" target="_blank">
+                                <i class="fas fa-file"></i>
+                                {{ file.file_name }} ({{ file.file_size|filesizeformat }})
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if submission.comment %}
+                    <div class="submission-comment">
+                        <strong>Комментарий слушателя:</strong>
+                        <p>{{ submission.comment }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="pending-actions-full">
+                    <a href="{% url 'teacher_app:grade_assignment' submission.id %}" class="teacher-btn teacher-btn-primary">
+                        <i class="fas fa-check"></i> Проверить работу
+                    </a>
+                    <a href="{% url 'teacher_app:listener_progress' submission.practical_assignment.lecture.course.id submission.user.id %}" class="teacher-btn teacher-btn-outline">
+                        <i class="fas fa-chart-line"></i> Прогресс слушателя
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="teacher-empty-state">
+            <i class="fas fa-check-circle" style="color: #2ecc71; font-size: 64px;"></i>
+            <h3>Нет работ на проверке</h3>
+            <p>Все задания проверены</p>
+            <a href="{% url 'teacher_app:dashboard' %}" class="teacher-btn teacher-btn-primary">
+                Вернуться к дашборду
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.teacher-pending-list-full {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.teacher-pending-card-full {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 25px;
+    transition: all 0.3s ease;
+}
+
+.teacher-pending-card-full:hover {
+    border-color: var(--primary);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.pending-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.student-avatar-medium {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 900;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.pending-info-full {
+    flex: 1;
+}
+
+.pending-info-full h3 {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 5px;
+}
+
+.pending-info-full .assignment-name {
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--primary);
+    margin-bottom: 3px;
+}
+
+.pending-info-full .course-name {
+    font-size: 13px;
+    color: var(--text-soft);
+}
+
+.pending-date {
+    font-size: 13px;
+    color: var(--text-soft);
+    white-space: nowrap;
+}
+
+.pending-details-full {
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.submission-files {
+    margin-bottom: 15px;
+}
+
+.submission-files strong {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text);
+}
+
+.files-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.file-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border-radius: 6px;
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.file-link:hover {
+    background: rgba(138, 79, 255, 0.1);
+}
+
+.submission-comment {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.submission-comment strong {
+    color: var(--text);
+}
+
+.submission-comment p {
+    color: var(--text-soft);
+    margin-top: 8px;
+    line-height: 1.5;
+}
+
+.pending-actions-full {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .pending-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .pending-date {
+        white-space: normal;
+    }
+    
+    .pending-actions-full {
+        flex-direction: column;
+    }
+    
+    .pending-actions-full .teacher-btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/teacher.js' %}"></script>
+{% endblock %}

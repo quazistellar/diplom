@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="container">
+        <div class="admin-header">
+            <h1 class="admin-title">
+                <i class="{{ icon }}"></i>
+                {{ title }}
+            </h1>
+        </div>
+
+        <div class="admin-detail-card">
+            <div class="admin-detail-header">
+                <h2 class="admin-detail-title">
+                    <i class="fas fa-info-circle"></i>
+                    Информация о назначении
+                </h2>
+                <div class="admin-detail-actions">
+                    <a href="{% url 'admin_app:course_teacher_edit' course_teacher.id %}" class="btn-admin btn-admin-primary">
+                        <i class="fas fa-edit"></i> Редактировать
+                    </a>
+                    <a href="{% url 'admin_app:course_teacher_delete' course_teacher.id %}" class="btn-admin btn-admin-danger" onclick="return confirmDelete({{ course_teacher.id }})">
+                        <i class="fas fa-trash"></i> Удалить
+                    </a>
+                    <a href="{% url 'admin_app:course_teacher_list' %}" class="btn-admin btn-admin-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад
+                    </a>
+                </div>
+            </div>
+            
+            <div class="admin-detail-grid">
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-id"></i> ID назначения
+                    </div>
+                    <div class="admin-detail-value">{{ course_teacher.id }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-book"></i> Курс
+                    </div>
+                    <div class="admin-detail-value">
+                        <a href="{% url 'admin_app:course_detail' course_teacher.course.id %}">
+                            {{ course_teacher.course.course_name }}
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-chalkboard-teacher"></i> Преподаватель
+                    </div>
+                    <div class="admin-detail-value">
+                        <a href="{% url 'admin_app:user_detail' course_teacher.teacher.id %}">
+                            {{ course_teacher.teacher.get_full_name|default:course_teacher.teacher.username }}
+                        </a>
+                        {% if course_teacher.teacher.position %}
+                        <div style="font-size: 12px; color: var(--text-soft);">{{ course_teacher.teacher.position }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-calendar-alt"></i> Дата начала
+                    </div>
+                    <div class="admin-detail-value">{{ course_teacher.start_date|date:"d.m.Y"|default:"—" }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-toggle-on"></i> Активен на курсе
+                    </div>
+                    <div class="admin-detail-value">
+                        {% if course_teacher.is_active %}
+                        <span class="badge-success">Да</span>
+                        {% else %}
+                        <span class="badge-neutral">Нет</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(id) {
+    return confirm(`Вы уверены, что хотите удалить назначение #${id}? Это действие нельзя отменить.`);
+}
+</script>
+{% endblock %}

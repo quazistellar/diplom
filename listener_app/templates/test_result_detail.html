@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load listener_extras %}
+
+{% block title %}Детали теста - {{ test.test_name }} - UNIREAX{% endblock %}
+
+{% block extra_css %}
+<style>
+.result-detail-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 24px;
+    padding: 30px;
+    margin-bottom: 35px;
+    color: white;
+}
+
+.result-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.result-summary-item {
+    text-align: center;
+    padding: 15px 25px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    min-width: 120px;
+}
+
+.result-summary-value {
+    font-size: 32px;
+    font-weight: 900;
+}
+
+.result-summary-label {
+    font-size: 13px;
+    opacity: 0.9;
+    margin-top: 5px;
+}
+
+.question-review-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.question-review-header {
+    padding: 18px 22px;
+    background: rgba(138, 79, 255, 0.05);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.question-review-title {
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.question-review-score {
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.score-correct {
+    color: #2ecc71;
+}
+
+.score-incorrect {
+    color: #e74c3c;
+}
+
+.question-review-body {
+    padding: 22px;
+}
+
+.question-text {
+    font-size: 16px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    color: var(--text);
+}
+
+.answer-review {
+    background: var(--bg);
+    border-radius: 16px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.answer-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+}
+
+.answer-option.correct {
+    background: rgba(46, 204, 113, 0.1);
+    border-left: 3px solid #2ecc71;
+}
+
+.answer-option.incorrect {
+    background: rgba(231, 76, 60, 0.1);
+    border-left: 3px solid #e74c3c;
+}
+
+.answer-option.user-selected {
+    background: rgba(241, 196, 15, 0.15);
+}
+
+.answer-icon {
+    width: 24px;
+    text-align: center;
+}
+
+.answer-text {
+    flex: 1;
+}
+
+.user-answer-text {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 12px 15px;
+    margin-top: 10px;
+    border: 1px solid var(--border);
+}
+
+.matching-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    background: var(--bg);
+}
+
+.matching-left {
+    font-weight: 900;
+}
+
+.matching-right {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.matching-correct {
+    color: #2ecc71;
+}
+
+.matching-incorrect {
+    color: #e74c3c;
+    text-decoration: line-through;
+}
+
+.matching-user {
+    color: var(--text);
+}
+
+.back-button {
+    margin-top: 30px;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .result-summary {
+        flex-direction: column;
+    }
+    
+    .result-summary-item {
+        width: 100%;
+    }
+    
+    .question-review-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .matching-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="breadcrumbs">
+            <a href="{% url 'listener_app:dashboard' %}">Личный кабинет</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'listener_app:course_study' course.id %}">{{ course.course_name }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'listener_app:test_results_list' course.id %}">Результаты тестов</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Детали</span>
+        </div>
+
+        <div class="result-detail-header">
+            <h1 class="lsn-title" style="color: white; -webkit-text-fill-color: white;">{{ test.test_name }}</h1>
+            <p>Попытка {{ result.attempt_number }} от {{ result.completion_date|date:"d.m.Y H:i" }}</p>
+            
+            <div class="result-summary">
+                <div class="result-summary-item">
+                    <div class="result-summary-value">{{ total_score }}/{{ max_total_score }}</div>
+                    <div class="result-summary-label">Набрано баллов</div>
+                </div>
+                <div class="result-summary-item">
+                    <div class="result-summary-value">
+                        {% if test.grading_form == 'points' %}
+                            {{ test.passing_score|default:"—" }}
+                        {% else %}
+                            {{ is_passed|yesno:"Зачёт,Незачёт" }}
+                        {% endif %}
+                    </div>
+                    <div class="result-summary-label">
+                        {% if test.grading_form == 'points' %}Проходной балл{% else %}Результат{% endif %}
+                    </div>
+                </div>
+                <div class="result-summary-item">
+                    <div class="result-summary-value">{{ result.attempt_number }}</div>
+                    <div class="result-summary-label">Номер попытки</div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="lsn-section-title">Разбор вопросов</h2>
+        
+        {% for q_data in questions_data %}
+        <div class="question-review-card">
+            <div class="question-review-header">
+                <div class="question-review-title">Вопрос {{ forloop.counter }}</div>
+                <div class="question-review-score {% if q_data.is_correct %}score-correct{% else %}score-incorrect{% endif %}">
+                    {{ q_data.earned_score }}/{{ q_data.max_score }} баллов
+                </div>
+            </div>
+            <div class="question-review-body">
+                <div class="question-text">
+                    {{ q_data.question.question_text|linebreaks }}
+                </div>
+
+                {% if q_data.question.answer_type.answer_type_name in 'single_choice,multiple_choice' %}
+                <div class="answer-review">
+                    <strong>Варианты ответов:</strong>
+                    <div style="margin-top: 10px;">
+                        {% for option in q_data.question.choiceoption_set.all %}
+                        <div class="answer-option 
+                            {% if option.id in q_data.correct_choices %}correct{% endif %}
+                            {% if option.id in q_data.selected_choices and option.id not in q_data.correct_choices %}incorrect{% endif %}
+                            {% if option.id in q_data.selected_choices %}user-selected{% endif %}">
+                            <div class="answer-icon">
+                                {% if option.id in q_data.correct_choices %}
+                                    <i class="fas fa-check-circle" style="color: #2ecc71;"></i>
+                                {% elif option.id in q_data.selected_choices %}
+                                    <i class="fas fa-times-circle" style="color: #e74c3c;"></i>
+                                {% else %}
+                                    <i class="far fa-circle" style="color: var(--text-soft);"></i>
+                                {% endif %}
+                            </div>
+                            <div class="answer-text">{{ option.option_text }}</div>
+                            {% if option.id in q_data.selected_choices %}
+                                <div class="answer-badge">
+                                    <span class="status-badge status-pending" style="font-size: 10px;">Ваш выбор</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% elif q_data.question.answer_type.answer_type_name == 'text_answer' %}
+                <div class="answer-review">
+                    <strong>Ваш ответ:</strong>
+                    <div class="user-answer-text">
+                        {{ q_data.user_answer.answer_text|default:"Ответ не дан"|linebreaks }}
+                    </div>
+                    {% if q_data.question.correct_text %}
+                    <div class="user-answer-text" style="margin-top: 10px; background: rgba(46, 204, 113, 0.05); border-color: #2ecc71;">
+                        <strong><i class="fas fa-check-circle" style="color: #2ecc71;"></i> Правильный ответ:</strong><br>
+                        {{ q_data.question.correct_text|linebreaks }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% elif q_data.question.answer_type.answer_type_name == 'matching' %}
+                <div class="answer-review">
+                    <strong>Сопоставления:</strong>
+                    <div style="margin-top: 10px;">
+                        {% for pair in q_data.question.matchingpair_set.all %}
+                        <div class="matching-row">
+                            <div class="matching-left">{{ pair.left_text }}</div>
+                            <div class="matching-right">
+                                <span class="matching-correct">
+                                    <i class="fas fa-check-circle"></i> {{ pair.right_text }}
+                                </span>
+                                {% with user_answer=q_data.matching_answers|get_item:pair.id %}
+                                    {% if user_answer and user_answer != pair.right_text %}
+                                    <span class="matching-incorrect">
+                                        <i class="fas fa-times-circle"></i> {{ user_answer }}
+                                    </span>
+                                    {% elif user_answer %}
+                                    <span class="matching-user">
+                                        <i class="fas fa-user-check"></i> (ваш ответ)
+                                    </span>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="back-button">
+            <a href="{% url 'listener_app:test_results_list' course.id %}" class="lsn-btn lsn-btn-outline">
+                <i class="fas fa-arrow-left"></i> Назад к списку тестов
+            </a>
+            <a href="{% url 'listener_app:test_start' test.id %}" class="lsn-btn lsn-btn-primary" style="margin-left: 15px;">
+                <i class="fas fa-sync-alt"></i> Пройти тест снова
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/listener.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Дашборд слушателя - UNIREAX{% endblock %}
+
+
+{% block content %}
+<div class="lsn-page">
+    <div class="lsn-container">
+        <div class="lsn-header">
+            <h1 class="lsn-title">Мой дашборд</h1>
+            <p class="lsn-subtitle">Добро пожаловать, {{ user.first_name }}! Продолжайте обучение</p>
+        </div>
+
+        <div class="lsn-stats-row">
+            <div class="lsn-stat-card">
+                <div class="lsn-stat-icon">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <div class="lsn-stat-info">
+                    <div class="lsn-stat-value">{{ total_courses }}</div>
+                    <div class="lsn-stat-label">Активных курсов</div>
+                </div>
+            </div>
+            <div class="lsn-stat-card">
+                <div class="lsn-stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="lsn-stat-info">
+                    <div class="lsn-stat-value">{{ completed_courses }}</div>
+                    <div class="lsn-stat-label">Завершено курсов</div>
+                </div>
+            </div>
+            <div class="lsn-stat-card">
+                <div class="lsn-stat-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="lsn-stat-info">
+                    <div class="lsn-stat-value">{{ active_courses|length }}</div>
+                    <div class="lsn-stat-label">В процессе</div>
+                </div>
+            </div>
+            <div class="lsn-stat-card">
+                <div class="lsn-stat-icon">
+                    <i class="fas fa-certificate"></i>
+                </div>
+                <div class="lsn-stat-info">
+                    <div class="lsn-stat-value">{{ completed_courses }}</div>
+                    <div class="lsn-stat-label">Сертификатов</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lsn-section">
+            <div class="lsn-section-header">
+                <h2 class="lsn-section-title">
+                    <i class="fas fa-graduation-cap"></i> Мои курсы
+                </h2>
+                <a href="{% url 'listener_app:my_courses' %}" class="lsn-section-link">
+                    Все курсы <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
+            {% if active_courses %}
+            <div class="lsn-courses-grid">
+                {% for item in active_courses %}
+                <div class="lsn-course-card">
+                    <div class="lsn-course-image">
+                        {% if item.course.course_photo_path %}
+                        <img src="{{ item.course.course_photo_path.url }}" alt="{{ item.course.course_name }}">
+                        {% else %}
+                        <div class="lsn-course-placeholder">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        {% endif %}
+                        <div class="lsn-course-status">
+                            {% if item.progress >= 100 %}
+                            <span class="lsn-badge lsn-badge-success">Завершен</span>
+                            {% else %}
+                            <span class="lsn-badge lsn-badge-info">В процессе</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="lsn-course-body">
+                        <h3 class="lsn-course-title">{{ item.course.course_name }}</h3>
+                        <p class="lsn-course-description">{{ item.course.course_description|truncatechars:100 }}</p>
+                        <div class="lsn-progress">
+                            <div class="lsn-progress-bar">
+                                <div class="lsn-progress-fill" style="width: {{ item.progress }}%"></div>
+                            </div>
+                            <span class="lsn-progress-text">{{ item.progress|floatformat:0 }}% завершено</span>
+                        </div>
+                    </div>
+                    <div class="lsn-course-footer">
+                        <a href="{% url 'listener_app:course_study' item.course.id %}" class="lsn-btn lsn-btn-primary lsn-btn-block">
+                            <i class="fas fa-play"></i> Продолжить
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="lsn-empty-state">
+                <i class="fas fa-book-open"></i>
+                <h3>У вас пока нет курсов</h3>
+                <p>Запишитесь на курс из каталога, чтобы начать обучение</p>
+                <a href="{% url 'courses_page' %}" class="lsn-btn lsn-btn-primary">Перейти в каталог</a>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if favorite_courses %}
+        <div class="lsn-section">
+            <div class="lsn-section-header">
+                <h2 class="lsn-section-title">
+                    <i class="fas fa-heart"></i> Избранное
+                </h2>
+                <a href="{% url 'listener_app:favorites' %}" class="lsn-section-link">
+                    Все избранное <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            <div class="lsn-courses-grid">
+                {% for course in favorite_courses %}
+                <div class="lsn-course-card">
+                    <div class="lsn-course-image">
+                        {% if course.course_photo_path %}
+                        <img src="{{ course.course_photo_path.url }}" alt="{{ course.course_name }}">
+                        {% else %}
+                        <div class="lsn-course-placeholder">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="lsn-course-body">
+                        <h3 class="lsn-course-title">{{ course.course_name }}</h3>
+                        <p class="lsn-course-description">{{ course.course_description|truncatechars:100 }}</p>
+                    </div>
+                    <div class="lsn-course-footer">
+                        <a href="{% url 'listener_app:course_detail' course.id %}" class="lsn-btn lsn-btn-primary lsn-btn-block">
+                            <i class="fas fa-info-circle"></i> Подробнее
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="lsn-section">
+            <div class="lsn-section-header">
+                <h2 class="lsn-section-title">
+                    <i class="fas fa-star"></i> Рекомендуемые курсы
+                </h2>
+            </div>
+            <div class="lsn-courses-grid">
+                {% for course in recommended_courses %}
+                <div class="lsn-course-card">
+                    <div class="lsn-course-image">
+                        {% if course.course_photo_path %}
+                        <img src="{{ course.course_photo_path.url }}" alt="{{ course.course_name }}">
+                        {% else %}
+                        <div class="lsn-course-placeholder">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="lsn-course-body">
+                        <h3 class="lsn-course-title">{{ course.course_name }}</h3>
+                        <p class="lsn-course-description">{{ course.course_description|truncatechars:100 }}</p>
+                        <div class="lsn-course-stats">
+                            <span class="lsn-stat"><i class="fas fa-users"></i> {{ course.student_count }} слушателей</span>
+                        </div>
+                    </div>
+                    <div class="lsn-course-footer">
+                        <a href="{% url 'listener_app:course_detail' course.id %}" class="lsn-btn lsn-btn-primary lsn-btn-block">
+                            <i class="fas fa-info-circle"></i> Подробнее
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="lsn-empty-state">
+                    <p>Рекомендации появятся позже</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/listener.js' %}"></script>
+{% endblock %}

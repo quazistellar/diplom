@@ -1,0 +1,344 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Заявки преподавателей - UNIREAX{% endblock %}
+
+{% block content %}
+<div class="methodist-page">
+    <div class="methodist-container">
+        <div class="methodist-page-header">
+            <div>
+                <h1 class="methodist-page-title">
+                    <i class="fas fa-chalkboard-user"></i> Заявки преподавателей
+                </h1>
+                <p class="methodist-page-subtitle">Управление заявками на преподавание курсов</p>
+            </div>
+        </div>
+
+        {% if messages %}
+        <div class="methodist-messages">
+            {% for message in messages %}
+            <div class="methodist-message methodist-message-{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}success{% else %}info{% endif %}">
+                <i class="fas fa-{% if message.tags == 'error' %}exclamation-circle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="methodist-filter-card">
+            <div class="methodist-filter-title">
+                <i class="fas fa-filter"></i> Фильтры
+            </div>
+            <form method="get" class="methodist-filter-grid">
+                <div class="methodist-form-field">
+                    <label class="methodist-form-label">Курс</label>
+                    <select name="course" class="methodist-form-input">
+                        <option value="">Все курсы</option>
+                        {% for course in courses %}
+                        <option value="{{ course.id }}" {% if course_filter|stringformat:"s" == course.id|stringformat:"s" %}selected{% endif %}>
+                            {{ course.course_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="methodist-form-field">
+                    <label class="methodist-form-label">Статус</label>
+                    <select name="status" class="methodist-form-input">
+                        <option value="">Все статусы</option>
+                        {% for status_code, status_name in status_choices %}
+                        <option value="{{ status_code }}" {% if status_filter == status_code %}selected{% endif %}>
+                            {{ status_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="methodist-form-field">
+                    <label class="methodist-form-label">Поиск</label>
+                    <input type="text" name="search" class="methodist-form-input" 
+                           placeholder="ФИО или email преподавателя..." value="{{ search_query }}">
+                </div>
+                <div class="methodist-filter-actions">
+                    <button type="submit" class="methodist-btn methodist-btn-primary">
+                        <i class="fas fa-search"></i> Применить
+                    </button>
+                    <a href="{% url 'methodist_app:teacher_applications' %}" class="methodist-btn methodist-btn-outline">
+                        <i class="fas fa-undo"></i> Сбросить
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="methodist-card">
+            <div class="methodist-card-header">
+                <h2><i class="fas fa-list"></i> Список заявок</h2>
+                <p>Всего заявок: {{ applications.paginator.count }}</p>
+            </div>
+
+            {% if applications %}
+            <div class="methodist-applications-list">
+                {% for application in applications %}
+                <div class="methodist-application-card status-{{ application.status }}">
+                    <div class="application-header">
+                        <div class="application-info">
+                            <div class="application-teacher">
+                                <i class="fas fa-user-graduate"></i>
+                                <strong>{{ application.teacher.get_full_name|default:application.teacher.username }}</strong>
+                                <span class="application-email">{{ application.teacher.email }}</span>
+                            </div>
+                            <div class="application-course">
+                                <i class="fas fa-book-open"></i>
+                                <span>{{ application.course.course_name }}</span>
+                            </div>
+                            <div class="application-date">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>{{ application.created_at|date:"d.m.Y H:i" }}</span>
+                            </div>
+                        </div>
+                        <div class="application-status-badge status-{{ application.status }}">
+                            {% if application.status == 'pending' %}
+                                <i class="fas fa-clock"></i> На рассмотрении
+                            {% elif application.status == 'approved' %}
+                                <i class="fas fa-check-circle"></i> Одобрена
+                            {% elif application.status == 'rejected' %}
+                                <i class="fas fa-times-circle"></i> Отклонена
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="application-actions">
+                        <a href="{% url 'methodist_app:application_detail' application.id %}" class="methodist-btn methodist-btn-primary methodist-btn-small">
+                            <i class="fas fa-eye"></i> Подробнее
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if applications.has_other_pages %}
+            <div class="methodist-pagination">
+                <div class="pagination-links">
+                    {% if applications.has_previous %}
+                    <a href="?page={{ applications.previous_page_number }}{% if course_filter %}&course={{ course_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="page-link">
+                        <i class="fas fa-chevron-left"></i> Назад
+                    </a>
+                    {% endif %}
+                    
+                    <span class="page-current">
+                        Страница {{ applications.number }} из {{ applications.paginator.num_pages }}
+                    </span>
+                    
+                    {% if applications.has_next %}
+                    <a href="?page={{ applications.next_page_number }}{% if course_filter %}&course={{ course_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="page-link">
+                        Вперед <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="methodist-empty-state">
+                <i class="fas fa-inbox"></i>
+                <h3>Нет заявок</h3>
+                <p>Пока нет ни одной заявки от преподавателей</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.methodist-application-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.methodist-application-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(138, 79, 255, 0.1);
+}
+
+.methodist-application-card.status-pending {
+    border-left: 4px solid #f1c40f;
+}
+
+.methodist-application-card.status-approved {
+    border-left: 4px solid #2ecc71;
+}
+
+.methodist-application-card.status-rejected {
+    border-left: 4px solid #e74c3c;
+}
+
+.application-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.application-info {
+    flex: 1;
+}
+
+.application-teacher {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.application-teacher i {
+    color: var(--primary);
+    font-size: 18px;
+}
+
+.application-teacher strong {
+    font-size: 16px;
+    color: var(--text);
+    font-family: 'Arial Black', 'Arial Black Local', 'Arial', sans-serif;
+}
+
+.application-email {
+    font-size: 13px;
+    color: var(--text-soft);
+}
+
+.application-course {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: var(--text-soft);
+}
+
+.application-course i {
+    color: var(--primary);
+    width: 18px;
+}
+
+.application-date {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-soft);
+}
+
+.application-date i {
+    color: var(--primary);
+}
+
+.application-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.application-status-badge.status-pending {
+    background: rgba(241, 196, 15, 0.15);
+    color: #f1c40f;
+    border: 1px solid rgba(241, 196, 15, 0.3);
+}
+
+.application-status-badge.status-approved {
+    background: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.application-status-badge.status-rejected {
+    background: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.application-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border);
+    padding-top: 15px;
+    margin-top: 5px;
+}
+
+.methodist-pagination {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.pagination-links {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.page-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-weight: 900;
+}
+
+.page-link:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.page-current {
+    padding: 10px 20px;
+    color: var(--text-soft);
+    font-weight: 900;
+}
+
+@media (max-width: 768px) {
+    .application-header {
+        flex-direction: column;
+    }
+    
+    .application-status-badge {
+        align-self: flex-start;
+    }
+    
+    .application-teacher {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .application-actions {
+        flex-direction: column;
+    }
+    
+    .application-actions .methodist-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}UNIREAX - {% if course %}Редактирование курса{% else %}Создание курса{% endif %}{% endblock %}
+
+{% block content %}
+<div class="methodist-course-builder-page">
+    <div class="methodist-container">
+        <div class="methodist-page-header">
+            <div>
+                <h1 class="methodist-page-title">
+                    {% if course %}Редактирование курса{% else %}Создание нового курса{% endif %}
+                </h1>
+                <p class="methodist-page-subtitle">Заполните информацию о курсе</p>
+            </div>
+            <a href="{% url 'methodist_app:dashboard' %}" class="methodist-btn methodist-btn-secondary">
+                <i class="fas fa-arrow-left"></i> Назад к дашборду
+            </a>
+        </div>
+        
+        <div class="methodist-card">
+            <form method="post" enctype="multipart/form-data" class="methodist-form">
+                {% csrf_token %}
+                
+                <div class="methodist-form-grid">
+                    <div class="methodist-form-group full-width">
+                        <label for="{{ form.course_name.id_for_label }}">
+                            <i class="fas fa-heading"></i> {{ form.course_name.label }}
+                        </label>
+                        {{ form.course_name }}
+                        {% if form.course_name.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.course_name.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Название курса (3-200 символов)</small>
+                    </div>
+                    
+                    <div class="methodist-form-group full-width">
+                        <label for="{{ form.course_description.id_for_label }}">
+                            <i class="fas fa-align-left"></i> {{ form.course_description.label }}
+                        </label>
+                        {{ form.course_description }}
+                        {% if form.course_description.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.course_description.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Краткое описание курса (до 300 символов)</small>
+                    </div>
+                    
+                    <div class="methodist-form-group">
+                        <label for="{{ form.course_category.id_for_label }}">
+                            <i class="fas fa-tag"></i> {{ form.course_category.label }}
+                        </label>
+                        {{ form.course_category }}
+                        {% if form.course_category.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.course_category.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="methodist-form-group">
+                        <label for="{{ form.course_type.id_for_label }}">
+                            <i class="fas fa-layer-group"></i> {{ form.course_type.label }}
+                        </label>
+                        {{ form.course_type }}
+                        {% if form.course_type.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.course_type.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="methodist-form-group">
+                        <label for="{{ form.course_hours.id_for_label }}">
+                            <i class="fas fa-clock"></i> {{ form.course_hours.label }}
+                        </label>
+                        {{ form.course_hours }}
+                        {% if form.course_hours.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.course_hours.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Общая продолжительность курса в часах</small>
+                    </div>
+                    
+                    <div class="methodist-form-group">
+                        <label for="{{ form.course_price.id_for_label }}">
+                            <i class="fas fa-ruble-sign"></i> {{ form.course_price.label }}
+                        </label>
+                        {{ form.course_price }}
+                        {% if form.course_price.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.course_price.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Оставьте пустым для бесплатного курса</small>
+                    </div>
+                    
+                    <div class="methodist-form-group">
+                        <label for="{{ form.course_max_places.id_for_label }}">
+                            <i class="fas fa-users"></i> {{ form.course_max_places.label }}
+                        </label>
+                        {{ form.course_max_places }}
+                        {% if form.course_max_places.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.course_max_places.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Максимальное количество слушателей (оставьте пустым для безлимита)</small>
+                    </div>
+                    
+                    <div class="methodist-form-group">
+                        <label for="{{ form.code_link.id_for_label }}">
+                            <i class="fas fa-link"></i> {{ form.code_link.label }}
+                        </label>
+                        {{ form.code_link }}
+                        {% if form.code_link.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.code_link.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Ссылка на видеовстречу (Яндекс.Телемост и т.д.)</small>
+                    </div>
+                    
+                    <div class="methodist-form-group">
+                        <label for="{{ form.course_photo_path.id_for_label }}">
+                            <i class="fas fa-image"></i> {{ form.course_photo_path.label }}
+                        </label>
+                        {{ form.course_photo_path }}
+                        {% if form.course_photo_path.errors %}
+                        <div class="methodist-form-error">
+                            {% for error in form.course_photo_path.errors %}
+                                <i class="fas fa-exclamation-circle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text">Изображение курса (JPG, JPEG, PNG)</small>
+                    </div>
+                    
+                    <div class="methodist-form-group checkbox-group">
+                        <label class="checkbox-label">
+                            {{ form.has_certificate }}
+                            <span><i class="fas fa-certificate"></i> {{ form.has_certificate.label }}</span>
+                        </label>
+                    </div>
+                    
+                    <div class="methodist-form-group checkbox-group">
+                        <label class="checkbox-label">
+                            {{ form.is_completed }}
+                            <span><i class="fas fa-check-double"></i> {{ form.is_completed.label }}</span>
+                        </label>
+                    </div>
+                    
+                    <div class="methodist-form-group checkbox-group">
+                        <label class="checkbox-label">
+                            {{ form.is_active }}
+                            <span><i class="fas fa-power-off"></i> {{ form.is_active.label }}</span>
+                        </label>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="is_find_teacher" {% if form.is_find_teacher.value %}checked{% endif %}>
+                            <span>Ищем преподавателя на курс</span>
+                        </label>
+                        <div class="form-text" style="margin-left: 28px;">При включении курс будет отображаться в каталоге для преподавателей как вакансия</div>
+                    </div>
+                </div>
+                
+                <div class="methodist-form-actions">
+                    <button type="submit" class="methodist-btn methodist-btn-primary">
+                        <i class="fas fa-save"></i> {% if course %}Сохранить изменения{% else %}Создать курс{% endif %}
+                    </button>
+                    <a href="{% url 'methodist_app:dashboard' %}" class="methodist-btn methodist-btn-secondary">
+                        <i class="fas fa-times"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/methodist.js' %}"></script>
+{% endblock %}

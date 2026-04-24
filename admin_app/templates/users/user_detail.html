@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="container">
+        <div class="admin-header">
+            <h1 class="admin-title">
+                <i class="{{ icon }}"></i>
+                {{ user_obj.get_full_name|default:user_obj.username }}
+            </h1>
+        </div>
+
+        <div class="admin-detail-card">
+            <div class="admin-detail-header">
+                <h2 class="admin-detail-title">
+                    <i class="fas fa-info-circle"></i>
+                    Информация о пользователе
+                </h2>
+                <div class="admin-detail-actions">
+                    <a href="{% url 'admin_app:user_edit' user_obj.id %}" class="btn-admin btn-admin-primary">
+                        <i class="fas fa-edit"></i> Редактировать
+                    </a>
+                    <a href="{% url 'admin_app:user_delete' user_obj.id %}" class="btn-admin btn-admin-danger" onclick="return confirmDelete('{{ user_obj.get_full_name|default:user_obj.username }}')">
+                        <i class="fas fa-trash"></i> Удалить
+                    </a>
+                    <a href="{% url 'admin_app:user_list' %}" class="btn-admin btn-admin-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад
+                    </a>
+                </div>
+            </div>
+            
+            <div class="admin-detail-grid">
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-id"></i> ID
+                    </div>
+                    <div class="admin-detail-value">{{ user_obj.id }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-user"></i> Логин
+                    </div>
+                    <div class="admin-detail-value">{{ user_obj.username }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-envelope"></i> Email
+                    </div>
+                    <div class="admin-detail-value">{{ user_obj.email }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-user-tag"></i> ФИО
+                    </div>
+                    <div class="admin-detail-value">{{ user_obj.last_name }} {{ user_obj.first_name }} {% if user_obj.patronymic %}{{ user_obj.patronymic }}{% endif %}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-tag"></i> Роль
+                    </div>
+                    <div class="admin-detail-value">{% if user_obj.role %}{{ user_obj.role.role_name }}{% else %}—{% endif %}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-briefcase"></i> Должность
+                    </div>
+                    <div class="admin-detail-value">{{ user_obj.position|default:"—" }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-university"></i> Учебное заведение
+                    </div>
+                    <div class="admin-detail-value">{{ user_obj.educational_institution|default:"—" }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-calendar-alt"></i> Дата регистрации
+                    </div>
+                    <div class="admin-detail-value">{{ user_obj.date_joined|date:"d.m.Y H:i" }}</div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-toggle-on"></i> Статус
+                    </div>
+                    <div class="admin-detail-value">
+                        {% if user_obj.is_active %}
+                        <span class="badge-success">Активен</span>
+                        {% else %}
+                        <span class="badge-neutral">Неактивен</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-check-circle"></i> Подтверждён
+                    </div>
+                    <div class="admin-detail-value">
+                        {% if user_obj.is_verified %}
+                        <span class="badge-success">Да</span>
+                        {% else %}
+                        <span class="badge-warning">Нет</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="admin-detail-item">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-palette"></i> Тема
+                    </div>
+                    <div class="admin-detail-value">
+                        {% if user_obj.is_light_theme %}Светлая{% else %}Тёмная{% endif %}
+                    </div>
+                </div>
+                
+                {% if user_obj.certificate_file %}
+                <div class="admin-detail-item full-width">
+                    <div class="admin-detail-label">
+                        <i class="fas fa-file"></i> Справка/документ
+                    </div>
+                    <div class="admin-detail-value">
+                        <a href="{{ user_obj.certificate_file.url }}" target="_blank">Скачать файл</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if enrolled_courses %}
+            <div style="margin-top: 30px;">
+                <h3 style="margin-bottom: 15px;">Записи на курсы</h3>
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Курс</th>
+                                <th>Дата записи</th>
+                                <th>Статус</th>
+                                <th>Завершён</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for uc in enrolled_courses %}
+                            <tr>
+                                <td><a href="{% url 'admin_app:course_detail' uc.course.id %}">{{ uc.course.course_name }}</a></td>
+                                <td>{{ uc.registration_date|date:"d.m.Y" }}</td>
+                                <td>
+                                    {% if uc.is_active %}
+                                    <span class="badge-success">Активен</span>
+                                    {% else %}
+                                    <span class="badge-neutral">Неактивен</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if uc.status_course %}
+                                    <span class="badge-success">Да</span>
+                                    {% else %}
+                                    <span class="badge-warning">Нет</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if teaching_courses %}
+            <div style="margin-top: 30px;">
+                <h3 style="margin-bottom: 15px;">Преподавание</h3>
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Курс</th>
+                                <th>Дата начала</th>
+                                <th>Активен</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ct in teaching_courses %}
+                            <tr>
+                                <td><a href="{% url 'admin_app:course_detail' ct.course.id %}">{{ ct.course.course_name }}</a></td>
+                                <td>{{ ct.start_date|date:"d.m.Y"|default:"—" }}</td>
+                                <td>
+                                    {% if ct.is_active %}
+                                    <span class="badge-success">Да</span>
+                                    {% else %}
+                                    <span class="badge-neutral">Нет</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(name) {
+    return confirm(`Вы уверены, что хотите удалить пользователя "${name}"? Это действие нельзя отменить.`);
+}
+</script>
+{% endblock %}

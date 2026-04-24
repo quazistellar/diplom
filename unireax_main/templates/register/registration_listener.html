@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Регистрация слушателя - UNIREAX{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <h1 class="auth-title">Регистрация</h1>
+                <p class="auth-subtitle">Присоединяйтесь к UNIREAX — создайте аккаунт слушателя!</p>
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="auth-error">
+                    {% for error in form.non_field_errors %}
+                        <p class="mb-1">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if messages %}
+                <div class="auth-success">
+                    {% for message in messages %}
+                        <p class="mb-1">{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="post" class="auth-form" id="registrationForm">
+                {% csrf_token %}
+                
+                <div class="auth-form-group">
+                    <div class="auth-input-wrapper">
+                        <i class="fas fa-user auth-input-icon"></i>
+                        <input type="text" name="username" class="auth-input" placeholder="Имя пользователя" required value="{{ form.username.value|default:'' }}">
+                    </div>
+                    {% if form.username.errors %}
+                        <div class="field-error">{{ form.username.errors.0 }}</div>
+                    {% endif %}
+                    <small class="form-text">Имя пользователя, используемое как логин для входа, не более 150 символов.</small>
+                </div>
+
+                <div class="auth-form-group">
+                    <div class="auth-input-wrapper">
+                        <i class="fas fa-user auth-input-icon"></i>
+                        <input type="text" name="first_name" class="auth-input" placeholder="Имя" required value="{{ form.first_name.value|default:'' }}">
+                    </div>
+                    {% if form.first_name.errors %}
+                        <div class="field-error">{{ form.first_name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="auth-form-group">
+                    <div class="auth-input-wrapper">
+                        <i class="fas fa-user auth-input-icon"></i>
+                        <input type="text" name="last_name" class="auth-input" placeholder="Фамилия" required value="{{ form.last_name.value|default:'' }}">
+                    </div>
+                    {% if form.last_name.errors %}
+                        <div class="field-error">{{ form.last_name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="auth-form-group">
+                    <div class="auth-input-wrapper">
+                        <i class="fas fa-user auth-input-icon"></i>
+                        <input type="text" name="patronymic" class="auth-input" placeholder="Отчество (если есть)" value="{{ form.patronymic.value|default:'' }}">
+                    </div>
+                    {% if form.patronymic.errors %}
+                        <div class="field-error">{{ form.patronymic.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="auth-form-group">
+                    <div class="auth-input-wrapper">
+                        <i class="fas fa-envelope auth-input-icon"></i>
+                        <input type="email" name="email" class="auth-input" placeholder="Почта" required value="{{ form.email.value|default:'' }}">
+                    </div>
+                    {% if form.email.errors %}
+                        <div class="field-error">{{ form.email.errors.0 }}</div>
+                    {% endif %}
+                    <small class="form-text">Введите свою почту, к которой имеете постоянный доступ.</small>
+                </div>
+
+                <div class="auth-form-group">
+                    <div class="auth-input-wrapper">
+                        <i class="fas fa-lock auth-input-icon"></i>
+                        <input type="password" name="password1" id="password1" class="auth-input password-field" placeholder="Пароль" required>
+                    </div>
+                    {% if form.password1.errors %}
+                        <div class="field-error">{{ form.password1.errors.0 }}</div>
+                    {% endif %}
+                    <small class="form-text">Пароль должен содержать минимум 8 символов, включая заглавную букву, спецсимвол и цифру</small>
+                </div>
+
+                <div class="auth-form-group">
+                    <div class="auth-input-wrapper">
+                        <i class="fas fa-check-circle auth-input-icon"></i>
+                        <input type="password" name="password2" id="password2" class="auth-input password-field" placeholder="Подтвердите пароль" required>
+                    </div>
+                    {% if form.password2.errors %}
+                        <div class="field-error">{{ form.password2.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="auth-checkbox-wrapper mb-3" id="checkboxWrapper">
+                    <label class="auth-checkbox-label">
+                        <input type="checkbox" name="accept_policies" id="accept_policies" required>
+                        <span class="checkbox-text">
+                            Нажимая на кнопку "Зарегистрироваться", вы даёте своё согласие на 
+                            использование ваших персональных данных в соответствие с Федеральным законом № 152-ФЗ от 27.07.2006 
+                            и соглашаетесь с политикой ресурса Unireax
+                        </span>
+                    </label>
+                    {% if form.accept_policies.errors %}
+                        <div class="field-error">{{ form.accept_policies.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div id="checkbox-error-message" class="auth-error" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>Чтобы стать частью Unireax, вам нужно поставить галочку в пункте выше</span>
+                </div>
+
+                <button type="submit" class="auth-btn">
+                    <span>Зарегистрироваться</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="auth-divider">
+                <span>ИЛИ</span>
+            </div>
+
+            <div class="auth-register-link">
+                <span class="auth-register-text">Уже есть аккаунт?</span>
+                <a href="{% url 'login_page' %}" class="auth-register-link-btn">
+                    Войти <i class="fas fa-sign-in-alt"></i>
+                </a>
+            </div>
+            
+            <div class="auth-register-link">
+                <span class="auth-register-text">Хотите делиться своими знаниями?</span>
+                <a href="{% url 'register_teacher_methodist' %}" class="auth-register-link-btn">
+                    Стать методистом или преподавателем <i class="fas fa-chalkboard-teacher"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/registration.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="container">
+        <div class="admin-header">
+            <h1 class="admin-title">
+                <i class="{{ icon }}"></i>
+                {{ title }}
+            </h1>
+        </div>
+
+        <div class="admin-form">
+            <form method="post">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="admin-form-errors">
+                    {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="admin-form-grid">
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-user"></i> {{ form.user.label }}
+                        </label>
+                        {{ form.user }}
+                        {% if form.user.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.user.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-book"></i> {{ form.course.label }}
+                        </label>
+                        {{ form.course }}
+                        {% if form.course.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.course.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-calendar-alt"></i> {{ form.registration_date.label }}
+                        </label>
+                        {{ form.registration_date }}
+                        {% if form.registration_date.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.registration_date.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-calendar-check"></i> {{ form.completion_date.label }}
+                        </label>
+                        {{ form.completion_date }}
+                        {% if form.completion_date.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.completion_date.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-credit-card"></i> {{ form.payment_date.label }}
+                        </label>
+                        {{ form.payment_date }}
+                        {% if form.payment_date.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.payment_date.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-ruble-sign"></i> {{ form.course_price.label }}
+                        </label>
+                        {{ form.course_price }}
+                        {% if form.course_price.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.course_price.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-hashtag"></i> {{ form.payment_id.label }}
+                        </label>
+                        {{ form.payment_id }}
+                        {% if form.payment_id.errors %}
+                        <ul class="admin-form-errorlist">
+                            {% for error in form.payment_id.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-flag-checkered"></i> {{ form.status_course.label }}
+                        </label>
+                        <label class="admin-form-checkbox">
+                            {{ form.status_course }} <span>Курс завершён</span>
+                        </label>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">
+                            <i class="fas fa-toggle-on"></i> {{ form.is_active.label }}
+                        </label>
+                        <label class="admin-form-checkbox">
+                            {{ form.is_active }} <span>Активен на курсе</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn-admin btn-admin-primary">
+                        <i class="fas fa-save"></i> {% if user_course %}Сохранить изменения{% else %}Создать запись{% endif %}
+                    </button>
+                    <a href="{% url 'admin_app:user_course_list' %}" class="btn-admin btn-admin-secondary">
+                        <i class="fas fa-times"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
