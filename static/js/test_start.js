@@ -334,7 +334,7 @@ function submitTest() {
         confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Отправка...';
     }
     
-    // получение CSRF-токена из cookie
+    // функция получения CSRF-токена из cookie
     function getCSRFToken() {
         let cookieValue = null;
         const cookies = document.cookie.split(';');
