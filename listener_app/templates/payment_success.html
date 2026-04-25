@@ -66,20 +66,15 @@
 
 <script>
 function printReceipt() {
-    // Получаем URL для скачивания чека
     const receiptUrl = "{% url 'listener_app:payment_receipt' course.id payment_id %}";
     
-    // Скачиваем PDF и открываем его для печати
     fetch(receiptUrl)
         .then(response => response.blob())
         .then(blob => {
-            // Создаем URL для blob
             const blobUrl = URL.createObjectURL(blob);
             
-            // Открываем PDF в новой вкладке для печати
             const printWindow = window.open(blobUrl, '_blank');
             
-            // Ждем загрузки PDF и вызываем печать
             if (printWindow) {
                 printWindow.onload = function() {
                     setTimeout(function() {
@@ -90,15 +85,11 @@ function printReceipt() {
         })
         .catch(error => {
             console.error('Ошибка при загрузке чека:', error);
-            // Fallback: просто открываем ссылку
             window.open(receiptUrl, '_blank');
         });
 }
 
-// Предотвращаем случайное закрытие окна при скачивании
 document.getElementById('downloadReceiptBtn').addEventListener('click', function(e) {
-    // Разрешаем стандартное поведение - скачивание файла
-    // Ничего не делаем, просто даем ссылке работать
 });
 </script>
 {% endblock %}
