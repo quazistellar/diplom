@@ -140,7 +140,7 @@
                             <label class="form-label fw-bold">Файлы с решением *</label>
                             <div class="file-upload-area" id="fileUploadArea">
                                 <input type="file" name="submission_files" id="submission_files" class="file-input" 
-                                       multiple accept=".pdf,.doc,.docx,.zip,.txt,.jpg,.png" style="display: none;">
+                                       multiple accept=".pdf,.doc,.docx,.zip,.txt,.jpg,.png">
                                 <div class="upload-placeholder">
                                     <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
                                     <div class="upload-text">Нажмите или перетащите файлы сюда</div>
@@ -182,71 +182,42 @@
 </div>
 
 <script>
+// данная функция инициализирует обработчики событий после полной загрузки DOM
 document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('submission_files');
     const fileUploadArea = document.getElementById('fileUploadArea');
     const filesList = document.getElementById('filesList');
-
-    let selectedFiles = [];
     
-    function initSelectedFiles() {
-        if (fileInput.files.length > 0) {
-            for (let i = 0; i < fileInput.files.length; i++) {
-                selectedFiles.push(fileInput.files[i]);
-            }
-            updateFilesList();
-        }
+    fileInput.style.position = 'absolute';
+    fileInput.style.opacity = '0';
+    fileInput.style.width = '0';
+    fileInput.style.height = '0';
+    fileInput.style.pointerEvents = 'none';
+    
+    let allFiles = [];
+    
+    // данная функция форматирует размер файла
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
     
-    fileUploadArea.addEventListener('click', function() {
-        fileInput.click();
-    });
-    
-    fileInput.addEventListener('change', function(e) {
-        for (let i = 0; i < e.target.files.length; i++) {
-            selectedFiles.push(e.target.files[i]);
-        }
-        updateFileInput();
-        updateFilesList();
-        fileInput.value = '';
-    });
-    
-    fileUploadArea.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        fileUploadArea.classList.add('dragover');
-    });
-    
-    fileUploadArea.addEventListener('dragleave', function() {
-        fileUploadArea.classList.remove('dragover');
-    });
-    
-    fileUploadArea.addEventListener('drop', function(e) {
-        e.preventDefault();
-        fileUploadArea.classList.remove('dragover');
-        
-        const droppedFiles = e.dataTransfer.files;
-        for (let i = 0; i < droppedFiles.length; i++) {
-            selectedFiles.push(droppedFiles[i]);
-        }
-        updateFileInput();
-        updateFilesList();
-    });
-    
-    function updateFileInput() {
-        const dt = new DataTransfer();
-        for (let i = 0; i < selectedFiles.length; i++) {
-            dt.items.add(selectedFiles[i]);
-        }
-        fileInput.files = dt.files;
+    // данная функция экранирует HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
     
-    function updateFilesList() {
+    // данная функция обновляет отображение списка файлов и синхронизирует input
+    function updateFilesListAndInput() {
         filesList.innerHTML = '';
-        
-        if (selectedFiles.length === 0) return;
-        
-        for (let i = 0; i < selectedFiles.length; i++) {
-            const file = selectedFiles[i];
+        if (allFiles.length === 0) return;
+        for (let i = 0; i < allFiles.length; i++) {
+            const file = allFiles[i];
             const fileItem = document.createElement('div');
             fileItem.className = 'file-item';
             fileItem.innerHTML = `
@@ -264,42 +235,78 @@ document.addEventListener('DOMContentLoaded', function() {
             filesList.appendChild(fileItem);
         }
         
+        const dt = new DataTransfer();
+        for (let i = 0; i < allFiles.length; i++) {
+            dt.items.add(allFiles[i]);
+        }
+        fileInput.files = dt.files;
+        
         document.querySelectorAll('.remove-file').forEach(btn => {
             btn.addEventListener('click', function() {
                 const index = parseInt(this.dataset.index);
-                removeFile(index);
+                allFiles.splice(index, 1);
+                updateFilesListAndInput();
             });
         });
     }
     
-    function removeFile(index) {
-        selectedFiles.splice(index, 1);
-        updateFileInput();
-        updateFilesList();
+    // данная функция добавляет новые файлы к существующим
+    function addFiles(newFiles) {
+        for (let i = 0; i < newFiles.length; i++) {
+            allFiles.push(newFiles[i]);
+        }
+        updateFilesListAndInput();
     }
     
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
+    // данная функция обрабатывает клик по области загрузки
+    fileUploadArea.addEventListener('click', function(e) {
+        e.stopPropagation();
+        fileInput.click();
+    });
     
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    document.getElementById('submitForm').addEventListener('submit', function(e) {
-        if (selectedFiles.length === 0) {
-            e.preventDefault();
-            alert('Пожалуйста, прикрепите хотя бы один файл');
+    // данная функция обрабатывает выбор файлов через диалог (ДОБАВЛЯЕТ, а не заменяет)
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            addFiles(e.target.files);
+            fileInput.value = '';
         }
     });
     
-    initSelectedFiles();
+    // данная функция обрабатывает перетаскивание
+    fileUploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragover');
+    });
+    
+    // данная функция обрабатывает выход из области перетаскивания
+    fileUploadArea.addEventListener('dragleave', function() {
+        fileUploadArea.classList.remove('dragover');
+    });
+    
+    // данная функция обрабатывает сброс файлов (ДОБАВЛЯЕТ, а не заменяет)
+    fileUploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+        
+        if (e.dataTransfer.files.length > 0) {
+            addFiles(e.dataTransfer.files);
+        }
+    });
+    
+    // данная функция проверяет наличие файлов перед отправкой
+    document.getElementById('submitForm').addEventListener('submit', function(e) {
+        if (allFiles.length === 0) {
+            e.preventDefault();
+            alert('Пожалуйста, прикрепите хотя бы один файл');
+            return false;
+        }
+        
+        const dt = new DataTransfer();
+        for (let i = 0; i < allFiles.length; i++) {
+            dt.items.add(allFiles[i]);
+        }
+        fileInput.files = dt.files;
+    });
 });
 </script>
 {% endblock %}

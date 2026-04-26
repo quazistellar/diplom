@@ -22,6 +22,7 @@
                            class="search-input" 
                            placeholder="Поиск курсов..." 
                            id="searchInput"
+                           name="search" 
                            value="{{ search_query }}">
                     {% if search_query %}
                     <a href="{% get_filter_url request 'search' remove=True %}" class="clear-search">
@@ -43,6 +44,11 @@
                 <button class="sort-btn" onclick="toggleSort()">
                     <i class="fas fa-sort-amount-down"></i>
                     Сортировка
+                </button>
+              
+                <button class="clear-all-btn" onclick="clearAllFilters()">
+                    <i class="fas fa-trash-alt"></i>
+                    Очистить всё
                 </button>
             </div>
 

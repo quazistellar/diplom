@@ -602,5 +602,3 @@ class CourseTeacherFilterForm(forms.Form):
         choices=[('', 'Все'), ('true', 'Активен'), ('false', 'Неактивен')],
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-
-

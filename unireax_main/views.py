@@ -368,7 +368,11 @@ def unverified_profile(request):
 def search_courses(request):
     """
     Динамический поиск курсов через БД с функцией "Возможно вы имели ввиду"
+    Возвращает полные данные для отображения карточек курсов
     """
+    from django.db.models import Avg, Count, Q
+    from django.urls import reverse
+    
     query = request.GET.get('q', '').strip()
     
     if len(query) < 3:
@@ -377,10 +381,6 @@ def search_courses(request):
     padded_query = f"  {query.lower()}  "
     query_trigrams = {padded_query[i:i+3] for i in range(len(padded_query) - 2)}
     
-    all_courses = Course.objects.filter(
-        is_active=True
-    ).select_related('course_category', 'course_type')[:50]  
-    
     courses = Course.objects.filter(
         Q(course_name__icontains=query) |
         Q(course_description__icontains=query) |
@@ -388,19 +388,29 @@ def search_courses(request):
         Q(course_type__course_type_name__icontains=query)
     ).filter(
         is_active=True
-    ).select_related('course_category', 'course_type').distinct()[:8]
+    ).exclude(
+        course_type__course_type_name='классная комната'
+    ).select_related('course_category', 'course_type', 'created_by').annotate(
+        avg_rating=Avg('review__rating', filter=Q(review__is_approved=True)),
+        student_count=Count('usercourse', filter=Q(usercourse__is_active=True))
+    ).distinct()[:12]
     
-    if not courses.exists() and all_courses.exists():
+    if not courses.exists():
+        all_courses = Course.objects.filter(
+            is_active=True
+        ).exclude(
+            course_type__course_type_name='классная комната'
+        ).select_related('course_category', 'course_type')[:50]
+        
         suggestions = []
         for course in all_courses:
-
             padded_name = f"  {course.course_name.lower()}  "
             name_trigrams = {padded_name[i:i+3] for i in range(len(padded_name) - 2)}
             common = query_trigrams & name_trigrams
             all_trigrams = query_trigrams | name_trigrams
             similarity = len(common) / len(all_trigrams) if all_trigrams else 0
             
-            if similarity > 0.2:  
+            if similarity > 0.2:
                 suggestions.append((course, similarity))
         
         suggestions.sort(key=lambda x: x[1], reverse=True)
@@ -414,11 +424,11 @@ def search_courses(request):
                     'url': reverse('course_detail', args=[suggested_course.id])
                 }
             })
-
+        return JsonResponse({'results': [], 'suggestion': None})
+    
     results = []
     for course in courses:
         icon = "fas fa-graduation-cap"
-        
         if course.course_category:
             cat_name = course.course_category.course_category_name.lower()
             if any(word in cat_name for word in ['программ', 'код', 'python', 'java']):
@@ -430,16 +440,30 @@ def search_courses(request):
             elif any(word in cat_name for word in ['маркет', 'реклам']):
                 icon = "fas fa-bullhorn"
         
+        image_url = None
+        if course.course_photo_path:
+            image_url = course.course_photo_path.url
+        
         results.append({
             'id': course.id,
             'title': course.course_name,
-            'category': course.course_category.course_category_name if course.course_category else 'Курс',
+            'description': course.course_description or '',
+            'price': int(course.course_price) if course.course_price else None,
+            'category': course.course_category.course_category_name if course.course_category else None,
+            'type': course.course_type.course_type_name if course.course_type else None,
+            'hours': course.course_hours or 0,
+            'has_certificate': course.has_certificate,
+            'is_completed': course.is_completed,
+            'max_places': course.course_max_places,
+            'student_count': course.student_count or 0,
+            'avg_rating': str(round(course.avg_rating, 1)) if course.avg_rating else '0.0',
+            'created_date': course.created_at.strftime('%d.%m.%Y') if course.created_at else '',
+            'image_url': image_url,
             'icon': icon,
             'url': reverse('course_detail', args=[course.id])
         })
     
     return JsonResponse({'results': results, 'suggestion': None})
-
 
 def get_client_ip(request):
     """Получение IP адреса клиента (только для информации)"""

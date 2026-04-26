@@ -217,18 +217,32 @@ def listener_profile(request):
     total_courses = UserCourse.objects.filter(user=user, is_active=True).count()
     completed_courses = UserCourse.objects.filter(user=user, status_course=True).count()
     
-    total_assignments = UserPracticalAssignment.objects.filter(user=user).count()
+    total_assignments = UserPracticalAssignment.objects.filter(
+        user=user
+    ).values('practical_assignment').distinct().count()
+    
     graded_assignments = UserPracticalAssignment.objects.filter(
         user=user,
         submission_status__assignment_status_name='завершено'
-    ).count()
-
-    total_tests = Test.objects.filter(
-        lecture__course__in=UserCourse.objects.filter(user=user, is_active=True).values('course'),
-        is_active=True
-    ).count()
-
-    passed_tests = TestResult.objects.filter(user=user, is_passed=True).count()
+    ).values('practical_assignment').distinct().count()
+    
+    total_tests = TestResult.objects.filter(
+        user=user,
+        test__lecture__course__in=UserCourse.objects.filter(user=user, is_active=True).values('course'),
+        test__is_active=True
+    ).values('test').distinct().count()
+    
+    passed_tests = 0
+    distinct_test_ids = TestResult.objects.filter(
+        user=user,
+        test__lecture__course__in=UserCourse.objects.filter(user=user, is_active=True).values('course'),
+        test__is_active=True
+    ).values_list('test', flat=True).distinct()
+    
+    for test_id in distinct_test_ids:
+        test = Test.objects.get(id=test_id)
+        if test.is_passed_by_user(user):
+            passed_tests += 1
     
     paid_courses = UserCourse.objects.filter(
         user=user,
