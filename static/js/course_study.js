@@ -231,9 +231,7 @@ async function submitComment(postId) {
         const data = await response.json();
         
         if (data.success && data.comment) {
-            // Очищаем поле
             textarea.value = '';
-            // Добавляем комментарий в DOM
             addCommentToDOM(postId, data.comment);
             const commentsDiv = document.getElementById(`comments-${postId}`);
             if (commentsDiv && commentsDiv.style.display !== 'block') {
