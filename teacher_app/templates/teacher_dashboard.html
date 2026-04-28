@@ -253,21 +253,27 @@
                         {% endif %}
                     </div>
                     <div class="teacher-course-footer">
-                        {% if stat.is_active %}
+                    {% if stat.is_active %}
                         <a href="{% url 'teacher_app:course_detail' stat.course.id %}" class="teacher-btn teacher-btn-info teacher-btn-block">
                             <i class="fas fa-chalkboard-teacher"></i> Проверка работ
                         </a>
-                        {% else %}
+                    {% else %}
                         <div class="teacher-btn teacher-btn-disabled teacher-btn-block teacher-action-disabled">
                             <i class="fas fa-archive"></i> Курс недоступен
                         </div>
-                        {% endif %}
+                    {% endif %}
+                    
+                    {% if can_edit %}
                         <div class="teacher-course-actions">
-                            <a href="{% url 'teacher_app:listeners_list' stat.course.id %}" class="teacher-btn teacher-btn-small teacher-btn-outline {% if not stat.is_active %}teacher-action-disabled{% endif %}" title="Слушатели">
+                            <a href="{% url 'teacher_app:listeners_list' stat.course.id %}" class="teacher-btn teacher-btn-small teacher-btn-outline" title="Слушатели">
                                 <i class="fas fa-users"></i>
                             </a>
                         </div>
-                    </div>
+                    {% else %}
+                        <div class="teacher-course-actions">
+                        </div>
+                    {% endif %}
+                </div>
                 </div>
                 {% endfor %}
             </div>

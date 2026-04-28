@@ -359,10 +359,99 @@ def resend_verification_code(request):
     
     return redirect('verify_registration')
 
+@login_required
 def unverified_profile(request):
     """Страница для пользователей, ожидающих подтверждения"""
     if not request.user.is_authenticated:
         return redirect('login_page')
+    
+    user = request.user
+    
+    if request.method == 'POST' and 'profile_update' in request.POST:
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        patronymic = request.POST.get('patronymic', '').strip()
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        position = request.POST.get('position', '').strip()
+        educational_institution = request.POST.get('educational_institution', '').strip()
+        
+        has_error = False
+        
+        if not first_name:
+            messages.error(request, 'Имя обязательно для заполнения')
+            has_error = True
+        if not last_name:
+            messages.error(request, 'Фамилия обязательна для заполнения')
+            has_error = True
+        if not username:
+            messages.error(request, 'Имя пользователя обязательно')
+            has_error = True
+        if not email:
+            messages.error(request, 'Email обязателен')
+            has_error = True
+        
+        if username != user.username and User.objects.filter(username=username).exists():
+            messages.error(request, 'Пользователь с таким именем уже существует')
+            has_error = True
+        
+        if email != user.email and User.objects.filter(email=email).exists():
+            messages.error(request, 'Пользователь с таким email уже существует')
+            has_error = True
+        
+        if user.role and user.role.role_name in ['преподаватель', 'методист']:
+            if not position:
+                messages.error(request, 'Должность обязательна для заполнения')
+                has_error = True
+            if not educational_institution:
+                messages.error(request, 'Учебное заведение обязательно для заполнения')
+                has_error = True
+        
+        if not has_error:
+            user.first_name = first_name
+            user.last_name = last_name
+            user.patronymic = patronymic
+            user.username = username
+            user.email = email
+            user.position = position
+            user.educational_institution = educational_institution
+            
+            if 'certificate_file' in request.FILES:
+                certificate_file = request.FILES['certificate_file']
+                if certificate_file.size > 10 * 1024 * 1024:
+                    messages.error(request, 'Размер файла не должен превышать 10 МБ')
+                else:
+                    if user.certificate_file:
+                        try:
+                            os.remove(user.certificate_file.path)
+                        except:
+                            pass
+                    user.certificate_file = certificate_file
+            
+            user.is_verified = False
+            user.save()
+            
+            messages.success(request, 'Ваши данные успешно обновлены! Аккаунт отправлен на повторную проверку.')
+            return redirect('unverified_profile')
+    
+    if request.method == 'POST' and 'password_change' in request.POST:
+        old_password = request.POST.get('old_password')
+        new_password1 = request.POST.get('new_password1')
+        new_password2 = request.POST.get('new_password2')
+        
+        if not user.check_password(old_password):
+            messages.error(request, 'Неверный текущий пароль')
+        elif new_password1 != new_password2:
+            messages.error(request, 'Новые пароли не совпадают')
+        elif len(new_password1) < 8:
+            messages.error(request, 'Пароль должен содержать минимум 8 символов')
+        else:
+            user.set_password(new_password1)
+            user.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Пароль успешно изменен!')
+            return redirect('unverified_profile')
+    
     return render(request, 'unverified_profile.html')
 
 def search_courses(request):

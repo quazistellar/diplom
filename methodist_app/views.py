@@ -6,6 +6,7 @@ from django.contrib.auth import logout, update_session_auth_hash
 from django.db.models import F, Count, Avg, Q, Max
 from django.urls import reverse
 from django.utils import timezone
+from unireax_main.models import ApplicationStatus, PostType
 from django.db import transaction
 from datetime import datetime, timedelta
 from django.http import JsonResponse
@@ -964,9 +965,7 @@ def export_statistics(request, export_type, format_type):
 @login_required
 @user_passes_test(is_methodist_or_admin)
 def methodist_teacher_applications(request):
-    """
-    Страница управления заявками преподавателей
-    """
+    """Страница управления заявками преподавателей"""
     my_courses = Course.objects.filter(
         Q(created_by=request.user) |
         Q(courseteacher__teacher=request.user, courseteacher__is_active=True)
@@ -980,7 +979,7 @@ def methodist_teacher_applications(request):
     if course_filter:
         applications = applications.filter(course_id=course_filter)
     if status_filter:
-        applications = applications.filter(status=status_filter)
+        applications = applications.filter(status__code=status_filter)
     if search_query:
         applications = applications.filter(
             Q(teacher__last_name__icontains=search_query) |
@@ -988,10 +987,12 @@ def methodist_teacher_applications(request):
             Q(teacher__email__icontains=search_query)
         )
     
-    applications = applications.select_related('teacher', 'course').order_by('-created_at')
+    applications = applications.select_related('teacher', 'course', 'status').order_by('-created_at')
     paginator = Paginator(applications, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
+    all_statuses = ApplicationStatus.objects.all()
     
     context = {
         'applications': page_obj,
@@ -999,7 +1000,7 @@ def methodist_teacher_applications(request):
         'course_filter': course_filter,
         'status_filter': status_filter,
         'search_query': search_query,
-        'status_choices': TeacherApplication.STATUS_CHOICES,
+        'all_statuses': all_statuses, 
     }
     return render(request, 'methodist_teacher_applications.html', context)
 
@@ -1007,9 +1008,7 @@ def methodist_teacher_applications(request):
 @login_required
 @user_passes_test(is_methodist_or_admin)
 def methodist_application_detail(request, application_id):
-    """
-    Детальный просмотр заявки преподавателя
-    """
+    """Детальный просмотр заявки преподавателя"""
     application = get_object_or_404(TeacherApplication, id=application_id)
     
     my_courses = Course.objects.filter(

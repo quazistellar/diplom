@@ -58,13 +58,13 @@
                     <div class="methodist-info-item">
                         <div class="methodist-info-label"><i class="fas fa-tag"></i> Статус</div>
                         <div class="methodist-info-value">
-                            <span class="application-status-badge status-{{ application.status }}">
-                                {% if application.status == 'pending' %}
-                                    <i class="fas fa-clock"></i> На рассмотрении
-                                {% elif application.status == 'approved' %}
-                                    <i class="fas fa-check-circle"></i> Одобрена
-                                {% elif application.status == 'rejected' %}
-                                    <i class="fas fa-times-circle"></i> Отклонена
+                            <span class="application-status-badge status-{{ application.status.code }}">
+                                {% if application.status.code == 'pending' %}
+                                    <i class="fas fa-clock"></i> {{ application.status.name }}
+                                {% elif application.status.code == 'approved' %}
+                                    <i class="fas fa-check-circle"></i> {{ application.status.name }}
+                                {% elif application.status.code == 'rejected' %}
+                                    <i class="fas fa-times-circle"></i> {{ application.status.name }}
                                 {% endif %}
                             </span>
                         </div>
@@ -78,7 +78,7 @@
                 </div>
             </div>
 
-            {% if application.status == 'pending' %}
+            {% if application.status.code == 'pending' %}
             <div class="methodist-card">
                 <div class="methodist-card-header">
                     <h2><i class="fas fa-gavel"></i> Обработка заявки</h2>
@@ -108,7 +108,7 @@
                 </form>
             </div>
             
-            {% elif application.status == 'approved' %}
+            {% elif application.status.code == 'approved' %}
             <div class="methodist-card">
                 <div class="methodist-card-header">
                     <h2><i class="fas fa-check-circle"></i> Заявка одобрена</h2>
@@ -154,7 +154,7 @@
             </div>
             {% endif %}
 
-            {% elif application.status == 'rejected' %}
+            {% elif application.status.code == 'rejected' %}
             <div class="methodist-card">
                 <div class="methodist-card-header">
                     <h2><i class="fas fa-times-circle"></i> Заявка отклонена</h2>
@@ -176,4 +176,5 @@
         </div>
     </div>
 </div>
+
 {% endblock %}

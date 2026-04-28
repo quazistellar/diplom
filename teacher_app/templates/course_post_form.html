@@ -32,19 +32,17 @@
             <form method="post" class="teacher-form">
                 {% csrf_token %}
                 
-                <div class="teacher-form-group">
-                    <label for="post_type">
-                        <i class="fas fa-tag"></i> Тип объявления
-                    </label>
-                    <select name="post_type" id="post_type" class="form-control">
-                        {% for value, label in post_types %}
-                        <option value="{{ value }}" {% if post and post.post_type == value %}selected{% endif %}>
-                            {{ label }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <small class="form-text">Выберите тип объявления</small>
-                </div>
+                    <div class="teacher-form-group">
+                        <label for="post_type">
+                            <i class="fas fa-tag"></i> Тип объявления <span class="required">*</span>
+                        </label>
+                        <select name="post_type" id="post_type" class="form-control" required>
+                            <option value="announcement" {% if not current_post_type_code or current_post_type_code == 'announcement' %}selected{% endif %}>Объявление</option>
+                            <option value="question" {% if current_post_type_code == 'question' %}selected{% endif %}>Вопрос</option>
+                            <option value="reminder" {% if current_post_type_code == 'reminder' %}selected{% endif %}>Напоминание</option>
+                        </select>
+                        <small class="form-text">Выберите тип объявления</small>
+                    </div>
 
                 <div class="teacher-form-group">
                     <label for="title">
@@ -164,8 +162,7 @@
 </style>
 
 <script>
-
-/// функции для работы модального окна
+// функции для отображения модального окна
 function openDeleteModal(postId, postTitle) {
     document.getElementById('deletePostTitle').textContent = postTitle;
     document.getElementById('deleteModal').style.display = 'block';

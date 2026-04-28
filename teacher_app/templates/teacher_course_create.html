@@ -81,21 +81,6 @@
                     </div>
                     
                     <div class="teacher-form-group">
-                        <label for="{{ form.course_price.id_for_label }}">
-                            <i class="fas fa-ruble-sign"></i> {{ form.course_price.label }}
-                        </label>
-                        {{ form.course_price }}
-                        {% if form.course_price.errors %}
-                        <div class="teacher-form-error">
-                            {% for error in form.course_price.errors %}
-                                <i class="fas fa-exclamation-circle"></i> {{ error }}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        <small class="form-text">Оставьте пустым для бесплатного курса</small>
-                    </div>
-                    
-                    <div class="teacher-form-group">
                         <label for="{{ form.course_max_places.id_for_label }}">
                             <i class="fas fa-users"></i> {{ form.course_max_places.label }}
                         </label>
@@ -142,19 +127,10 @@
                     
                     <div class="teacher-form-group checkbox-group">
                         <label class="checkbox-label">
-                            {{ form.has_certificate }}
-                            <span><i class="fas fa-certificate"></i> {{ form.has_certificate.label }}</span>
-                            <small class="form-text">Будет ли выдаваться сертфикат за прохождение вашего курса. Он генерируется автоматически при завершении курса слушателем.</small>
-                        </label>
-                    </div>
-                    
-                    <div class="teacher-form-group checkbox-group">
-                        <label class="checkbox-label">
                             {{ form.is_active }}
                             <span><i class="fas fa-power-off"></i> {{ form.is_active.label }}</span>
                             <small class="form-text">ВНИМАНИЕ! Если галочка на активности курса убирается - курс становится недоступным для слушателей до тех пор, пока галочка не будет поставлена вновь.</small>
                         </label>
-
                     </div>
                 </div>
                 

@@ -83,21 +83,6 @@
                     </div>
                     
                     <div class="teacher-form-group">
-                        <label for="{{ form.course_price.id_for_label }}">
-                            <i class="fas fa-ruble-sign"></i> {{ form.course_price.label }}
-                        </label>
-                        {{ form.course_price }}
-                        {% if form.course_price.errors %}
-                        <div class="teacher-form-error">
-                            {% for error in form.course_price.errors %}
-                                <i class="fas fa-exclamation-circle"></i> {{ error }}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        <small class="form-text">Оставьте пустым для бесплатного курса</small>
-                    </div>
-                    
-                    <div class="teacher-form-group">
                         <label for="{{ form.course_max_places.id_for_label }}">
                             <i class="fas fa-users"></i> {{ form.course_max_places.label }}
                         </label>
@@ -111,6 +96,7 @@
                         {% endif %}
                         <small class="form-text">Максимальное количество слушателей, которое может записаться на курс (оставьте поле пустым, если ограничений нет)</small>
                     </div>
+                    
                     <div class="teacher-form-group">
                         <label for="{{ form.code_link.id_for_label }}">
                             <i class="fas fa-link"></i> {{ form.code_link.label }}
@@ -142,14 +128,6 @@
                         <small class="form-text">Текущее изображение: <a href="{{ course.course_photo_path.url }}" target="_blank">{{ course.course_photo_path.name }}</a></small>
                         {% endif %}
                         <small class="form-text">Изображение курса (JPG, JPEG, PNG)</small>
-                    </div>
-                    
-                    <div class="teacher-form-group checkbox-group">
-                        <label class="checkbox-label">
-                            {{ form.has_certificate }}
-                            <span><i class="fas fa-certificate"></i> {{ form.has_certificate.label }}</span>
-                            <small class="form-text">Будет ли выдаваться сертфикат за прохождение вашего курса. Он генерируется автоматически при завершении курса слушателем.</small>
-                        </label>
                     </div>
                     
                     <div class="teacher-form-group checkbox-group">

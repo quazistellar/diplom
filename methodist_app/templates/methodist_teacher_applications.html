@@ -15,17 +15,6 @@
             </div>
         </div>
 
-        {% if messages %}
-        <div class="methodist-messages">
-            {% for message in messages %}
-            <div class="methodist-message methodist-message-{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}success{% else %}info{% endif %}">
-                <i class="fas fa-{% if message.tags == 'error' %}exclamation-circle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
-                <span>{{ message }}</span>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
         <div class="methodist-filter-card">
             <div class="methodist-filter-title">
                 <i class="fas fa-filter"></i> Фильтры
@@ -46,9 +35,9 @@
                     <label class="methodist-form-label">Статус</label>
                     <select name="status" class="methodist-form-input">
                         <option value="">Все статусы</option>
-                        {% for status_code, status_name in status_choices %}
-                        <option value="{{ status_code }}" {% if status_filter == status_code %}selected{% endif %}>
-                            {{ status_name }}
+                        {% for status in all_statuses %}
+                        <option value="{{ status.code }}" {% if status_filter == status.code %}selected{% endif %}>
+                            {{ status.name }}
                         </option>
                         {% endfor %}
                     </select>
@@ -78,7 +67,7 @@
             {% if applications %}
             <div class="methodist-applications-list">
                 {% for application in applications %}
-                <div class="methodist-application-card status-{{ application.status }}">
+                <div class="methodist-application-card status-{{ application.status.code }}">
                     <div class="application-header">
                         <div class="application-info">
                             <div class="application-teacher">
@@ -95,14 +84,12 @@
                                 <span>{{ application.created_at|date:"d.m.Y H:i" }}</span>
                             </div>
                         </div>
-                        <div class="application-status-badge status-{{ application.status }}">
-                            {% if application.status == 'pending' %}
-                                <i class="fas fa-clock"></i> На рассмотрении
-                            {% elif application.status == 'approved' %}
-                                <i class="fas fa-check-circle"></i> Одобрена
-                            {% elif application.status == 'rejected' %}
-                                <i class="fas fa-times-circle"></i> Отклонена
-                            {% endif %}
+                        <div class="application-status-badge status-{{ application.status.code }}">
+                            <i class="fas 
+                                {% if application.status.code == 'pending' %}fa-clock
+                                {% elif application.status.code == 'approved' %}fa-check-circle
+                                {% else %}fa-times-circle{% endif %}"></i>
+                            {{ application.status.name }}
                         </div>
                     </div>
                     <div class="application-actions">
@@ -205,7 +192,6 @@
 .application-teacher strong {
     font-size: 16px;
     color: var(--text);
-    font-family: 'Arial Black', 'Arial Black Local', 'Arial', sans-serif;
 }
 
 .application-email {
@@ -301,7 +287,6 @@
     color: var(--text);
     text-decoration: none;
     transition: all 0.3s ease;
-    font-weight: 900;
 }
 
 .page-link:hover {
@@ -313,7 +298,6 @@
 .page-current {
     padding: 10px 20px;
     color: var(--text-soft);
-    font-weight: 900;
 }
 
 @media (max-width: 768px) {

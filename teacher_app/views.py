@@ -11,6 +11,7 @@ from django.db.models import Count, Avg, Q, Sum, Max
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponse
 from django.urls import reverse
+from unireax_main.models import CoursePost, PostType 
 from django.db import transaction
 
 import csv
@@ -35,6 +36,7 @@ from methodist_app.forms import (
     LectureForm, PracticalAssignmentForm, TestForm, QuestionForm
 )
 
+from unireax_main.models import ApplicationStatus
 from unireax_main.utils.email_utils import send_new_teacher_application_notification
 from unireax_main.models import Course, TeacherApplication, CourseTeacher
 
@@ -413,7 +415,10 @@ def teacher_course_edit(request, course_id):
     if request.method == 'POST':
         form = TeacherCourseForm(request.POST, request.FILES, instance=course)
         if form.is_valid():
-            form.save()
+            course = form.save(commit=False)
+            course.course_price = None  
+            course.has_certificate = False 
+            course.save()
             messages.success(request, f'Курс "{course.course_name}" успешно обновлен!')
             return redirect('teacher_app:course_detail', course_id=course.id)
         else:
@@ -1058,8 +1063,8 @@ def teacher_listeners_list(request, course_id):
     """Список всех слушателей курса (активные и неактивные)"""
     course = get_object_or_404(Course, id=course_id)
     
-    if not (can_edit_course(request.user, course) or can_teach_course(request.user, course)):
-        messages.error(request, 'У вас нет доступа к этому курсу')
+    if course.created_by != request.user:
+        messages.error(request, 'Только создатель курса может просматривать список слушателей')
         return redirect('teacher_app:dashboard')
     
     all_students = UserCourse.objects.filter(
@@ -1089,10 +1094,9 @@ def teacher_listeners_list(request, course_id):
         'active_count': len(active_students),
         'inactive_count': len(inactive_students),
         'total_count': len(students_data),
-        'can_edit': can_edit_course(request.user, course),
+        'can_edit': True,
     }
     return render(request, 'teacher_listeners_list.html', context)
-
 
 @login_required
 @user_passes_test(is_teacher)
@@ -1100,8 +1104,8 @@ def teacher_remove_listener_from_course(request, course_id, user_id):
     """Удаление слушателя с курса (установка is_active=False)"""
     course = get_object_or_404(Course, id=course_id)
     
-    if not (can_edit_course(request.user, course) or can_teach_course(request.user, course)):
-        messages.error(request, 'У вас нет доступа к этому курсу')
+    if course.created_by != request.user:
+        messages.error(request, 'Только создатель курса может удалять слушателей')
         return redirect('teacher_app:dashboard')
     
     try:
@@ -1122,14 +1126,15 @@ def teacher_remove_listener_from_course(request, course_id, user_id):
     
     return redirect('teacher_app:listeners_list', course_id=course_id)
 
+
 @login_required
 @user_passes_test(is_teacher)
 def teacher_restore_listener_to_course(request, course_id, user_course_id):
     """Восстановление слушателя на курс (установка is_active=True)"""
     course = get_object_or_404(Course, id=course_id)
     
-    if not (can_edit_course(request.user, course) or can_teach_course(request.user, course)):
-        messages.error(request, 'У вас нет доступа к этому курсу')
+    if course.created_by != request.user:
+        messages.error(request, 'Только создатель курса может восстанавливать слушателей')
         return redirect('teacher_app:dashboard')
     
     try:
@@ -1148,7 +1153,6 @@ def teacher_restore_listener_to_course(request, course_id, user_course_id):
         messages.error(request, f'Ошибка при восстановлении слушателя: {str(e)}')
     
     return redirect('teacher_app:listeners_list', course_id=course_id)
-
 
 @login_required
 @user_passes_test(is_teacher)
@@ -1647,8 +1651,8 @@ def teacher_generate_listeners_csv(request, course_id):
     """Генерация CSV с паролями для слушателей и отправка email"""
     course = get_object_or_404(Course, id=course_id)
     
-    if not (can_edit_course(request.user, course) or can_teach_course(request.user, course)):
-        messages.error(request, 'У вас нет доступа к этому курсу')
+    if course.created_by != request.user:
+        messages.error(request, 'Только создатель курса может управлять слушателями')
         return redirect('teacher_app:dashboard')
     
     if request.method == 'POST':
@@ -1800,8 +1804,8 @@ def teacher_upload_listeners_csv(request, course_id):
     """Загрузка слушателей из CSV-файла с отправкой email"""
     course = get_object_or_404(Course, id=course_id)
     
-    if not (can_edit_course(request.user, course) or can_teach_course(request.user, course)):
-        messages.error(request, 'У вас нет доступа к этому курсу')
+    if course.created_by != request.user:
+        messages.error(request, 'Только создатель курса может управлять слушателями')
         return redirect('teacher_app:dashboard')
     
     if request.method == 'POST' and request.FILES.get('csv_file'):
@@ -2025,20 +2029,20 @@ def apply_for_teaching(request, course_id):
 @user_passes_test(is_teacher)
 def teacher_course_posts_manage(request, course_id):
     """Страница управления постами курса для преподавателя"""
-    from unireax_main.models import CoursePost
-    
     course = get_object_or_404(Course, id=course_id)
     
     if not can_teach_course(request.user, course) and not can_edit_course(request.user, course):
         messages.error(request, 'У вас нет доступа к управлению этим курсом')
         return redirect('teacher_app:dashboard')
     
-    posts = CoursePost.objects.filter(course=course, is_active=True).order_by('-is_pinned', '-created_at')
+    posts = CoursePost.objects.filter(course=course, is_active=True).select_related('post_type').order_by('-is_pinned', '-created_at')
+    
+    all_post_types = PostType.objects.all()
     
     context = {
         'course': course,
         'posts': posts,
-        'post_types': CoursePost.POST_TYPES,
+        'all_post_types': all_post_types,
     }
     return render(request, 'course_posts_manage.html', context)
 
@@ -2047,8 +2051,6 @@ def teacher_course_posts_manage(request, course_id):
 @user_passes_test(is_teacher)
 def teacher_course_post_create(request, course_id):
     """Создание нового поста"""
-    from unireax_main.models import CoursePost
-    
     course = get_object_or_404(Course, id=course_id)
     
     if not can_teach_course(request.user, course) and not can_edit_course(request.user, course):
@@ -2056,10 +2058,28 @@ def teacher_course_post_create(request, course_id):
         return redirect('teacher_app:dashboard')
     
     if request.method == 'POST':
+        
         title = request.POST.get('title', '').strip()
         content = request.POST.get('content', '').strip()
-        post_type = request.POST.get('post_type', 'announcement')
+        post_type_code = request.POST.get('post_type', '').strip()
         is_pinned = request.POST.get('is_pinned') == 'on'
+        
+        print(f"title: '{title}'")
+        print(f"content: '{content[:50]}...'")
+        print(f"post_type_code: '{post_type_code}'")
+        print(f"is_pinned: {is_pinned}")
+        print("=" * 50)
+        
+        if not post_type_code:
+            messages.error(request, 'Пожалуйста, выберите тип объявления')
+            all_post_types = PostType.objects.all()
+            context = {
+                'course': course,
+                'all_post_types': all_post_types,
+                'post': None,
+                'current_post_type_code': 'announcement',
+            }
+            return render(request, 'course_post_form.html', context)
         
         errors = []
         if not title or len(title) < 3:
@@ -2071,30 +2091,37 @@ def teacher_course_post_create(request, course_id):
             for error in errors:
                 messages.error(request, error)
         else:
-            CoursePost.objects.create(
-                course=course,
-                author=request.user,
-                title=title,
-                content=content,
-                post_type=post_type,
-                is_pinned=is_pinned
-            )
-            messages.success(request, 'Объявление успешно создано!')
-            return redirect('teacher_app:course_posts_manage', course_id=course.id)
+            try:
+                post_type = PostType.objects.get(code=post_type_code)
+                
+                CoursePost.objects.create(
+                    course=course,
+                    author=request.user,
+                    title=title,
+                    content=content,
+                    post_type=post_type,
+                    is_pinned=is_pinned
+                )
+                messages.success(request, 'Объявление успешно создано!')
+                return redirect('teacher_app:course_posts_manage', course_id=course.id)
+            except PostType.DoesNotExist:
+                messages.error(request, f'Тип поста "{post_type_code}" не найден')
+                print(f"ERROR: PostType with code '{post_type_code}' not found!")
+    
+    all_post_types = PostType.objects.all()
     
     context = {
         'course': course,
-        'post_types': CoursePost.POST_TYPES,
+        'all_post_types': all_post_types,
+        'post': None,
+        'current_post_type_code': 'announcement',
     }
     return render(request, 'course_post_form.html', context)
-
 
 @login_required
 @user_passes_test(is_teacher)
 def teacher_course_post_edit(request, post_id):
     """Редактирование поста"""
-    from unireax_main.models import CoursePost
-    
     post = get_object_or_404(CoursePost, id=post_id)
     course = post.course
     
@@ -2105,7 +2132,7 @@ def teacher_course_post_edit(request, post_id):
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
         content = request.POST.get('content', '').strip()
-        post_type = request.POST.get('post_type', post.post_type)
+        post_type_code = request.POST.get('post_type', post.post_type.code if post.post_type else 'announcement')
         is_pinned = request.POST.get('is_pinned') == 'on'
         
         errors = []
@@ -2118,18 +2145,26 @@ def teacher_course_post_edit(request, post_id):
             for error in errors:
                 messages.error(request, error)
         else:
-            post.title = title
-            post.content = content
-            post.post_type = post_type
-            post.is_pinned = is_pinned
-            post.save()
-            messages.success(request, 'Объявление обновлено!')
-            return redirect('teacher_app:course_posts_manage', course_id=course.id)
+            try:
+                post_type = PostType.objects.get(code=post_type_code)
+                
+                post.title = title
+                post.content = content
+                post.post_type = post_type
+                post.is_pinned = is_pinned
+                post.save()
+                messages.success(request, 'Объявление обновлено!')
+                return redirect('teacher_app:course_posts_manage', course_id=course.id)
+            except PostType.DoesNotExist:
+                messages.error(request, f'Тип поста "{post_type_code}" не найден')
+    
+    all_post_types = PostType.objects.all()
     
     context = {
         'post': post,
         'course': course,
-        'post_types': CoursePost.POST_TYPES,
+        'all_post_types': all_post_types,
+        'current_post_type_code': post.post_type.code if post.post_type else 'announcement',
     }
     return render(request, 'course_post_form.html', context)
 
@@ -2232,3 +2267,68 @@ def teacher_delete_comment(request, comment_id):
     comment.delete()
     
     return JsonResponse({'success': True, 'message': 'Комментарий удалён!'})
+
+
+@login_required
+def apply_for_teaching(request, course_id):
+    """Обработка заявки от преподавателя на преподавание курса"""
+    if not request.user.role or request.user.role.role_name.lower() != 'преподаватель':
+        messages.error(request, 'Только преподаватели могут подавать заявки')
+        return redirect('main_page')
+    
+    course = get_object_or_404(Course, id=course_id, is_active=True)
+    
+    if CourseTeacher.objects.filter(course=course, teacher=request.user, is_active=True).exists():
+        messages.info(request, 'Вы уже преподаватель на этом курсе.')
+        return redirect('course_detail', course_id=course_id)
+    
+    existing_app = TeacherApplication.objects.filter(teacher=request.user, course=course).first()
+    if existing_app:
+        if existing_app.status and existing_app.status.code == 'pending':
+            messages.warning(request, 'Заявка уже отправлена. Ожидайте решения методиста.')
+        elif existing_app.status and existing_app.status.code == 'approved':
+            messages.info(request, 'Вы уже преподаватель на этом курсе.')
+        elif existing_app.status and existing_app.status.code == 'rejected':
+            messages.warning(request, 'Ваша заявка была отклонена.')
+        return redirect('course_detail', course_id=course_id)
+
+    try:
+        pending_status = ApplicationStatus.objects.get(code='pending')
+        
+        application = TeacherApplication.objects.create(
+            teacher=request.user,
+            course=course,
+            status=pending_status
+        )
+        
+        methodist_email = None
+        methodist_name = None
+        
+        if course.created_by and course.created_by.role and course.created_by.role.role_name.lower() == 'методист':
+            methodist_email = course.created_by.email
+            methodist_name = course.created_by.get_full_name() or course.created_by.username
+        
+        if methodist_email:
+            try:
+                send_new_teacher_application_notification(
+                    methodist_email=methodist_email,
+                    methodist_name=methodist_name,
+                    teacher_name=request.user.get_full_name() or request.user.username,
+                    teacher_email=request.user.email,
+                    course_name=course.course_name,
+                    application_id=application.id,
+                    request=request
+                )
+            except Exception as e:
+                print(f"Email error: {e}")
+        
+        messages.success(request, f'Заявка на преподавание курса "{course.course_name}" успешно отправлена! Методист рассмотрит её в ближайшее время.')
+        
+    except ApplicationStatus.DoesNotExist:
+        messages.error(request, 'Ошибка: статус "pending" не найден в системе')
+        return redirect('course_detail', course_id=course_id)
+    except Exception as e:
+        messages.error(request, f'Ошибка при отправке заявки: {str(e)}')
+        return redirect('course_detail', course_id=course_id)
+    
+    return redirect('course_detail', course_id=course_id)

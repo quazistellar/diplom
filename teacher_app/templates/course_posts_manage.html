@@ -21,17 +21,6 @@
             </div>
         </div>
 
-        {% if messages %}
-        <div class="teacher-messages">
-            {% for message in messages %}
-            <div class="teacher-message teacher-message-{{ message.tags }}">
-                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-                <span>{{ message }}</span>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
         <div class="teacher-card">
             <div class="teacher-card-header">
                 <h2><i class="fas fa-bullhorn"></i> Все объявления</h2>
@@ -45,12 +34,13 @@
                     <div class="post-manage-info">
                         <div class="post-manage-header">
                             <div class="post-badges">
-                                <span class="post-type-badge post-type-{{ post.post_type }}">
+                                <span class="post-type-badge post-type-{{ post.post_type.code }}">
                                     <i class="fas 
-                                        {% if post.post_type == 'announcement' %}fa-bullhorn
-                                        {% elif post.post_type == 'question' %}fa-question-circle
-                                        {% else %}fa-bell{% endif %}"></i>
-                                    {{ post.get_post_type_display }}
+                                        {% if post.post_type.code == 'announcement' %}fa-bullhorn
+                                        {% elif post.post_type.code == 'question' %}fa-question-circle
+                                        {% elif post.post_type.code == 'reminder' %}fa-bell
+                                        {% else %}fa-bullhorn{% endif %}"></i>
+                                    {{ post.post_type.name }}
                                 </span>
                                 {% if post.is_pinned %}
                                 <span class="pinned-badge">
@@ -232,7 +222,6 @@
 let deletePostId = null;
 let deletePostTitle = '';
 
-// функция сохранения состояния открытых комментариев в localStorage
 function saveCommentsState(postId, isOpen) {
     let state = localStorage.getItem('openCommentsState');
     if (state) {
@@ -244,7 +233,6 @@ function saveCommentsState(postId, isOpen) {
     localStorage.setItem('openCommentsState', JSON.stringify(state));
 }
 
-// функция загрузки состояния открытых комментариев из localStorage
 function loadCommentsState(postId) {
     let state = localStorage.getItem('openCommentsState');
     if (state) {
@@ -254,7 +242,6 @@ function loadCommentsState(postId) {
     return false;
 }
 
-// функция защиты от XSS
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -262,7 +249,6 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// функции для удаления поста
 function openDeleteModal(postId, postTitle) {
     deletePostId = postId;
     deletePostTitle = postTitle;
@@ -285,7 +271,6 @@ function submitDelete() {
     }
 }
 
-// функция переключения видимости комментариев с сохранением состояния
 function toggleComments(postId) {
     const body = document.getElementById(`comments-body-${postId}`);
     const header = document.querySelector(`#comments-section-${postId} .comments-manage-header`);
@@ -301,7 +286,6 @@ function toggleComments(postId) {
     }
 }
 
-// функция восстановления состояния комментариев после загрузки
 function restoreCommentsState() {
     document.querySelectorAll('.comments-manage-body').forEach(body => {
         const postId = body.id.replace('comments-body-', '');
@@ -318,7 +302,6 @@ function restoreCommentsState() {
     });
 }
 
-// функция отображения формы ответа
 function showReplyForm(postId, commentId, authorName) {
     document.querySelectorAll('.reply-form-container').forEach(form => {
         if (form.style.display === 'block') {
@@ -348,7 +331,6 @@ function showReplyForm(postId, commentId, authorName) {
     }
 }
 
-// функция отмены ответа
 function cancelReply(postId, commentId) {
     const form = document.getElementById(`reply-form-${postId}-${commentId}`);
     if (form) {
@@ -365,7 +347,6 @@ function cancelReply(postId, commentId) {
     }
 }
 
-// функция отправки ответа на комментарий
 function submitReply(postId, parentCommentId) {
     const textarea = document.getElementById(`reply-text-${postId}-${parentCommentId}`);
     const content = textarea?.value.trim();
@@ -397,7 +378,6 @@ function submitReply(postId, parentCommentId) {
     });
 }
 
-// функция отправки нового комментария
 function submitNewComment(postId) {
     const textarea = document.getElementById(`new-comment-${postId}`);
     const content = textarea?.value.trim();
@@ -427,7 +407,6 @@ function submitNewComment(postId) {
     });
 }
 
-// функция удаления комментария
 function deleteComment(commentId, postId) {
     if (!confirm('Удалить комментарий?')) return;
     

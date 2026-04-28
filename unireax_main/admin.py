@@ -638,13 +638,12 @@ if not admin.site.is_registered(LogEntry):
     admin.site.register(LogEntry, LogEntryAdmin)
 
 
-
 @admin.register(TeacherApplication)
 class TeacherApplicationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'teacher', 'course', 'status', 'created_at')
+    list_display = ('id', 'teacher', 'course', 'get_status_name', 'created_at')
     list_filter = ('status', 'created_at', 'course')
     search_fields = ('teacher__username', 'teacher__last_name', 'teacher__email', 'course__course_name')
-    autocomplete_fields = ['teacher', 'course']
+    autocomplete_fields = ['teacher', 'course', 'status']
     readonly_fields = ('created_at', 'updated_at')
     
     fieldsets = (
@@ -660,35 +659,44 @@ class TeacherApplicationAdmin(admin.ModelAdmin):
         }),
     )
     
+    def get_status_name(self, obj):
+        return obj.status.name if obj.status else '-'
+    get_status_name.short_description = 'Статус'
+    get_status_name.admin_order_field = 'status__name'
+    
     def save_model(self, request, obj, form, change):
-        old_status = None
+        old_status_code = None
         if change:
             try:
                 old_obj = TeacherApplication.objects.get(pk=obj.pk)
-                old_status = old_obj.status
+                old_status_code = old_obj.status.code if old_obj.status else None
             except TeacherApplication.DoesNotExist:
                 pass
         
         super().save_model(request, obj, form, change)
         
-        if old_status == 'pending' and obj.status != 'pending':
-            if obj.status == 'approved':
+        if change and old_status_code == 'pending' and obj.status and obj.status.code != 'pending':
+            if obj.status.code == 'approved':
                 obj.approve(request)
-            elif obj.status == 'rejected':
+            elif obj.status.code == 'rejected':
                 obj.reject(obj.comment, request)
     
     actions = ['approve_selected', 'reject_selected']
     
     def approve_selected(self, request, queryset):
-        count = queryset.filter(status='pending').count()
-        for application in queryset.filter(status='pending'):
+        from unireax_main.models import ApplicationStatus
+        pending_status = ApplicationStatus.objects.get(code='pending')
+        count = queryset.filter(status=pending_status).count()
+        for application in queryset.filter(status=pending_status):
             application.approve(request)
         self.message_user(request, f'Одобрено {count} заявок.')
     approve_selected.short_description = 'Одобрить выбранные заявки'
     
     def reject_selected(self, request, queryset):
-        count = queryset.filter(status='pending').count()
-        for application in queryset.filter(status='pending'):
+        from unireax_main.models import ApplicationStatus
+        pending_status = ApplicationStatus.objects.get(code='pending')
+        count = queryset.filter(status=pending_status).count()
+        for application in queryset.filter(status=pending_status):
             application.reject(request=request)
         self.message_user(request, f'Отклонено {count} заявок.')
     reject_selected.short_description = 'Отклонить выбранные заявки'
@@ -730,3 +738,39 @@ class FavoriteCourseAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+@admin.register(ApplicationStatus)
+class ApplicationStatusAdmin(admin.ModelAdmin):
+    list_display = ('id', 'code', 'name')
+    search_fields = ('code', 'name')
+
+@admin.register(PostType)
+class PostTypeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'code', 'name')
+    search_fields = ('code', 'name')
+
+@admin.register(CoursePost)
+class CoursePostAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'course', 'author', 'get_post_type_name', 'is_pinned', 'is_active', 'created_at')
+    list_filter = ('post_type', 'is_pinned', 'is_active', 'created_at')
+    search_fields = ('title', 'content', 'course__course_name', 'author__username')
+    autocomplete_fields = ['course', 'author', 'post_type']
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('title', 'content', 'course', 'author')
+        }),
+        ('Тип и статус', {
+            'fields': ('post_type', 'is_pinned', 'is_active')
+        }),
+        ('Даты', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_post_type_name(self, obj):
+        return obj.post_type.name if obj.post_type else '-'
+    get_post_type_name.short_description = 'Тип поста'
+    get_post_type_name.admin_order_field = 'post_type__name'

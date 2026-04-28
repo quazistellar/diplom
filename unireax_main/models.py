@@ -2772,12 +2772,6 @@ class LoginAttempt(models.Model):
 class TeacherApplication(models.Model):
     """Модель для хранения заявок преподавателей на преподавание курса"""
     
-    STATUS_CHOICES = [
-        ('pending', 'На рассмотрении'),
-        ('approved', 'Одобрена'),
-        ('rejected', 'Отклонена'),
-    ]
-    
     teacher = models.ForeignKey(
         User, 
         on_delete=models.CASCADE, 
@@ -2793,11 +2787,13 @@ class TeacherApplication(models.Model):
         related_name='teacher_applications'
     )
     
-    status = models.CharField(
-        'Статус', 
-        max_length=20, 
-        choices=STATUS_CHOICES, 
-        default='pending'
+    status = models.ForeignKey(
+        'ApplicationStatus',
+        on_delete=models.PROTECT,
+        verbose_name='Статус',
+        related_name='applications',
+        null=True,
+        blank=True
     )
     
     comment = models.TextField(
@@ -2811,7 +2807,8 @@ class TeacherApplication(models.Model):
     updated_at = models.DateTimeField('Дата обновления', auto_now=True)
     
     def __str__(self):
-        return f'{self.teacher.get_full_name()} - {self.course.course_name} ({self.get_status_display()})'
+        status_name = self.status.name if self.status else 'Без статуса'
+        return f'{self.teacher.get_full_name()} - {self.course.course_name} ({status_name})'
     
     def _get_methodist_email(self):
         """Получить email методиста, ответственного за курс"""
@@ -2833,8 +2830,12 @@ class TeacherApplication(models.Model):
     
     def approve(self, request=None):
         """Одобрить заявку и добавить преподавателя на курс"""
-        if self.status == 'pending':
-            self.status = 'approved'
+        from .models import ApplicationStatus
+        
+        pending_status = ApplicationStatus.objects.get(code='pending')
+        if self.status == pending_status:
+            approved_status = ApplicationStatus.objects.get(code='approved')
+            self.status = approved_status
             self.save()
             
             CourseTeacher.objects.get_or_create(
@@ -2858,8 +2859,12 @@ class TeacherApplication(models.Model):
     
     def reject(self, comment=None, request=None):
         """Отклонить заявку"""
-        if self.status == 'pending':
-            self.status = 'rejected'
+        from .models import ApplicationStatus
+        
+        pending_status = ApplicationStatus.objects.get(code='pending')
+        if self.status == pending_status:
+            rejected_status = ApplicationStatus.objects.get(code='rejected')
+            self.status = rejected_status
             if comment:
                 self.comment = comment
             self.save()
@@ -2886,22 +2891,17 @@ class TeacherApplication(models.Model):
         ordering = ['-created_at']
 
 
-
-# 29. посты/объявления в курсах
+# 30. посты/объявления в курсах
 class CoursePost(models.Model):
     """Модель для постов/объявлений в курсе"""
-    
-    POST_TYPES = [
-        ('announcement', 'Объявление'),
-        ('question', 'Вопрос'),
-        ('reminder', 'Напоминание'),
-    ]
     
     course = models.ForeignKey(
         Course, 
         on_delete=models.CASCADE, 
         verbose_name='Курс',
-        related_name='posts'
+        related_name='posts',
+        null=True,
+        blank=True
     )
     
     author = models.ForeignKey(
@@ -2913,7 +2913,14 @@ class CoursePost(models.Model):
     
     title = models.CharField('Заголовок', max_length=200)
     content = models.TextField('Содержание')
-    post_type = models.CharField('Тип', max_length=20, choices=POST_TYPES, default='announcement')
+    
+    post_type = models.ForeignKey(
+        'PostType',
+        on_delete=models.PROTECT,
+        verbose_name='Тип поста',
+        related_name='posts'
+    )
+    
     is_pinned = models.BooleanField('Закреплён', default=False)
     is_active = models.BooleanField('Активен', default=True)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
@@ -2922,6 +2929,11 @@ class CoursePost(models.Model):
     def __str__(self):
         return f'{self.title} - {self.course.course_name}'
     
+    @property
+    def post_type_display(self):
+        """Свойство для обратной совместимости с шаблонами"""
+        return self.post_type.name if self.post_type else ''
+    
     class Meta:
         db_table = 'course_post'
         verbose_name = 'Пост курса'
@@ -2929,7 +2941,7 @@ class CoursePost(models.Model):
         ordering = ['-is_pinned', '-created_at']
 
 
-# 30. комментарии к постам (с возможностью ответов)
+# 31. комментарии к постам (с возможностью ответов)
 class CoursePostComment(models.Model):
     """Модель для комментариев к постам"""
     
@@ -2967,3 +2979,32 @@ class CoursePostComment(models.Model):
         verbose_name = 'Комментарий к посту'
         verbose_name_plural = 'Комментарии к постам'
         ordering = ['created_at']
+
+# 32. статусы заявок преподавателей
+class ApplicationStatus(models.Model):
+    """Модель-справочник для статусов заявок преподавателей"""
+    name = models.CharField('Название', max_length=50, unique=True)
+    code = models.CharField('Код', max_length=20, unique=True)
+
+    class Meta:
+        db_table = 'application_status'
+        verbose_name = 'Статус заявки'
+        verbose_name_plural = 'Статусы заявок'
+
+    def __str__(self):
+        return self.name
+
+
+# 33. статусы постов
+class PostType(models.Model):
+    """Модель-справочник для типов постов"""
+    name = models.CharField('Название', max_length=50, unique=True)
+    code = models.CharField('Код', max_length=20, unique=True)
+
+    class Meta:
+        db_table = 'post_type'
+        verbose_name = 'Тип поста'
+        verbose_name_plural = 'Типы постов'
+
+    def __str__(self):
+        return self.name

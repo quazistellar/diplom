@@ -1645,7 +1645,7 @@ def send_account_approved_email(user, comment=None):
         subject = 'Ваш аккаунт на UNIREAX подтвержден!'
         
         login_url = settings.SITE_URL if hasattr(settings, 'SITE_URL') else 'http://127.0.0.1:8000'
-        login_url = f"{login_url}/auth/"
+        login_url = f"{login_url}"
         
         html_message = None
         try:

@@ -319,12 +319,13 @@
                             {% for post in course_posts %}
                             <div class="post-card" data-post-id="{{ post.id }}">
                                 <div class="post-header">
-                                    <div class="post-type-badge post-type-{{ post.post_type }}">
+                                   <div class="post-type-badge post-type-{{ post.post_type.code }}">
                                         <i class="fas 
-                                            {% if post.post_type == 'announcement' %}fa-bullhorn
-                                            {% elif post.post_type == 'question' %}fa-question-circle
-                                            {% else %}fa-bell{% endif %}"></i>
-                                        {{ post.post_type_display }}
+                                            {% if post.post_type.code == 'announcement' %}fa-bullhorn
+                                            {% elif post.post_type.code == 'question' %}fa-question-circle
+                                            {% elif post.post_type.code == 'reminder' %}fa-bell
+                                            {% else %}fa-bullhorn{% endif %}"></i>
+                                        {{ post.post_type.name }}
                                     </div>
                                     {% if post.is_pinned %}
                                     <span class="pinned-badge"><i class="fas fa-thumbtack"></i> Закреплено</span>

@@ -6,39 +6,52 @@ from unireax_main.models import (
 
 
 class TeacherCourseForm(forms.ModelForm):
-    """Форма для создания/редактирования курса преподавателем (только тип 'Классная комната')"""
-    
     class Meta:
         model = Course
         fields = [
-            'course_name', 'course_description', 'course_price', 
-            'course_category', 'course_photo_path',
-            'has_certificate', 'course_max_places', 'course_hours',
-            'code_link', 'is_active'
+            'course_name',
+            'course_description',
+            'course_category',
+            'course_hours',
+            'course_max_places',
+            'code_link',
+            'course_photo_path',
+            'is_active',
         ]
         widgets = {
             'course_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Введите название курса'}),
-            'course_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Описание курса'}),
-            'course_price': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0.00'}),
+            'course_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Опишите курс'}),
             'course_category': forms.Select(attrs={'class': 'form-control'}),
-            'course_photo_path': forms.FileInput(attrs={'class': 'form-control'}),
-            'has_certificate': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'course_max_places': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Не ограничено'}),
             'course_hours': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Количество часов'}),
-            'code_link': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://'}),
+            'course_max_places': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Максимум мест (оставьте пустым если без ограничений)'}),
+            'code_link': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://...'}),
+            'course_photo_path': forms.FileInput(attrs={'class': 'form-control'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        labels = {
+            'course_name': 'Название курса',
+            'course_description': 'Описание курса',
+            'course_category': 'Категория',
+            'course_hours': 'Количество часов',
+            'course_max_places': 'Максимум мест',
+            'code_link': 'Ссылка на видеовстречу',
+            'course_photo_path': 'Изображение курса',
+            'is_active': 'Курс активен',
+        }
+        help_texts = {
+            'course_name': 'Название курса (3-200 символов)',
+            'course_description': 'Краткое описание курса (до 300 символов)',
+            'course_hours': 'Общая продолжительность курса в часах',
+            'course_max_places': 'Оставьте пустым, если нет ограничений',
+            'code_link': 'Ссылка на Яндекс.Телемост или другую платформу',
+            'course_photo_path': 'Изображение курса (JPG, JPEG, PNG)',
+            'is_active': 'Если убрать галочку, курс станет недоступным для слушателей',
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['course_price'].required = False
-        self.fields['course_max_places'].required = False
-        self.fields['course_photo_path'].required = False
-        self.fields['code_link'].required = False
-        self.fields['course_description'].required = False
-        self.fields['course_category'].queryset = CourseCategory.objects.all()
-        self.fields['course_category'].empty_label = "Выберите категорию"
-
+        if not kwargs.get('instance'):
+            self.initial['is_active'] = True
 
 class TeacherGradeForm(forms.Form):
     """Форма для оценивания работы слушателя"""

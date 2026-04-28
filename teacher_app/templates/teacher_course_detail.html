@@ -23,9 +23,11 @@
                     <i class="fas fa-edit"></i> Редактировать курс
                 </a>
                 {% endif %}
+                 {% if can_edit %}
                 <a href="{% url 'teacher_app:listeners_list' course.id %}" class="teacher-btn teacher-btn-outline">
                     <i class="fas fa-users"></i> Слушатели
                 </a>
+                 {% endif %}
                 <a href="{% url 'teacher_app:course_posts_manage' course.id %}" class="teacher-btn teacher-btn-outline">
                     <i class="fas fa-bullhorn"></i> Управление объявлениями
                 </a>

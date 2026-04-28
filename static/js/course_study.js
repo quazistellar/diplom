@@ -23,14 +23,21 @@ function escapeHtml(text) {
 /// данная функция форматирует дату в локальный формат
 function formatDate(dateString) {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            return dateString;
+        }
+        return date.toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch(e) {
+        return dateString;
+    }
 }
 
 /// данная функция переключает вкладки и сохраняет активную вкладку
@@ -205,7 +212,7 @@ async function submitComment(postId) {
         return;
     }
     
-    const originalText = textarea.value;
+    const originalText = content;
     textarea.disabled = true;
     textarea.value = 'Отправка...';
     
@@ -224,7 +231,9 @@ async function submitComment(postId) {
         const data = await response.json();
         
         if (data.success && data.comment) {
+            // Очищаем поле
             textarea.value = '';
+            // Добавляем комментарий в DOM
             addCommentToDOM(postId, data.comment);
             const commentsDiv = document.getElementById(`comments-${postId}`);
             if (commentsDiv && commentsDiv.style.display !== 'block') {
@@ -233,13 +242,14 @@ async function submitComment(postId) {
             }
         } else {
             alert(data.error || 'Ошибка отправки комментария');
+            textarea.value = originalText;
         }
     } catch (error) {
         console.error('Error:', error);
         alert('Произошла ошибка: ' + error.message);
+        textarea.value = originalText;
     } finally {
         textarea.disabled = false;
-        textarea.value = originalText;
     }
 }
 

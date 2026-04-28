@@ -48,10 +48,21 @@
                 </a>
                 <div class="header-profile-menu" id="profileDropdownMenu">
                     
+                    {% if not user.is_verified %}
+                    <a href="{% url 'unverified_profile' %}" class="header-profile-item">
+                        <i class="fas fa-id-card"></i> Мой профиль
+                        <span style="background: #f39c12; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 12px; margin-left: 8px;">
+                            ожидает проверки
+                        </span>
+                    </a>
+                    {% endif %}
+                    
                     {% if user.role.role_name == 'администратор' or user.role.role_name == 'Администратор' or user.is_superuser %}
+                    {% if user.is_verified %}
                     <a href="{% url 'admin_app:admin_profile' %}" class="header-profile-item">
                         <i class="fas fa-id-card"></i> Мой профиль
                     </a>
+                    {% endif %}
                     <a href="{% url 'admin_app:dashboard' %}" class="header-profile-item">
                         <i class="fas fa-crown" style="color: #e74c3c;"></i> Панель администратора
                     </a>
@@ -64,9 +75,11 @@
                     {% endif %}
                     
                     {% if user.role.role_name == 'преподаватель' or user.role.role_name == 'Преподаватель' %}
+                    {% if user.is_verified %}
                     <a href="{% url 'teacher_app:profile' %}" class="header-profile-item">
                         <i class="fas fa-id-card"></i> Мой профиль
                     </a>
+                    {% endif %}
                     <a href="{% url 'teacher_app:dashboard' %}" class="header-profile-item">
                         <i class="fas fa-chalkboard-teacher" style="color: #3498db;"></i> Панель преподавателя
                     </a>
@@ -79,9 +92,11 @@
                     {% endif %}
                     
                     {% if user.role.role_name == 'методист' or user.role.role_name == 'Методист' %}
+                    {% if user.is_verified %}
                     <a href="{% url 'methodist_app:profile' %}" class="header-profile-item">
                         <i class="fas fa-id-card"></i> Мой профиль
                     </a>
+                    {% endif %}
                     <a href="{% url 'methodist_app:dashboard' %}" class="header-profile-item">
                         <i class="fas fa-clipboard-check" style="color: #2ecc71;"></i> Панель методиста
                     </a>
@@ -97,9 +112,11 @@
                     {% endif %}
                     
                     {% if user.role.role_name == 'слушатель курсов' or user.role.role_name == 'Слушатель курсов' or not user.role %}
+                    {% if user.is_verified %}
                     <a href="{% url 'listener_app:listener_profile' %}" class="header-profile-item">
                         <i class="fas fa-id-card"></i> Мой профиль
                     </a>
+                    {% endif %}
                     <a href="{% url 'listener_app:dashboard' %}" class="header-profile-item">
                         <i class="fas fa-tachometer-alt"></i> Дашборд
                     </a>
@@ -198,10 +215,21 @@
                 <i class="fas fa-user-circle" style="margin-right: 8px; color: var(--primary);"></i>Профиль
             </a>
             
+            {% if not user.is_verified %}
+            <a href="{% url 'unverified_profile' %}" class="nav-link mobile-subitem">
+                <i class="fas fa-id-card" style="margin-right: 8px;"></i>Мой профиль
+                <span style="background: #f39c12; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 12px; margin-left: 8px;">
+                    ожидает проверки
+                </span>
+            </a>
+            {% endif %}
+            
             {% if user.role.role_name == 'администратор' or user.role.role_name == 'Администратор' or user.is_superuser %}
+            {% if user.is_verified %}
             <a href="{% url 'admin_app:admin_profile' %}" class="nav-link mobile-subitem">
                 <i class="fas fa-id-card" style="margin-right: 8px;"></i>Мой профиль
             </a>
+            {% endif %}
             <a href="{% url 'admin_app:dashboard' %}" class="nav-link mobile-subitem">
                 <i class="fas fa-crown" style="color: #e74c3c; margin-right: 8px;"></i>Панель администратора
             </a>
@@ -214,9 +242,11 @@
             {% endif %}
             
             {% if user.role.role_name == 'преподаватель' or user.role.role_name == 'Преподаватель' %}
+            {% if user.is_verified %}
             <a href="{% url 'teacher_app:profile' %}" class="nav-link mobile-subitem">
                 <i class="fas fa-id-card" style="margin-right: 8px;"></i>Мой профиль
             </a>
+            {% endif %}
             <a href="{% url 'teacher_app:dashboard' %}" class="nav-link mobile-subitem">
                 <i class="fas fa-chalkboard-teacher" style="color: #3498db; margin-right: 8px;"></i>Панель преподавателя
             </a>
@@ -229,9 +259,11 @@
             {% endif %}
             
             {% if user.role.role_name == 'методист' or user.role.role_name == 'Методист' %}
+            {% if user.is_verified %}
             <a href="{% url 'methodist_app:profile' %}" class="nav-link mobile-subitem">
                 <i class="fas fa-id-card" style="margin-right: 8px;"></i>Мой профиль
             </a>
+            {% endif %}
             <a href="{% url 'methodist_app:dashboard' %}" class="nav-link mobile-subitem">
                 <i class="fas fa-clipboard-check" style="color: #2ecc71; margin-right: 8px;"></i>Панель методиста
             </a>
@@ -244,9 +276,11 @@
             {% endif %}
             
             {% if user.role.role_name == 'слушатель курсов' or user.role.role_name == 'Слушатель курсов' or not user.role %}
+            {% if user.is_verified %}
             <a href="{% url 'listener_app:listener_profile' %}" class="nav-link mobile-subitem">
                 <i class="fas fa-id-card" style="margin-right: 8px;"></i>Мой профиль
             </a>
+            {% endif %}
             <a href="{% url 'listener_app:dashboard' %}" class="nav-link mobile-subitem">
                 <i class="fas fa-tachometer-alt" style="margin-right: 8px;"></i>Дашборд
             </a>

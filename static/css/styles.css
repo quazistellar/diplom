@@ -13615,6 +13615,7 @@ body {
 .teacher-page-title {
     font-size: 32px;
     font-weight: 900;
+    margin-top: 45px !important;
     color: var(--text);
     margin: 0;
 }
